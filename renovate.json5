@@ -11,5 +11,8 @@
       "automergeType": "branch",
       "matchUpdateTypes": ["minor", "patch"]
     }
-  ]
+  ],
+  "pre-commit": {
+    "enabled": true
+  },
 }

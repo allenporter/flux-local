@@ -1,0 +1,3 @@
+[MASTER]
+extension-pkg-whitelist=pydantic
+disable = no-self-argument, too-many-instance-attributes
