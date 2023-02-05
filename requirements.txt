@@ -1,0 +1,20 @@
+-e .
+aiofiles==22.1.0
+black==22.10.0
+coverage==6.4.2
+flake8==5.0.4
+flake8-black==0.3.5
+GitPython==3.1.30
+pdoc==12.1.0
+pip==22.1.2
+pre-commit==3.0.4
+pydantic==1.10.4
+pylint==2.14.4
+pytest==7.2.1
+pytest-asyncio==0.20.3
+python-slugify==8.0.0
+PyYAML==6.0
+typing-extensions==4.4.0
+wheel==0.37.1
+yamllint==1.29.0
+yq==3.1.0
