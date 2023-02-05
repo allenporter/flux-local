@@ -1,0 +1,11 @@
+apiVersion: v1
+data:
+  CLUSTER: dev
+  DOMAIN: example.org
+kind: ConfigMap
+metadata:
+  name: cluster-settings
+  namespace: flux-system
+  annotations:
+    config.kubernetes.io/index: '0'
+    internal.config.kubernetes.io/index: '0'

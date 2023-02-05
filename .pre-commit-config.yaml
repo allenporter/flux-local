@@ -38,6 +38,7 @@ repos:
     files: ^(flux_local/|tests/)
     additional_dependencies:
     - "pydantic>=1.10.4"
+    - "types-PyYAML>=6.0.12.4"
 - repo: local
   hooks:
   - id: pylint
