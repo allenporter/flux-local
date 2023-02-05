@@ -7,3 +7,7 @@ flux and understand the desired end state of the cluster. It only looks at the l
 and not a live cluster. However, this is fine since the local repository has enough information
 and the definition is simple. Secrets are ignored as the content is not needed to validate the
 cluster is creating valid objects.
+
+This library at first glance is little more than shell scripts running commands, but is easier
+to test, maintain, and evolve.
+
