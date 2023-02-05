@@ -1,37 +1,69 @@
-import json
-import os
-import tempfile
+"""Tests for manifest library."""
 
-import flux_local.manifest
+import yaml
+
+from flux_local.manifest import HelmRelease, HelmRepository
 
 
-def test_generate_manifest():
-    """Test generating a manifest file."""
-    # Setup
-    project_name = "my-project"
-    project_version = "0.0.1"
-    description = "My project is a command line tool that does x, y, and z."
-    files = [
-        {"name": "main.py", "description": "The main program file."},
-        {"name": "README.md", "description": "The project README file."},
-    ]
+def test_parse_helm_release() -> None:
+    """Test parsing a helm release doc."""
 
-    # Run
-    with tempfile.TemporaryDirectory() as temp_dir:
-        output_path = os.path.join(temp_dir, "manifest.json")
-        manifest.generate_manifest(
-            project_name, project_version, description, files, output_path
+    release = HelmRelease.from_doc(
+        yaml.load(
+            """---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: metallb
+  namespace: metallb
+spec:
+  chart:
+    spec:
+      chart: metallb
+      reconcileStrategy: ChartVersion
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami
+        namespace: flux-system
+      version: 4.1.14
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  interval: 5m
+  releaseName: metallb
+  upgrade:
+    crds: CreateReplace
+""",
+            Loader=yaml.CLoader,
         )
+    )
+    assert release.name == "metallb"
+    assert release.namespace == "metallb"
+    assert release.repo_name == "bitnami"
+    assert release.repo_namespace == "flux-system"
 
-        # Verify
-        with open(output_path) as f:
-            data = json.load(f)
 
-        assert data["name"] == project_name
-        assert data["version"] == project_version
-        assert data["description"] == description
-        assert len(data["files"]) == 2
-        assert data["files"][0]["name"] == "main.py"
-        assert data["files"][0]["description"] == "The main program file."
-        assert data["files"][1]["name"] == "README.md"
-        assert data["files"][1]["description"] == "The project README file."
+def test_parse_helm_repository() -> None:
+    """Test parsing a helm repository doc."""
+
+    repo = HelmRepository.from_doc(
+        yaml.load(
+            """---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: bitnami
+  namespace: flux-system
+spec:
+  interval: 30m
+  provider: generic
+  timeout: 1m0s
+  url: https://charts.bitnami.com/bitnami
+""",
+            Loader=yaml.CLoader,
+        )
+    )
+    assert repo.name == "bitnami"
+    assert repo.namespace == "flux-system"
+    assert repo.url == "https://charts.bitnami.com/bitnami"
