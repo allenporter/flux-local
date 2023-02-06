@@ -1,0 +1,25 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: test-deny-policy
+  annotations:
+    policies.kyverno.io/title: Test Allow Policy
+    policies.kyverno.io/description: >-
+      Policy that is expected to fail resources under test since no resources
+      should have the needed annotation.
+spec:
+  validationFailureAction: audit
+  background: true
+  rules:
+  - name: require-test-annotation
+    match:
+      resources:
+        kinds:
+        - ConfigMap
+    validate:
+      message: "Missing test-annotation"
+      pattern:
+        metadata:
+          annotations:
+            flux-local/test-annotation: "null"

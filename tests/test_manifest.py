@@ -1,10 +1,10 @@
 """Tests for manifest library."""
 
-import yaml
 from pathlib import Path
 
-from flux_local.manifest import HelmRelease, HelmRepository
+import yaml
 
+from flux_local.manifest import HelmRelease, HelmRepository
 
 TESTDATA_DIR = Path("tests/testdata/helm-repo")
 
@@ -13,7 +13,9 @@ def test_parse_helm_release() -> None:
     """Test parsing a helm release doc."""
 
     release = HelmRelease.from_doc(
-        yaml.load((TESTDATA_DIR / "metallb-release.yaml").read_text(), Loader=yaml.CLoader)
+        yaml.load(
+            (TESTDATA_DIR / "metallb-release.yaml").read_text(), Loader=yaml.CLoader
+        )
     )
     assert release.name == "metallb"
     assert release.namespace == "metallb"

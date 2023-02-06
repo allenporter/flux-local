@@ -2,6 +2,9 @@
 
 from pathlib import Path
 
+import pytest
+
+from flux_local import command
 from flux_local.kustomize import Kustomize
 
 TESTDATA_DIR = Path("tests/testdata")
@@ -30,3 +33,18 @@ async def test_objects() -> None:
     assert len(result) == 1
     assert result[0].get("kind") == "ConfigMap"
     assert result[0].get("apiVersion") == "v1"
+
+
+async def test_validate_pass() -> None:
+    """Test applying policies to validate resources."""
+    kustomize = Kustomize.build(TESTDATA_DIR / "repo")
+    await kustomize.validate(TESTDATA_DIR / "policies/pass.yaml")
+
+
+async def test_validate_fail() -> None:
+    """Test applying policies to validate resources."""
+    kustomize = Kustomize.build(TESTDATA_DIR / "repo")
+    with pytest.raises(
+        command.CommandException, match="require-test-annotation: validation error"
+    ):
+        await kustomize.validate(TESTDATA_DIR / "policies/fail.yaml")

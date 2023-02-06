@@ -1,18 +1,17 @@
 """Tests for helm library."""
 
-from aiofiles.os import mkdir
 from pathlib import Path
 from typing import Any, Generator
-import yaml
 
 import pytest
+from aiofiles.os import mkdir
 
-from flux_local.manifest import HelmRepository
-from flux_local.manifest import HelmRelease
-from flux_local.kustomize import Kustomize
 from flux_local.helm import Helm
+from flux_local.kustomize import Kustomize
+from flux_local.manifest import HelmRelease, HelmRepository
 
 TESTDATA_DIR = Path("tests/testdata/") / "helm-repo"
+
 
 @pytest.fixture(name="tmp_config_path")
 def tmp_config_path_fixture(tmp_path_factory: Any) -> Generator[Path, None, None]:
@@ -21,14 +20,14 @@ def tmp_config_path_fixture(tmp_path_factory: Any) -> Generator[Path, None, None
 
 
 @pytest.fixture(name="helm_repos")
-async def helm_repos_fixture() -> list[HelmRepository]:
+async def helm_repos_fixture() -> list[dict[str, Any]]:
     """Fixture for creating the HelmRepository objects"""
     kustomize = Kustomize.build(TESTDATA_DIR).grep("kind=^HelmRepository$")
     return await kustomize.objects()
 
 
 @pytest.fixture(name="helm")
-async def helm_fixture(tmp_config_path: Path, helm_repos: list[dict[str, any]]) -> Helm:
+async def helm_fixture(tmp_config_path: Path, helm_repos: list[dict[str, Any]]) -> Helm:
     """Fixture for creating the Helm object."""
     await mkdir(tmp_config_path / "helm")
     await mkdir(tmp_config_path / "cache")
@@ -60,12 +59,8 @@ async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None
     assert len(helm_releases) == 1
     release = helm_releases[0]
     kustomize = await helm.template(
-        HelmRelease.from_doc(release),
-        release["spec"].get("values")
+        HelmRelease.from_doc(release), release["spec"].get("values")
     )
     docs = await kustomize.grep("kind=ServiceAccount").objects()
-    names = [ doc.get("metadata", {}).get("name") for doc in docs ]
-    assert names == [
-        'metallb-controller',
-        'metallb-speaker'
-    ]
+    names = [doc.get("metadata", {}).get("name") for doc in docs]
+    assert names == ["metallb-controller", "metallb-speaker"]
