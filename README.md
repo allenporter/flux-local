@@ -11,3 +11,5 @@ cluster is creating valid objects.
 This library at first glance is little more than shell scripts running commands, but is easier
 to test, maintain, and evolve.
 
+See [documentation](https://allenporter.github.io/ical/) for full quickstart and API reference.
+See the [github project](https://github.com/allenporter/flux-local).
