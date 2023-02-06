@@ -24,6 +24,21 @@ __all__ = [
     "ManifestException",
 ]
 
+# Match a prefix of apiVersion to ensure we have the right type of object.
+# We don't check specific versions for forward compatibility on upgrade.
+CLUSTER_KUSTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
+KUSTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
+HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
+HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
+
+
+def _check_version(doc: dict[str, Any], version: str) -> None:
+    """Assert that the resource has the specified version."""
+    if not (api_version := doc.get("apiVersion")):
+        raise ValueError(f"Invalid object missing apiVersion: {doc}")
+    if not api_version.startswith(version):
+        raise ValueError(f"Invalid object expected '{version}': {doc}")
+
 
 class HelmChart(BaseModel):
     """A representation of an instantiation of a chart for a HelmRelease."""
@@ -31,7 +46,7 @@ class HelmChart(BaseModel):
     name: str
     """The name of the chart within the HelmRepository."""
 
-    version: str
+    version: Optional[str] = None
     """The version of the chart."""
 
     repo_name: str
@@ -43,6 +58,7 @@ class HelmChart(BaseModel):
     @classmethod
     def from_doc(cls, doc: dict[str, Any]) -> "HelmChart":
         """Parse a HelmChart from a HelmRelease resource object."""
+        _check_version(doc, HELM_RELEASE_DOMAIN)
         if not (spec := doc.get("spec")):
             raise ValueError(f"Invalid {cls} missing spec: {doc}")
         if not (chart := spec.get("chart")):
@@ -88,6 +104,7 @@ class HelmRelease(BaseModel):
     @classmethod
     def from_doc(cls, doc: dict[str, Any]) -> "HelmRelease":
         """Parse a HelmRelease from a kubernetes resource object."""
+        _check_version(doc, HELM_RELEASE_DOMAIN)
         if not (metadata := doc.get("metadata")):
             raise ValueError(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
@@ -123,6 +140,7 @@ class HelmRepository(BaseModel):
     @classmethod
     def from_doc(cls, doc: dict[str, Any]) -> "HelmRepository":
         """Parse a HelmRepository from a kubernetes resource."""
+        _check_version(doc, HELM_REPO_DOMAIN)
         if not (metadata := doc.get("metadata")):
             raise ValueError(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
@@ -164,6 +182,7 @@ class Kustomization(BaseModel):
     @classmethod
     def from_doc(cls, doc: dict[str, Any]) -> "Kustomization":
         """Parse a partial Kustomization from a kubernetes resource."""
+        _check_version(doc, KUSTOMIZE_DOMAIN)
         if not (metadata := doc.get("metadata")):
             raise ValueError(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
@@ -199,6 +218,7 @@ class Cluster(BaseModel):
     @classmethod
     def from_doc(cls, doc: dict[str, Any]) -> "Cluster":
         """Parse a partial Kustomization from a kubernetes resource."""
+        _check_version(doc, CLUSTER_KUSTOMIZE_DOMAIN)
         if not (metadata := doc.get("metadata")):
             raise ValueError(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
@@ -225,9 +245,7 @@ class Manifest(BaseModel):
     def parse_yaml(content: str) -> "Manifest":
         """Parse a serialized manifest."""
         doc = next(yaml.load_all(content, Loader=yaml.Loader), None)
-        if not doc or "spec" not in doc:
-            raise ManifestException("Manifest file malformed, missing 'spec'")
-        return Manifest(clusters=doc["spec"])
+        return Manifest.parse_obj(doc)
 
     def yaml(self) -> str:
         """Serialize the manifest as a yaml file.
@@ -258,7 +276,7 @@ class Manifest(BaseModel):
         )
         return cast(
             str,
-            yaml.dump({"spec": data["clusters"]}, sort_keys=False, explicit_start=True),
+            yaml.dump(data, sort_keys=False, explicit_start=True),
         )
 
 
