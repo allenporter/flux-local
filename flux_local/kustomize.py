@@ -6,18 +6,27 @@ commands for processing and filtering by kustomize grep.
 
 This example returns the objects inside a Kustomization using `kustomize build`:
 ```python
-from flux_local.kustomize import Kustomize
+from flux_local import kustomize
 
-objects = await Kustomize.build('/path/to/objects').objects()
+objects = await kustomize.build('/path/to/objects').objects()
 for object in objects:
     print(f"Found object {object['apiVersion']} {object['kind']}")
 ```
 
 You can also filter documents to specific resource types or other fields:
 ```python
-from flux_local.kustomize import Kustomize
+from flux_local import kustomize
 
-objects = await Kustomize.build('/path/to/objects').grep('kind=ConfigMap').objects()
+objects = await kustomize.build('/path/to/objects').grep('kind=ConfigMap').objects()
+for object in objects:
+    print(f"Found ConfigMap: {object['metadata']['name']}")
+```
+
+It is also possible to find bare objects without a Kustomization:
+```python
+from flux_local import kustomize
+
+objects = await kustomize.grep('kind=ConfigMap', '/path/to/objects').objects()
 for object in objects:
     print(f"Found ConfigMap: {object['metadata']['name']}")
 ```
@@ -43,14 +52,7 @@ class Kustomize:
         """Initialize Kustomize."""
         self._cmds = cmds
 
-    @classmethod
-    def build(cls, path: Path) -> "Kustomize":
-        """Build cluster artifacts from the specified path."""
-        return Kustomize(cmds=[[KUSTOMIZE_BIN, "build", str(path)]])
-
-    def grep(
-        self, expr: str, path: Path | None = None, invert: bool = False
-    ) -> "Kustomize":
+    def grep(self, expr: str, invert: bool = False) -> "Kustomize":
         """Filter resources based on an expression.
 
         Example expressions:
@@ -60,8 +62,6 @@ class Kustomize:
         out = [KUSTOMIZE_BIN, "cfg", "grep", expr]
         if invert:
             out.append("--invert-match")
-        if path:
-            out.append(str(path))
         return Kustomize(self._cmds + [out])
 
     async def run(self) -> str:
@@ -95,3 +95,16 @@ class Kustomize:
             ],
         ]
         await command.run_piped(cmds)
+
+
+def build(path: Path) -> Kustomize:
+    """Build cluster artifacts from the specified path."""
+    return Kustomize(cmds=[[KUSTOMIZE_BIN, "build", str(path)]])
+
+
+def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
+    """Filter resources in the specified path based on an expression."""
+    out = [KUSTOMIZE_BIN, "cfg", "grep", expr, str(path)]
+    if invert:
+        out.append("--invert-match")
+    return Kustomize([out])
