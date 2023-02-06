@@ -17,7 +17,49 @@ __all__ = [
     "Kustomization",
     "HelmRepository",
     "HelmRelease",
+    "HelmChart",
 ]
+
+
+@dataclass
+class HelmChart:
+    """A representation of an instantiation of a chart for a HelmRelease."""
+
+    name: str
+    """The name of the chart within the HelmRepository."""
+
+    version: str
+    """The version of the chart."""
+
+    repo_name: str
+    """The name of the HelmRepository."""
+
+    repo_namespace: str
+    """The namespace of the HelmRepository."""
+
+    @classmethod
+    def from_doc(cls, doc: dict[str, Any]) -> "HelmChart":
+        """Parse a HelmChart from a HelmRelease resource object."""
+        if not (spec := doc.get("spec")):
+            raise ValueError(f"Invalid {cls} missing spec: {doc}")
+        if not (chart := spec.get("chart")):
+            raise ValueError(f"Invalid {cls} missing spec.chart: {doc}")
+        if not (chart_spec := chart.get("spec")):
+            raise ValueError(f"Invalid {cls} missing spec.chart.spec: {doc}")
+        if not (chart := chart_spec.get("chart")):
+            raise ValueError(f"Invalid {cls} missing spec.chart.spec.chart: {doc}")
+        if not (version := chart_spec.get("version")):
+            raise ValueError(f"Invalid {cls} missing spec.chart.spec.version: {doc}")
+        if not (source_ref := chart_spec.get("sourceRef")):
+            raise ValueError(f"Invalid {cls} missing spec.chart.spec.sourceRef: {doc}")
+        if "namespace" not in source_ref or "name" not in source_ref:
+            raise ValueError(f"Invalid {cls} missing sourceRef fields: {doc}")
+        return cls(chart, version, source_ref["name"], source_ref["namespace"])
+
+    @property
+    def chart_name(self) -> str:
+        """Identifier for the HelmChart."""
+        return f"{self.repo_namespace}-{self.repo_name}/{self.name}"
 
 
 @dataclass
@@ -30,11 +72,8 @@ class HelmRelease:
     namespace: str
     """The namespace that owns the HelmRelease."""
 
-    repo_name: str
-    """The name of the HelmRepository."""
-
-    repo_namespace: str
-    """The namespace of the HelmRepository."""
+    chart: HelmChart
+    """A mapping to a specific helm chart for this HelmRelease."""
 
     @classmethod
     def from_doc(cls, doc: dict[str, Any]) -> "HelmRelease":
@@ -45,21 +84,12 @@ class HelmRelease:
             raise ValueError(f"Invalid {cls} missing metadata.name: {doc}")
         if not (namespace := metadata.get("namespace")):
             raise ValueError(f"Invalid {cls} missing metadata.namespace: {doc}")
-        if not (spec := doc.get("spec")):
-            raise ValueError(f"Invalid {cls} missing spec: {doc}")
-        if not (chart := spec.get("chart")):
-            raise ValueError(f"Invalid {cls} missing spec.chart: {doc}")
-        if not (chart_spec := chart.get("spec")):
-            raise ValueError(f"Invalid {cls} missing spec.chart.spec: {doc}")
-        if not (source_ref := chart_spec.get("sourceRef")):
-            raise ValueError(f"Invalid {cls} missing spec.chart.spec.sourceRef: {doc}")
-        if "namespace" not in source_ref or "name" not in source_ref:
-            raise ValueError(f"Invalid {cls} missing sourceRef fields: {doc}")
-        return cls(name, namespace, source_ref["name"], source_ref["namespace"])
+        chart = HelmChart.from_doc(doc)
+        return cls(name, namespace, chart)
 
     @property
-    def id_name(self) -> str:
-        """Identifier for the HelmRelease in tests."""
+    def release_name(self) -> str:
+        """Identifier for the HelmRelease."""
         return f"{self.namespace}-{self.name}"
 
 
@@ -92,8 +122,8 @@ class HelmRepository:
         return cls(name, namespace, url)
 
     @property
-    def id_name(self) -> str:
-        """Identifier for the HelmRepository in tests."""
+    def repo_name(self) -> str:
+        """Identifier for the HelmRepository."""
         return f"{self.namespace}-{self.name}"
 
 
