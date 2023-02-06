@@ -7,7 +7,8 @@ information to do basic checks on objects in the cluster (e.g. run templates
 from unit tests).
 
 Example usage:
-```
+
+```python
 from flux_local import repo
 
 manifest = await repo.build_manifest()
@@ -15,6 +16,8 @@ for cluster in manifest:
     print(f"Found cluster: {cluster.path}")
     for kustomization in cluster.kustomizations:
         print(f"Found kustomization: {kustomization.path}")
+```
+
 """
 
 import logging
