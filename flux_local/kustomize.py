@@ -5,7 +5,7 @@ for the cluster that can be either be parsed directly or piped into additional
 commands for processing and filtering by kustomize grep.
 
 This example returns the objects inside a Kustomization using `kustomize build`:
-```
+```python
 from flux_local.kustomize import Kustomize
 
 objects = await Kustomize.build('/path/to/objects').objects()
@@ -14,7 +14,7 @@ for object in objects:
 ```
 
 You can also filter documents to specific resource types or other fields:
-```
+```python
 from flux_local.kustomize import Kustomize
 
 objects = await Kustomize.build('/path/to/objects').grep('kind=ConfigMap').objects()
