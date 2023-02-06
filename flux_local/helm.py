@@ -5,7 +5,7 @@ You can instantiate a helm template with the following:
 - A HelmRelease which is an instance of a HelmChart in a HelmRepository
 
 This is an example that prepares the helm repository:
-```
+```python
 from flux_local.kustomize import Kustomize
 from flux_local.helm import Helm
 from flux_local.manifest import HelmRepository
@@ -19,7 +19,7 @@ await helm.update()
 ```
 
 Then to actually instantiate a template from a HelmRelease:
-```
+```python
 from flux_local.manifest import HelmRelease
 
 releases = await kustomize.grep("kind=^HelmRelease$").objects()
