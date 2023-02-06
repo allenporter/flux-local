@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 import yaml
+from pydantic import ValidationError
 
 from flux_local.manifest import (
     Cluster,
     HelmRelease,
     HelmRepository,
     Manifest,
-    ManifestException,
     read_manifest,
     write_manifest,
 )
@@ -48,7 +48,7 @@ def test_parse_helm_repository() -> None:
 
 async def test_read_manifest_invalid_file() -> None:
     """Test reading an invalid manifest file."""
-    with pytest.raises(ManifestException, match="Manifest file malformed"):
+    with pytest.raises(ValidationError, match="validation error for Manifest"):
         await read_manifest(Path("/dev/null"))
 
 
