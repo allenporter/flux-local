@@ -5,23 +5,29 @@ serialized and stored and checked into the cluster for use in other applications
 e.g. such as writing management plan for resources.
 """
 
+import dataclasses
 import datetime
-from dataclasses import dataclass
-from typing import Any
+from pathlib import Path
+from typing import Any, cast
 
+import aiofiles
+import yaml
 from pydantic import BaseModel
 
 __all__ = [
+    "read_manifest",
+    "write_manifest",
     "Manifest",
     "Cluster",
     "Kustomization",
     "HelmRepository",
     "HelmRelease",
     "HelmChart",
+    "ManifestException",
 ]
 
 
-@dataclass
+@dataclasses.dataclass
 class HelmChart:
     """A representation of an instantiation of a chart for a HelmRelease."""
 
@@ -62,7 +68,7 @@ class HelmChart:
         return f"{self.repo_namespace}-{self.repo_name}/{self.name}"
 
 
-@dataclass
+@dataclasses.dataclass
 class HelmRelease:
     """A representation of a Flux HelmRelease."""
 
@@ -93,7 +99,7 @@ class HelmRelease:
         return f"{self.namespace}-{self.name}"
 
 
-@dataclass
+@dataclasses.dataclass
 class HelmRepository:
     """A representation of a flux HelmRepository."""
 
@@ -127,7 +133,7 @@ class HelmRepository:
         return f"{self.namespace}-{self.name}"
 
 
-@dataclass
+@dataclasses.dataclass
 class Kustomization:
     """A Kustomization is a set of declared cluster artifacts.
 
@@ -154,7 +160,7 @@ class Kustomization:
         return f"{self.path}"
 
 
-@dataclass
+@dataclasses.dataclass
 class Cluster:
     """A set of nodes that run containerized applications.
 
@@ -202,3 +208,51 @@ class Manifest(BaseModel):
 
     clusters: list[Cluster]
     """A list of Clusters represented in the repo."""
+
+    @staticmethod
+    def parse_yaml(content: str) -> "Manifest":
+        """Parse a serialized manifest."""
+        doc = next(yaml.load_all(content, Loader=yaml.Loader), None)
+        if not doc or "spec" not in doc:
+            raise ManifestException("Manifest file malformed, missing 'spec'")
+        return Manifest(clusters=doc["spec"])
+
+    def yaml(self) -> str:
+        """Serialize the manifest as a yaml file."""
+        return cast(
+            str,
+            yaml.dump(
+                {"spec": [dataclasses.asdict(cluster) for cluster in self.clusters]},
+                sort_keys=False,
+                explicit_start=True,
+            ),
+        )
+
+
+class ManifestException(Exception):
+    """Error raised while working with the Manifest."""
+
+
+async def read_manifest(manifest_path: Path) -> Manifest:
+    """Return the contents of a serialized manifest file."""
+    async with aiofiles.open(str(manifest_path)) as manifest_file:
+        content = await manifest_file.read()
+        return Manifest.parse_yaml(content)
+
+
+async def write_manifest(manifest_path: Path, manifest: Manifest) -> None:
+    """Write the specified manifest content to disk."""
+    content = manifest.yaml()
+    async with aiofiles.open(str(manifest_path), mode="w") as manifest_file:
+        await manifest_file.write(content)
+
+
+async def update_manifest(manifest_path: Path, manifest: Manifest) -> None:
+    """Write the specified manifest only if changed."""
+    async with aiofiles.open(str(manifest_path)) as manifest_file:
+        content = await manifest_file.read()
+    new_content = manifest.yaml()
+    if content == new_content:
+        return
+    async with aiofiles.open(str(manifest_path), mode="w") as manifest_file:
+        await manifest_file.write(new_content)
