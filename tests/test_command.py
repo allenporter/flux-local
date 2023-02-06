@@ -1,4 +1,4 @@
-"""Tests for cmd library."""
+"""Tests for command library."""
 
 import pytest
 

@@ -1,4 +1,4 @@
-"""Tests for cmd library."""
+"""Tests for kustomize library."""
 
 from pathlib import Path
 
@@ -23,10 +23,10 @@ async def test_grep() -> None:
     assert result == (TESTDATA_DIR / "repo/configmap.golden").read_text()
 
 
-async def test_docs() -> None:
+async def test_objects() -> None:
     """Test loading yaml documents."""
     kustomize = Kustomize.build(TESTDATA_DIR / "repo").grep("kind=ConfigMap")
-    result = await kustomize.docs()
+    result = await kustomize.objects()
     assert len(result) == 1
     assert result[0].get("kind") == "ConfigMap"
     assert result[0].get("apiVersion") == "v1"

@@ -1,4 +1,38 @@
-"""Library for running `helm template` to produce local items in the cluster."""
+"""Library for running `helm template` to produce local items in the cluster.
+
+You can instantiate a helm template with the following:
+- A HelmRepository which is a url that contains charts
+- A HelmRelease which is an instance of a HelmChart in a HelmRepository
+
+This is an example that prepares the helm repository:
+```
+from flux_local.kustomize import Kustomize
+from flux_local.helm import Helm
+from flux_local.manifest import HelmRepository
+
+kustomize = Kustomize.build(TESTDATA_DIR)
+repos = await kustomize.grep("kind=^HelmRepository$").objects()
+helm = Helm("/tmp/path/helm", "/tmp/path/cache")
+for repo in repos:
+  helm.add_repo(HelmRepository.from_doc(repo))
+await helm.update()
+```
+
+Then to actually instantiate a template from a HelmRelease:
+```
+from flux_local.manifest import HelmRelease
+
+releases = await kustomize.grep("kind=^HelmRelease$").objects()
+if not len(releases) == 1:
+    raise ValueError("Expected only one HelmRelease")
+tmpl = helm.template(
+    HelmRelease.from_doc(releases[0]),
+    releases[0]["spec"].get("values"))
+objects = await tmpl.objects()
+for object in objects:
+    print(f"Found object {object['apiVersion']} {object['kind']}")
+```
+"""
 
 import datetime
 import logging

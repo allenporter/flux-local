@@ -1,4 +1,4 @@
-"""Tests for cmd library."""
+"""Tests for helm library."""
 
 from aiofiles.os import mkdir
 from pathlib import Path
@@ -24,7 +24,7 @@ def tmp_config_path_fixture(tmp_path_factory: Any) -> Generator[Path, None, None
 async def helm_repos_fixture() -> list[HelmRepository]:
     """Fixture for creating the HelmRepository objects"""
     kustomize = Kustomize.build(TESTDATA_DIR).grep("kind=^HelmRepository$")
-    return await kustomize.docs()
+    return await kustomize.objects()
 
 
 @pytest.fixture(name="helm")
@@ -45,7 +45,7 @@ async def helm_fixture(tmp_config_path: Path, helm_repos: list[dict[str, any]]) 
 async def helm_releases_fixture() -> list[dict[str, Any]]:
     """Fixture for creating the HelmRelease objects."""
     kustomize = Kustomize.build(TESTDATA_DIR).grep("kind=^HelmRelease$")
-    return await kustomize.docs()
+    return await kustomize.objects()
 
 
 async def test_update(helm: Helm) -> None:
@@ -63,7 +63,7 @@ async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None
         HelmRelease.from_doc(release),
         release["spec"].get("values")
     )
-    docs = await kustomize.grep("kind=ServiceAccount").docs()
+    docs = await kustomize.grep("kind=ServiceAccount").objects()
     names = [ doc.get("metadata", {}).get("name") for doc in docs ]
     assert names == [
         'metallb-controller',

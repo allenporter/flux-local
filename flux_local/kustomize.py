@@ -3,6 +3,25 @@
 Kustomize build can be used to apply overlays and output a set of resources or artifacts
 for the cluster that can be either be parsed directly or piped into additional
 commands for processing and filtering by kustomize grep.
+
+This example returns the objects inside a Kustomization using `kustomize build`:
+```
+from flux_local.kustomize import Kustomize
+
+objects = await Kustomize.build('/path/to/objects').objects()
+for object in objects:
+    print(f"Found object {object['apiVersion']} {object['kind']}")
+```
+
+You can also filter documents to specific resource types or other fields:
+```
+from flux_local.kustomize import Kustomize
+
+objects = await Kustomize.build('/path/to/objects').grep('kind=ConfigMap').objects()
+for object in objects:
+    print(f"Found ConfigMap: {object['metadata']['name']}")
+```
+
 """
 
 from pathlib import Path
@@ -50,6 +69,6 @@ class Kustomize:
         for doc in yaml.safe_load_all(out):
             yield doc
 
-    async def docs(self) -> list[dict[str, Any]]:
-        """Run the kustomize command and return the result documents as a list."""
+    async def objects(self) -> list[dict[str, Any]]:
+        """Run the kustomize command and return the result cluster objects as a list."""
         return [ doc async for doc in self._docs() ]
