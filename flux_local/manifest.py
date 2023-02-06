@@ -58,7 +58,7 @@ class HelmChart:
 
     @property
     def chart_name(self) -> str:
-        """Identifer for the HelmChart."""
+        """Identifier for the HelmChart."""
         return f"{self.repo_namespace}-{self.repo_name}/{self.name}"
 
 

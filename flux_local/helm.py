@@ -65,7 +65,7 @@ class RepositoryConfig:
 
     @property
     def config(self) -> dict[str, Any]:
-        """Return a synthetic repostory config object."""
+        """Return a synthetic repository config object."""
         now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
         return {
             "apiVersion": "",
