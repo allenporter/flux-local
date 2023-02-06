@@ -37,18 +37,17 @@ for object in objects:
 import datetime
 import logging
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 import aiofiles
 import yaml
 
-from .manifest import HelmRepository, HelmRelease
-from .kustomize import Kustomize
 from . import command
-
+from .kustomize import Kustomize
+from .manifest import HelmRelease, HelmRepository
 
 __all__ = [
-  "Helm",
+    "Helm",
 ]
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,7 +74,8 @@ class RepositoryConfig:
                 {
                     "name": f"{repo.namespace}-{repo.name}",
                     "url": repo.url,
-                } for repo in self._repos
+                }
+                for repo in self._repos
             ],
         }
 
@@ -88,13 +88,16 @@ class Helm:
         self._tmp_dir = tmp_dir
         self._repo_config_file = self._tmp_dir / "repository-config.yaml"
         self._flags = [
-            "--registry-config", "/dev/null",
-            "--repository-cache", str(cache_dir),
-            "--repository-config", str(self._repo_config_file),
+            "--registry-config",
+            "/dev/null",
+            "--repository-cache",
+            str(cache_dir),
+            "--repository-config",
+            str(self._repo_config_file),
         ]
         self._repos: list[HelmRepository] = []
 
-    def add_repo(self, repo: HelmRepository):
+    def add_repo(self, repo: HelmRepository) -> None:
         """Add the specified HelmRepository to the local config."""
         self._repos.append(repo)
 
@@ -104,28 +107,26 @@ class Helm:
         Typically the repository must be updated before doing any chart templating.
         """
         content = yaml.dump(RepositoryConfig(self._repos).config)
-        async with aiofiles.open(str(self._repo_config_file), mode="w") as f:
-            await f.write(content)
-        await command.run([ HELM_BIN, "repo", "update" ] + self._flags)
+        async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
+            await config_file.write(content)
+        await command.run([HELM_BIN, "repo", "update"] + self._flags)
 
-    async def template(
-        self,
-        release: HelmRelease,
-        values: dict[str, Any]
-    ) -> Kustomize:
+    async def template(self, release: HelmRelease, values: dict[str, Any]) -> Kustomize:
         """Return command line arguments to template the specified chart."""
         args = [
             HELM_BIN,
             "template",
             release.name,
             release.chart.chart_name,
-            "--namespace", release.namespace,
+            "--namespace",
+            release.namespace,
             "--skip-crds",  # Reduce size of output
-            "--version", release.chart.version,
+            "--version",
+            release.chart.version,
         ]
         if values:
-            values_file = tmp_config_path / f"{release.release_name}-values.yaml"
-            async with aiofiles.open(values_file, mode="w") as f:
-                await f.write(yaml.dump(values))
-            args.extend(["--values", str(values_file)])
+            values_path = self._tmp_dir / f"{release.release_name}-values.yaml"
+            async with aiofiles.open(values_path, mode="w") as values_file:
+                await values_file.write(yaml.dump(values))
+            args.extend(["--values", str(values_path)])
         return Kustomize([args + self._flags])

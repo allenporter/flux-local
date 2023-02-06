@@ -19,7 +19,7 @@ repos:
     - -c
     - ".yaml-lint.yaml"
 - repo: https://github.com/pycqa/isort
-  rev: 5.9.3
+  rev: 5.12.0
   hooks:
   - id: isort
     args: ["--profile", "black"]
@@ -27,20 +27,19 @@ repos:
   rev: 22.3.0
   hooks:
   - id: black
-- repo: https://gitlab.com/pycqa/flake8
-  rev: 4.0.1
+- repo: https://github.com/PyCQA/flake8
+  rev: 6.0.0
   hooks:
   - id: flake8
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.991
-  hooks:
-  - id: mypy
-    files: ^(flux_local/|tests/)
-    additional_dependencies:
-    - "pydantic>=1.10.4"
-    - "types-PyYAML>=6.0.12.4"
 - repo: local
   hooks:
+  - id: mypy
+    name: mypy
+    entry: script/run-in-env.sh mypy
+    language: script
+    types: [python]
+    require_serial: true
+    files: ^(flux_local/|tests/)
   - id: pylint
     name: pylint
     entry: pylint
