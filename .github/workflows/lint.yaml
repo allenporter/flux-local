@@ -19,13 +19,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: codespell-project/actions-codespell@master
-    - name: Run lint
+    - name: Run yamllint
       uses: ibiqlik/action-yamllint@v3
       with:
         file_or_dir: "./"
         config_file: "./.yaml-lint.yaml"
         strict: true
-
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
