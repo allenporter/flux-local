@@ -7,7 +7,7 @@ flake8-black==0.3.5
 GitPython==3.1.30
 mypy==0.991
 pdoc==12.1.0
-pip==22.1.2
+pip==23.0
 pre-commit==3.0.4
 pydantic==1.10.4
 pylint==2.14.4
