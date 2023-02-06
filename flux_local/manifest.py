@@ -5,14 +5,12 @@ serialized and stored and checked into the cluster for use in other applications
 e.g. such as writing management plan for resources.
 """
 
-import dataclasses
-import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 import aiofiles
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 __all__ = [
     "read_manifest",
@@ -27,8 +25,7 @@ __all__ = [
 ]
 
 
-@dataclasses.dataclass
-class HelmChart:
+class HelmChart(BaseModel):
     """A representation of an instantiation of a chart for a HelmRelease."""
 
     name: str
@@ -60,7 +57,12 @@ class HelmChart:
             raise ValueError(f"Invalid {cls} missing spec.chart.spec.sourceRef: {doc}")
         if "namespace" not in source_ref or "name" not in source_ref:
             raise ValueError(f"Invalid {cls} missing sourceRef fields: {doc}")
-        return cls(chart, version, source_ref["name"], source_ref["namespace"])
+        return cls(
+            name=chart,
+            version=version,
+            repo_name=source_ref["name"],
+            repo_namespace=source_ref["namespace"],
+        )
 
     @property
     def chart_name(self) -> str:
@@ -68,8 +70,7 @@ class HelmChart:
         return f"{self.repo_namespace}-{self.repo_name}/{self.name}"
 
 
-@dataclasses.dataclass
-class HelmRelease:
+class HelmRelease(BaseModel):
     """A representation of a Flux HelmRelease."""
 
     name: str
@@ -81,6 +82,9 @@ class HelmRelease:
     chart: HelmChart
     """A mapping to a specific helm chart for this HelmRelease."""
 
+    values: Optional[dict[str, Any]] = None
+    """The values to install in the chart."""
+
     @classmethod
     def from_doc(cls, doc: dict[str, Any]) -> "HelmRelease":
         """Parse a HelmRelease from a kubernetes resource object."""
@@ -91,7 +95,12 @@ class HelmRelease:
         if not (namespace := metadata.get("namespace")):
             raise ValueError(f"Invalid {cls} missing metadata.namespace: {doc}")
         chart = HelmChart.from_doc(doc)
-        return cls(name, namespace, chart)
+        return cls(
+            name=name,
+            namespace=namespace,
+            chart=chart,
+            values=doc["spec"].get("values"),
+        )
 
     @property
     def release_name(self) -> str:
@@ -99,8 +108,7 @@ class HelmRelease:
         return f"{self.namespace}-{self.name}"
 
 
-@dataclasses.dataclass
-class HelmRepository:
+class HelmRepository(BaseModel):
     """A representation of a flux HelmRepository."""
 
     name: str
@@ -125,7 +133,7 @@ class HelmRepository:
             raise ValueError(f"Invalid {cls} missing spec: {doc}")
         if not (url := spec.get("url")):
             raise ValueError(f"Invalid {cls} missing spec.url: {doc}")
-        return cls(name, namespace, url)
+        return cls(name=name, namespace=namespace, url=url)
 
     @property
     def repo_name(self) -> str:
@@ -133,8 +141,7 @@ class HelmRepository:
         return f"{self.namespace}-{self.name}"
 
 
-@dataclasses.dataclass
-class Kustomization:
+class Kustomization(BaseModel):
     """A Kustomization is a set of declared cluster artifacts.
 
     This represents a flux Kustomization that points to a path that
@@ -148,11 +155,24 @@ class Kustomization:
     path: str
     """The local repo path to the kustomization."""
 
-    helm_repos: list[HelmRepository]
+    helm_repos: list[HelmRepository] = Field(default_factory=list)
     """The set of HelmRepositories represented in this kustomization."""
 
-    helm_releases: list[HelmRelease]
+    helm_releases: list[HelmRelease] = Field(default_factory=list)
     """The set of HelmRelease represented in this kustomization."""
+
+    @classmethod
+    def from_doc(cls, doc: dict[str, Any]) -> "Kustomization":
+        """Parse a partial Kustomization from a kubernetes resource."""
+        if not (metadata := doc.get("metadata")):
+            raise ValueError(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise ValueError(f"Invalid {cls} missing metadata.name: {doc}")
+        if not (spec := doc.get("spec")):
+            raise ValueError(f"Invalid {cls} missing spec: {doc}")
+        if not (path := spec.get("path")):
+            raise ValueError(f"Invalid {cls} missing spec.path: {doc}")
+        return Kustomization(name=name, path=path)
 
     @property
     def id_name(self) -> str:
@@ -160,8 +180,7 @@ class Kustomization:
         return f"{self.path}"
 
 
-@dataclasses.dataclass
-class Cluster:
+class Cluster(BaseModel):
     """A set of nodes that run containerized applications.
 
     Many flux git repos will only have a single flux cluster, though
@@ -174,28 +193,21 @@ class Cluster:
     path: str
     """The local git repo path to the Kustomization objects for the cluster."""
 
-    kustomizations: list[Kustomization]
+    kustomizations: list[Kustomization] = Field(default_factory=list)
     """A list of flux Kustomizations for the cluster."""
 
-    def helm_repo_config(self) -> dict[str, Any]:
-        """Return a synthetic HelmRepoistory config."""
-        now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
-        repos = []
-        for kustomize in self.kustomizations:
-            repos.extend(
-                [
-                    {
-                        "name": f"{repo.namespace}-{repo.name}",
-                        "url": repo.url,
-                    }
-                    for repo in kustomize.helm_repos
-                ]
-            )
-        return {
-            "apiVersion": "",
-            "generated": now.isoformat(),
-            "repositories": repos,
-        }
+    @classmethod
+    def from_doc(cls, doc: dict[str, Any]) -> "Cluster":
+        """Parse a partial Kustomization from a kubernetes resource."""
+        if not (metadata := doc.get("metadata")):
+            raise ValueError(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise ValueError(f"Invalid {cls} missing metadata.name: {doc}")
+        if not (spec := doc.get("spec")):
+            raise ValueError(f"Invalid {cls} missing spec: {doc}")
+        if not (path := spec.get("path")):
+            raise ValueError(f"Invalid {cls} missing spec.path: {doc}")
+        return Cluster(name=name, path=path)
 
     @property
     def id_name(self) -> str:
@@ -218,14 +230,35 @@ class Manifest(BaseModel):
         return Manifest(clusters=doc["spec"])
 
     def yaml(self) -> str:
-        """Serialize the manifest as a yaml file."""
+        """Serialize the manifest as a yaml file.
+
+        The contents of the cluster will be compacted to remove values that
+        exist in the live cluster but do not make sense to be persisted in the
+        manifest on disk.
+        """
+        data = self.dict(
+            exclude={
+                "clusters": {
+                    "__all__": {
+                        "kustomizations": {
+                            "__all__": {
+                                "helm_releases": {
+                                    "__all__": {
+                                        "values": True,
+                                        "chart": {
+                                            "version": True,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            }
+        )
         return cast(
             str,
-            yaml.dump(
-                {"spec": [dataclasses.asdict(cluster) for cluster in self.clusters]},
-                sort_keys=False,
-                explicit_start=True,
-            ),
+            yaml.dump({"spec": data["clusters"]}, sort_keys=False, explicit_start=True),
         )
 
 
