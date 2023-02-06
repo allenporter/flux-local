@@ -1,0 +1,25 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: test-allow-policy
+  annotations:
+    policies.kyverno.io/title: Test Allow Policy
+    policies.kyverno.io/description: >-
+      Policy that is expected to allow resources under test through since no
+      resources should have this annotation.
+spec:
+  validationFailureAction: audit
+  background: true
+  rules:
+  - name: forbid-test-annotation
+    match:
+      resources:
+        kinds:
+        - ConfigMap
+    validate:
+      message: "Found test-annotation"
+      pattern:
+        metadata:
+          =(annotations):
+            X(flux-local/test-annotation): "null"

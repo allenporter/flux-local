@@ -32,7 +32,8 @@ async def run_piped(cmds: list[list[str]]) -> str:
             if err:
                 _LOGGER.error(err.decode("utf-8"))
             raise CommandException(
-                f"Subprocess '{cmd_text}' failed with return code {proc.returncode}"
+                f"Subprocess '{cmd_text}' failed with return code {proc.returncode}: "
+                + out.decode("utf-8")
             )
         stdin = out
     return out.decode("utf-8") if out else ""

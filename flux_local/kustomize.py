@@ -22,6 +22,7 @@ for object in objects:
     print(f"Found ConfigMap: {object['metadata']['name']}")
 ```
 
+You can apply kyverno policies to the objects with the `validate` method.
 """
 
 from pathlib import Path
@@ -32,6 +33,7 @@ import yaml
 from . import command
 
 KUSTOMIZE_BIN = "kustomize"
+KYVERNO_BIN = "kyverno"
 
 
 class Kustomize:
@@ -75,3 +77,21 @@ class Kustomize:
     async def objects(self) -> list[dict[str, Any]]:
         """Run the kustomize command and return the result cluster objects as a list."""
         return [doc async for doc in self._docs()]
+
+    async def validate(self, policy_path: Path) -> None:
+        """Apply kyverno policies from the directory to any objects built so far.
+
+        The specified `policy_path` is a file or directory containing policy objects. All
+        secrets will stripped since otherwise they fail the kyverno cli.
+        """
+        kustomize = self.grep("kind=^Secret$", invert=True)
+        cmds = kustomize._cmds + [  # pylint: disable=protected-access
+            [
+                KYVERNO_BIN,
+                "apply",
+                str(policy_path),
+                "--resource",
+                "-",
+            ],
+        ]
+        await command.run_piped(cmds)
