@@ -1,0 +1,24 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: metallb
+  namespace: metallb
+spec:
+  chart:
+    spec:
+      chart: metallb
+      reconcileStrategy: ChartVersion
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami
+        namespace: flux-system
+      version: 4.1.14
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  interval: 5m
+  releaseName: metallb
+  upgrade:
+    crds: CreateReplace
