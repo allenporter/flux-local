@@ -16,6 +16,8 @@ for cluster in manifest:
     print(f"Found cluster: {cluster.path}")
     for kustomization in cluster.kustomizations:
         print(f"Found kustomization: {kustomization.path}")
+        for release in kustomization.helm_releases:
+            print(f"Found helm release: {release.release_name}")
 ```
 
 """
