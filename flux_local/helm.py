@@ -109,11 +109,11 @@ class Helm:
         content = yaml.dump(RepositoryConfig(self._repos).config)
         async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
             await config_file.write(content)
-        await command.run([HELM_BIN, "repo", "update"] + self._flags)
+        await command.run(command.Command([HELM_BIN, "repo", "update"] + self._flags))
 
     async def template(self, release: HelmRelease, values: dict[str, Any]) -> Kustomize:
         """Return command line arguments to template the specified chart."""
-        args = [
+        args: list[str] = [
             HELM_BIN,
             "template",
             release.name,
@@ -121,12 +121,17 @@ class Helm:
             "--namespace",
             release.namespace,
             "--skip-crds",  # Reduce size of output
-            "--version",
-            release.chart.version,
         ]
+        if release.chart.version:
+            args.extend(
+                [
+                    "--version",
+                    release.chart.version,
+                ]
+            )
         if values:
             values_path = self._tmp_dir / f"{release.release_name}-values.yaml"
             async with aiofiles.open(values_path, mode="w") as values_file:
                 await values_file.write(yaml.dump(values))
             args.extend(["--values", str(values_path)])
-        return Kustomize([args + self._flags])
+        return Kustomize([command.Command(args + self._flags)])

@@ -54,11 +54,19 @@ HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
 
 
-@cache
-def repo_root() -> Path:
+def git_repo(path: Path | None = None) -> git.repo.Repo:
     """Return the local github repo path."""
-    git_repo = git.repo.Repo(os.getcwd(), search_parent_directories=True)
-    return Path(git_repo.git.rev_parse("--show-toplevel"))
+    if path is None:
+        return git.repo.Repo(os.getcwd(), search_parent_directories=True)
+    return git.repo.Repo(str(path))
+
+
+@cache
+def repo_root(repo: git.repo.Repo | None = None) -> Path:
+    """Return the local github repo path."""
+    if repo is None:
+        repo = git_repo()
+    return Path(repo.git.rev_parse("--show-toplevel"))
 
 
 def domain_filter(version: str) -> Callable[[dict[str, Any]], bool]:
