@@ -39,7 +39,13 @@ from typing import Any, AsyncGenerator
 
 import yaml
 
-from . import command
+from .command import Command, run_piped
+
+__all__ = [
+    "build",
+    "grep",
+    "Kustomize",
+]
 
 KUSTOMIZE_BIN = "kustomize"
 KYVERNO_BIN = "kyverno"
@@ -48,8 +54,8 @@ KYVERNO_BIN = "kyverno"
 class Kustomize:
     """Library for issuing a kustomize command."""
 
-    def __init__(self, cmds: list[list[str]]) -> None:
-        """Initialize Kustomize."""
+    def __init__(self, cmds: list[Command]) -> None:
+        """Initialize Kustomize, used internally for copying object."""
         self._cmds = cmds
 
     def grep(self, expr: str, invert: bool = False) -> "Kustomize":
@@ -62,11 +68,11 @@ class Kustomize:
         out = [KUSTOMIZE_BIN, "cfg", "grep", expr]
         if invert:
             out.append("--invert-match")
-        return Kustomize(self._cmds + [out])
+        return Kustomize(self._cmds + [Command(out)])
 
     async def run(self) -> str:
         """Run the kustomize command and return the output as a string."""
-        return await command.run_piped(self._cmds)
+        return await run_piped(self._cmds)
 
     async def _docs(self) -> AsyncGenerator[dict[str, Any], None]:
         """Run the kustomize command and return the result documents."""
@@ -86,25 +92,39 @@ class Kustomize:
         """
         kustomize = self.grep("kind=^Secret$", invert=True)
         cmds = kustomize._cmds + [  # pylint: disable=protected-access
-            [
-                KYVERNO_BIN,
-                "apply",
-                str(policy_path),
-                "--resource",
-                "-",
-            ],
+            Command(
+                [
+                    KYVERNO_BIN,
+                    "apply",
+                    str(policy_path),
+                    "--resource",
+                    "-",
+                ]
+            ),
         ]
-        await command.run_piped(cmds)
+        await run_piped(cmds)
 
 
 def build(path: Path) -> Kustomize:
     """Build cluster artifacts from the specified path."""
-    return Kustomize(cmds=[[KUSTOMIZE_BIN, "build", str(path)]])
+    args = [KUSTOMIZE_BIN, "build"]
+    cwd: Path | None = None
+    if path.is_absolute():
+        cwd = path
+    else:
+        args.append(str(path))
+    return Kustomize(cmds=[Command(args, cwd=cwd)])
 
 
 def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
     """Filter resources in the specified path based on an expression."""
-    out = [KUSTOMIZE_BIN, "cfg", "grep", expr, str(path)]
+    args = [KUSTOMIZE_BIN, "cfg", "grep", expr]
     if invert:
-        out.append("--invert-match")
-    return Kustomize([out])
+        args.append("--invert-match")
+    cwd: Path | None = None
+    if path.is_absolute():
+        args.append(".")
+        cwd = path
+    else:
+        args.append(str(path))
+    return Kustomize([Command(args, cwd=cwd)])
