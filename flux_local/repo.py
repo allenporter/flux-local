@@ -60,7 +60,8 @@ def git_repo(path: Path | None = None) -> git.repo.Repo:
     """Return the local github repo path."""
     if path is None:
         return git.repo.Repo(os.getcwd(), search_parent_directories=True)
-    return git.repo.Repo(str(path))
+    _LOGGER.debug("Creating git repo: %s", path)
+    return git.repo.Repo(str(path), search_parent_directories=True)
 
 
 @cache
@@ -108,17 +109,16 @@ async def get_kustomizations(path: Path) -> list[Kustomization]:
     return [Kustomization.from_doc(doc) for doc in docs if KUSTOMIZE_DOMAIN_FILTER(doc)]
 
 
-async def build_manifest(root: Path | None = None) -> Manifest:
+async def build_manifest(path: Path | None = None) -> Manifest:
     """Build a Manifest object from the local cluster.
 
     This will locate all Kustomizations that represent clusters, then find all
     the Kustomizations within that cluster, as well as all relevant Helm
     resources.
     """
-    if root is None:
-        root = repo_root()
+    root = repo_root(git_repo(path))
 
-    clusters = await get_clusters(root)
+    clusters = await get_clusters(path or root)
     for cluster in clusters:
         _LOGGER.debug("Processing cluster: %s", cluster.path)
         cluster.kustomizations = await get_kustomizations(
