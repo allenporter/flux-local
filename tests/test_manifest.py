@@ -16,7 +16,7 @@ from flux_local.manifest import (
     write_manifest,
 )
 
-TESTDATA_DIR = Path("tests/testdata/helm-repo")
+TESTDATA_DIR = Path("tests/testdata/cluster/infrastructure")
 
 
 def test_parse_helm_release() -> None:
@@ -24,7 +24,8 @@ def test_parse_helm_release() -> None:
 
     release = HelmRelease.from_doc(
         yaml.load(
-            (TESTDATA_DIR / "metallb-release.yaml").read_text(), Loader=yaml.CLoader
+            (TESTDATA_DIR / "controllers/metallb-release.yaml").read_text(),
+            Loader=yaml.CLoader,
         )
     )
     assert release.name == "metallb"
@@ -38,9 +39,11 @@ def test_parse_helm_release() -> None:
 def test_parse_helm_repository() -> None:
     """Test parsing a helm repository doc."""
 
-    repo = HelmRepository.from_doc(
-        yaml.load((TESTDATA_DIR / "sources.yaml").read_text(), Loader=yaml.CLoader)
+    docs = yaml.load_all(
+        (TESTDATA_DIR / "configs/helm-repositories.yaml").read_text(),
+        Loader=yaml.CLoader,
     )
+    repo = HelmRepository.from_doc(next(iter(docs)))
     assert repo.name == "bitnami"
     assert repo.namespace == "flux-system"
     assert repo.url == "https://charts.bitnami.com/bitnami"

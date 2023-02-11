@@ -10,7 +10,8 @@ from flux_local import kustomize
 from flux_local.helm import Helm
 from flux_local.manifest import HelmRelease, HelmRepository
 
-TESTDATA_DIR = Path("tests/testdata/") / "helm-repo"
+REPO_DIR = Path("tests/testdata/cluster/infrastructure/configs")
+RELEASE_DIR = Path("tests/testdata/cluster/infrastructure/controllers")
 
 
 @pytest.fixture(name="tmp_config_path")
@@ -22,7 +23,7 @@ def tmp_config_path_fixture(tmp_path_factory: Any) -> Generator[Path, None, None
 @pytest.fixture(name="helm_repos")
 async def helm_repos_fixture() -> list[dict[str, Any]]:
     """Fixture for creating the HelmRepository objects"""
-    cmd = kustomize.grep("kind=^HelmRepository$", TESTDATA_DIR)
+    cmd = kustomize.grep("kind=^HelmRepository$", REPO_DIR)
     return await cmd.objects()
 
 
@@ -42,7 +43,7 @@ async def helm_fixture(tmp_config_path: Path, helm_repos: list[dict[str, Any]]) 
 @pytest.fixture(name="helm_releases")
 async def helm_releases_fixture() -> list[dict[str, Any]]:
     """Fixture for creating the HelmRelease objects."""
-    cmd = kustomize.grep("kind=^HelmRelease$", TESTDATA_DIR)
+    cmd = kustomize.grep("kind=^HelmRelease$", RELEASE_DIR)
     return await cmd.objects()
 
 

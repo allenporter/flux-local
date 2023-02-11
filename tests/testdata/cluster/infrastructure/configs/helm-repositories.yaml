@@ -9,3 +9,12 @@ spec:
   provider: generic
   timeout: 1m0s
   url: https://charts.bitnami.com/bitnami
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: podinfo
+  namespace: podinfo
+spec:
+  interval: 5m
+  url: https://stefanprodan.github.io/podinfo
