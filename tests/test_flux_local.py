@@ -8,6 +8,11 @@ from flux_local.command import Command, run
 TESTDATA = Path("tests/testdata/cluster/")
 
 
-async def test_flux_local_build() -> None:
+async def test_build() -> None:
     """Test flux-local build command."""
     await run(Command(["flux-local", "build", str(TESTDATA)]))
+
+
+async def test_build_helm() -> None:
+    """Test flux-local build command."""
+    await run(Command(["flux-local", "build", "--enable-helm", str(TESTDATA)]))
