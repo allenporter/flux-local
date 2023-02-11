@@ -60,7 +60,7 @@ async def async_main() -> None:
         help="Enable use of HelmRelease inflation",
     )
 
-    #  https://github.com/yaml/pyyaml/issues/89
+    # https://github.com/yaml/pyyaml/issues/89
     yaml.Loader.yaml_implicit_resolvers.pop("=")
 
     args = parser.parse_args()
