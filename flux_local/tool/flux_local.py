@@ -10,9 +10,9 @@ import yaml
 from aiofiles.os import mkdir
 from slugify import slugify
 
-from . import kustomize, repo
-from .helm import Helm
-from .manifest import Kustomization
+from flux_local import kustomize, repo
+from flux_local.helm import Helm
+from flux_local.manifest import Kustomization
 
 _LOGGER = logging.getLogger(__name__)
 
