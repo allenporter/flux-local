@@ -234,6 +234,24 @@ class Cluster(BaseModel):
         """Identifier for the Cluster in tests."""
         return f"{self.path}"
 
+    @property
+    def helm_repos(self) -> list[HelmRepository]:
+        """Return the list of HelmRepository objects from all Kustomizations."""
+        return [
+            repo
+            for kustomization in self.kustomizations
+            for repo in kustomization.helm_repos
+        ]
+
+    @property
+    def helm_releases(self) -> list[HelmRelease]:
+        """Return the list of HelmRelease objects from all Kustomizations."""
+        return [
+            release
+            for kustomization in self.kustomizations
+            for release in kustomization.helm_releases
+        ]
+
 
 class Manifest(BaseModel):
     """Holds information about cluster and applications contained in a repo."""

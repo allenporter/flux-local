@@ -39,6 +39,7 @@ from typing import Any, AsyncGenerator
 
 import yaml
 
+from . import manifest
 from .command import Command, run_piped
 
 __all__ = [
@@ -49,6 +50,7 @@ __all__ = [
 
 KUSTOMIZE_BIN = "kustomize"
 KYVERNO_BIN = "kyverno"
+HELM_RELEASE_KIND = "HelmRelease"
 
 
 class Kustomize:
@@ -69,6 +71,24 @@ class Kustomize:
         if invert:
             out.append("--invert-match")
         return Kustomize(self._cmds + [Command(out)])
+
+    def grep_helm_release(
+        self, helm_release: manifest.HelmRelease | None = None, invert: bool = False
+    ) -> "Kustomize":
+        """Filter the resources based on the specified HelmRelease."""
+        if helm_release:
+            if invert:
+                raise ValueError(
+                    "Must specify either helm_release or invert but not both"
+                )
+            return (
+                self.grep(f"metadata.namespace=^{helm_release.namespace}$")
+                .grep(f"metadata.name=^{helm_release.name}$")
+                .grep(f"kind=^{HELM_RELEASE_KIND}$")
+            )
+        if invert:
+            return self.grep(f"kind=^{HELM_RELEASE_KIND}$", invert=True)
+        raise ValueError("Must specify either helm_release or invert")
 
     async def run(self) -> str:
         """Run the kustomize command and return the output as a string."""

@@ -101,6 +101,11 @@ class Helm:
         """Add the specified HelmRepository to the local config."""
         self._repos.append(repo)
 
+    def add_repos(self, repos: list[HelmRepository]) -> None:
+        """Add the specified HelmRepository to the local config."""
+        for repo in repos:
+            self._repos.append(repo)
+
     async def update(self) -> None:
         """Return command line arguments to update the local repo.
 
@@ -111,8 +116,15 @@ class Helm:
             await config_file.write(content)
         await command.run(command.Command([HELM_BIN, "repo", "update"] + self._flags))
 
-    async def template(self, release: HelmRelease, values: dict[str, Any]) -> Kustomize:
-        """Return command line arguments to template the specified chart."""
+    async def template(
+        self, release: HelmRelease, values: dict[str, Any] | None = None
+    ) -> Kustomize:
+        """Return command line arguments to template the specified chart.
+
+        The default values will come from the `HelmRelease`, though you can
+        also specify values directory if not present in cluster manifest
+        e.g. it came from a truncated yaml.
+        """
         args: list[str] = [
             HELM_BIN,
             "template",
@@ -129,6 +141,8 @@ class Helm:
                     release.chart.version,
                 ]
             )
+        if release.values and not values:
+            values = release.values
         if values:
             values_path = self._tmp_dir / f"{release.release_name}-values.yaml"
             async with aiofiles.open(values_path, mode="w") as values_file:

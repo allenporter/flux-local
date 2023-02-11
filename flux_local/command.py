@@ -35,7 +35,7 @@ class Command:
 
     def __str__(self) -> str:
         """Render as a debug string."""
-        return "({self.cwd}) {self.string}"
+        return f"({self.cwd}) {self.string}"
 
 
 async def run_piped(cmds: list[Command]) -> str:
