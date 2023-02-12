@@ -11,3 +11,40 @@ to test, maintain, and evolve.
 
 See [documentation](https://allenporter.github.io/flux-local/) for full quickstart and API reference.
 See the [github project](https://github.com/allenporter/flux-local).
+
+## flux-local CLI
+
+The CLI is written in python and packaged as part of the `flux-local` python library, which can be installed using pip:
+
+```bash
+$ pip3 install flux-local
+```
+
+You can use the `flux-local` cli to build all objects in a cluster, similar to how you
+use `kustomize build`, which is used underneath. Here is an example to build all flux
+`Kustomization` objects within a git repository, which will then build all resources within those:
+
+```bash
+$ flux-local build clusters/prod/
+```
+
+You can also specify the root to build all clusters.
+
+Additionally, you can inflate `HelmRelease` objects inside each `Kustomization` by adding
+the `--enable-helm` command line flag:
+
+```bash
+$ flux-local build clusters/prod/ --enable-helm
+```
+
+You may also use `flux-local` to verify your local changes to helm charts have the desired
+effect on resources within the `HelmRelease`:
+
+```bash
+$ flux-local diff clusters/prod/ --enable-helm
+```
+
+## Library
+
+The `flux_local` [library documentation](https://allenporter.github.io/flux-local/) for details
+on the python APIs provided.
