@@ -117,7 +117,10 @@ class Helm:
         await command.run(command.Command([HELM_BIN, "repo", "update"] + self._flags))
 
     async def template(
-        self, release: HelmRelease, values: dict[str, Any] | None = None
+        self,
+        release: HelmRelease,
+        values: dict[str, Any] | None = None,
+        skip_crds: bool = True,
     ) -> Kustomize:
         """Return command line arguments to template the specified chart.
 
@@ -132,8 +135,9 @@ class Helm:
             release.chart.chart_name,
             "--namespace",
             release.namespace,
-            "--skip-crds",  # Reduce size of output
         ]
+        if skip_crds:
+            args.append("--skip-crds")
         if release.chart.version:
             args.extend(
                 [
