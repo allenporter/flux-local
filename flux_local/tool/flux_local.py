@@ -12,7 +12,7 @@ import yaml
 from aiofiles.os import mkdir
 from slugify import slugify
 
-from flux_local import kustomize, repo
+from flux_local import git_repo, kustomize
 from flux_local.helm import Helm
 from flux_local.manifest import Kustomization
 
@@ -51,8 +51,8 @@ async def build(
     path: pathlib.Path, enable_helm: bool, skip_crds: bool
 ) -> AsyncGenerator[str, None]:
     """Flux-local build action."""
-    root = repo.repo_root(repo.git_repo(path))
-    manifest = await repo.build_manifest(path)
+    root = git_repo.repo_root(git_repo.git_repo(path))
+    manifest = await git_repo.build_manifest(path)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         await mkdir(pathlib.Path(tmp_dir) / "cache")
@@ -76,15 +76,15 @@ async def build(
 
 async def diff(path: pathlib.Path, enable_helm: bool, skip_crds: bool) -> None:
     """Flux-local diff action."""
-    git_repo = repo.git_repo(path)
+    repo = git_repo.git_repo(path)
 
     content1 = []
-    with repo.create_worktree(git_repo) as worktree_dir:
+    with git_repo.create_worktree(repo) as worktree_dir:
         async for content in build(worktree_dir, enable_helm, skip_crds):
             content1.append(content)
 
     content2 = []
-    async for content in build(repo.repo_root(git_repo), enable_helm, skip_crds):
+    async for content in build(git_repo.repo_root(repo), enable_helm, skip_crds):
         content2.append(content)
 
     diff_text = difflib.unified_diff(
@@ -143,6 +143,13 @@ async def async_main() -> None:
         help="Allows disabling of outputting CRDs to reduce output size",
     )
 
+    manifest_args = subparsers.add_parser(
+        "manifest", help="Build a yaml manifest file representing the cluster"
+    )
+    manifest_args.add_argument(
+        "path", type=pathlib.Path, help="Path to the kustomization or charts"
+    )
+
     # https://github.com/yaml/pyyaml/issues/89
     yaml.Loader.yaml_implicit_resolvers.pop("=")
 
@@ -161,7 +168,7 @@ async def async_main() -> None:
         return
 
     if args.command == "manifest":
-        manifest = await repo.build_manifest(args.path)
+        manifest = await git_repo.build_manifest(args.path)
         print(manifest.yaml())
         return
 
