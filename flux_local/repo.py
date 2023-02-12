@@ -22,12 +22,14 @@ for cluster in manifest:
 
 """
 
+import contextlib
 import logging
 import os
+import tempfile
 from collections.abc import Callable
 from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Generator
 
 import git
 
@@ -136,3 +138,22 @@ async def build_manifest(path: Path | None = None) -> Manifest:
                 for doc in await cmd.grep(f"kind=^{HELM_RELEASE_KIND}$").objects()
             ]
     return Manifest(clusters=clusters)
+
+
+@contextlib.contextmanager
+def create_worktree(repo: git.repo.Repo) -> Generator[Path, None, None]:
+    """Create a ContextManager for a new git worktree in the current repo.
+
+    This is used to get a fork of the current repo without any local changes
+    in order to produce a diff.
+    """
+    orig = os.getcwd()
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        _LOGGER.debug("Creating worktree in %s", tmp_dir)
+        repo.git.worktree("add", str(tmp_dir))
+        os.chdir(tmp_dir)
+        yield Path(tmp_dir)
+    _LOGGER.debug("Restoring to %s", orig)
+    # The temp directory should now be removed and this prunes the worktree
+    repo.git.worktree("prune")
+    os.chdir(orig)
