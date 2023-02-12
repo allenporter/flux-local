@@ -20,19 +20,10 @@ repos:
     args:
     - -c
     - ".yaml-lint.yaml"
-- repo: https://github.com/pycqa/isort
-  rev: 5.12.0
-  hooks:
-  - id: isort
-    args: ["--profile", "black"]
 - repo: https://github.com/psf/black
   rev: 23.1.0
   hooks:
   - id: black
-- repo: https://github.com/PyCQA/flake8
-  rev: 6.0.0
-  hooks:
-  - id: flake8
 - repo: local
   hooks:
   - id: mypy
@@ -42,14 +33,7 @@ repos:
     types: [python]
     require_serial: true
     files: ^(flux_local/|tests/)
-  - id: pylint
-    name: pylint
-    entry: pylint
-    language: system
-    types: [python]
-    args:
-      [
-        "-rn", # Only display messages
-        "-sn", # Don't display the score
-        "--disable=too-few-public-methods",
-      ]
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: 'v0.0.245'
+  hooks:
+  - id: ruff

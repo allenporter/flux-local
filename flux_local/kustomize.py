@@ -107,8 +107,8 @@ class Kustomize:
     async def validate(self, policy_path: Path) -> None:
         """Apply kyverno policies from the directory to any objects built so far.
 
-        The specified `policy_path` is a file or directory containing policy objects. All
-        secrets will stripped since otherwise they fail the kyverno cli.
+        The specified `policy_path` is a file or directory containing policy objects.
+        All secrets will stripped since otherwise they fail the kyverno cli.
         """
         kustomize = self.grep("kind=^Secret$", invert=True)
         cmds = kustomize._cmds + [  # pylint: disable=protected-access
