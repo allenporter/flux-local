@@ -26,3 +26,8 @@ async def test_diff() -> None:
 async def test_manifest() -> None:
     """Test flux-local manifest command."""
     await run(Command(["flux-local", "manifest", str(TESTDATA)]))
+
+
+async def test_test() -> None:
+    """Test flux-local test command."""
+    await run(Command(["flux-local", "test", str(TESTDATA)]))
