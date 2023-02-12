@@ -1,1 +1,3 @@
-"""flux-local command line tool."""
+"""
+.. include:: ./README.md
+"""

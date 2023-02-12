@@ -20,6 +20,32 @@ The CLI is written in python and packaged as part of the `flux-local` python lib
 $ pip3 install flux-local
 ```
 
+You can use the `flux-local` cli to inspect objects in the cluster, similar to how you might
+use the flux command on a real cluster.
+
+This example lists all Kustomizations in the cluster:
+```bash
+$ flux-local get ks
+NAME                 PATH
+apps                 ./tests/testdata/cluster/apps/prod
+infra-controllers    ./tests/testdata/cluster/infrastructure/controllers
+infra-configs        ./tests/testdata/cluster/infrastructure/configs
+```
+
+This example lists all HelmReleases in the cluster:
+```bash
+$ flux-local get hr
+NAMESPACE    NAME       REVISION    CHART              SOURCE
+podinfo      podinfo    >=1.0.0     podinfo-podinfo    podinfo
+metallb      metallb    4.1.14      metallb-metallb    bitnami
+```
+
+This example lists all HelmReleases in a specific namespace:
+$ flux-local get hr  -n metallb
+NAME       REVISION    CHART              SOURCE
+metallb    4.1.14      metallb-metallb    bitnami
+```
+
 You can use the `flux-local` cli to build all objects in a cluster, similar to how you
 use `kustomize build`, which is used underneath. Here is an example to build all flux
 `Kustomization` objects within a git repository, which will then build all resources within those:

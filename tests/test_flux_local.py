@@ -1,33 +1,25 @@
 """Tests for the flux-local command line tool."""
 
-
-from pathlib import Path
+import pytest
 
 from flux_local.command import Command, run
 
-TESTDATA = Path("tests/testdata/cluster/")
+TESTDATA = "tests/testdata/cluster/"
 
 
-async def test_build() -> None:
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["flux-local", "build", TESTDATA],
+        ["flux-local", "build", "--enable-helm", TESTDATA],
+        ["flux-local", "diff", TESTDATA],
+        ["flux-local", "manifest", TESTDATA],
+        ["flux-local", "test", TESTDATA],
+        ["flux-local", "get", "ks"],
+        ["flux-local", "get", "hr"],
+        ["flux-local", "get", "hr", "-n", "metallb"],
+    ],
+)
+async def test_flux_local_command(args: list[str]) -> None:
     """Test flux-local build command."""
-    await run(Command(["flux-local", "build", str(TESTDATA)]))
-
-
-async def test_build_helm() -> None:
-    """Test flux-local build command with helm."""
-    await run(Command(["flux-local", "build", "--enable-helm", str(TESTDATA)]))
-
-
-async def test_diff() -> None:
-    """Test flux-local diff command."""
-    await run(Command(["flux-local", "diff", str(TESTDATA)]))
-
-
-async def test_manifest() -> None:
-    """Test flux-local manifest command."""
-    await run(Command(["flux-local", "manifest", str(TESTDATA)]))
-
-
-async def test_test() -> None:
-    """Test flux-local test command."""
-    await run(Command(["flux-local", "test", str(TESTDATA)]))
+    await run(Command(args))

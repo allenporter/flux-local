@@ -3,6 +3,8 @@
 import difflib
 import logging
 import pathlib
+from argparse import ArgumentParser, BooleanOptionalAction
+from argparse import _SubParsersAction as SubParsersAction
 
 from flux_local import git_repo
 
@@ -13,6 +15,32 @@ _LOGGER = logging.getLogger(__name__)
 
 class DiffAction:
     """Flux-local diff action."""
+
+    @classmethod
+    def register(cls, subparsers: SubParsersAction[ArgumentParser]) -> ArgumentParser:
+        """Register the subparser commands."""
+        args = subparsers.add_parser(
+            "diff",
+            help="Diff a local flux resource",
+        )
+        args.add_argument(
+            "path", type=pathlib.Path, help="Path to the kustomization or charts"
+        )
+        args.add_argument(
+            "--enable-helm",
+            type=bool,
+            action=BooleanOptionalAction,
+            help="Enable use of HelmRelease inflation",
+        )
+        args.add_argument(
+            "--skip-crds",
+            type=bool,
+            default=False,
+            action=BooleanOptionalAction,
+            help="Allows disabling of outputting CRDs to reduce output size",
+        )
+        args.set_defaults(cls=cls)
+        return args
 
     async def run(  # type: ignore[no-untyped-def]
         self,
