@@ -14,5 +14,10 @@ async def test_build() -> None:
 
 
 async def test_build_helm() -> None:
-    """Test flux-local build command."""
+    """Test flux-local build command with helm."""
     await run(Command(["flux-local", "build", "--enable-helm", str(TESTDATA)]))
+
+
+async def test_diff() -> None:
+    """Test flux-local diff command."""
+    await run(Command(["flux-local", "diff", str(TESTDATA)]))

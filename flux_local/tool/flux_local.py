@@ -2,9 +2,11 @@
 
 import argparse
 import asyncio
+import difflib
 import logging
 import pathlib
 import tempfile
+from typing import AsyncGenerator
 
 import yaml
 from aiofiles.os import mkdir
@@ -17,16 +19,16 @@ from flux_local.manifest import Kustomization
 _LOGGER = logging.getLogger(__name__)
 
 
-async def build(
+async def build_kustomization(
     root: pathlib.Path, kustomization: Kustomization, helm: Helm | None
-) -> None:
-    """Flux-local command line tool main async entry point."""
+) -> AsyncGenerator[str, None]:
+    """Flux-local build action for a kustomization."""
     cmds = kustomize.build(root / kustomization.path)
     if helm:
         # Exclude HelmReleases and expand below
         cmds = cmds.grep_helm_release(invert=True)
     objs = await cmds.objects()
-    print(yaml.dump(objs))
+    yield yaml.dump(objs)
 
     if not helm:
         return
@@ -34,7 +36,49 @@ async def build(
     for helm_release in kustomization.helm_releases:
         cmds = await helm.template(helm_release)
         objs = await cmds.objects()
-        print(yaml.dump(objs))
+        yield yaml.dump(objs)
+
+
+async def build(path: pathlib.Path, enable_helm: bool) -> AsyncGenerator[str, None]:
+    """Flux-local build action."""
+    root = repo.repo_root(repo.git_repo(path))
+    manifest = await repo.build_manifest(path)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        await mkdir(pathlib.Path(tmp_dir) / "cache")
+
+        for cluster in manifest.clusters:
+            helm = None
+            if enable_helm:
+                path = pathlib.Path(tmp_dir) / f"{slugify(cluster.path)}"
+                await mkdir(path)
+
+                helm = Helm(path, pathlib.Path(tmp_dir) / "cache")
+                helm.add_repos(cluster.helm_repos)
+                await helm.update()
+
+            for kustomization in cluster.kustomizations:
+                async for content in build_kustomization(root, kustomization, helm):
+                    yield content
+
+
+async def diff(path: pathlib.Path, enable_helm: bool) -> None:
+    """Flux-local diff action."""
+    git_repo = repo.git_repo(path)
+
+    content1 = []
+    with repo.create_worktree(git_repo) as worktree_dir:
+        async for content in build(worktree_dir, enable_helm):
+            content1.append(content)
+
+    content2 = []
+    async for content in build(repo.repo_root(git_repo), enable_helm):
+        content2.append(content)
+
+    diff_text = difflib.unified_diff(
+        "".join(content1).split("\n"), "".join(content2).split("\n")
+    )
+    print("\n".join(diff_text))
 
 
 async def async_main() -> None:
@@ -60,6 +104,19 @@ async def async_main() -> None:
         help="Enable use of HelmRelease inflation",
     )
 
+    diff_args = subparsers.add_parser(
+        "diff", help="Build local flux Kustomization target from a local directory"
+    )
+    diff_args.add_argument(
+        "path", type=pathlib.Path, help="Path to the kustomization or charts"
+    )
+    diff_args.add_argument(
+        "--enable-helm",
+        type=bool,
+        action=argparse.BooleanOptionalAction,
+        help="Enable use of HelmRelease inflation",
+    )
+
     # https://github.com/yaml/pyyaml/issues/89
     yaml.Loader.yaml_implicit_resolvers.pop("=")
 
@@ -69,25 +126,12 @@ async def async_main() -> None:
         logging.basicConfig(level=args.log_level)
 
     if args.command == "build":
-        root = repo.repo_root(repo.git_repo(args.path))
-        manifest = await repo.build_manifest(args.path)
+        async for content in build(args.path, args.enable_helm):
+            print(content)
+        return
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            await mkdir(pathlib.Path(tmp_dir) / "cache")
-
-            for cluster in manifest.clusters:
-                helm = None
-                if args.enable_helm:
-                    path = pathlib.Path(tmp_dir) / f"{slugify(cluster.path)}"
-                    await mkdir(path)
-
-                    helm = Helm(path, pathlib.Path(tmp_dir) / "cache")
-                    helm.add_repos(cluster.helm_repos)
-                    await helm.update()
-
-                for kustomization in cluster.kustomizations:
-                    await build(root, kustomization, helm)
-
+    if args.command == "diff":
+        await diff(args.path, args.enable_helm)
         return
 
     if args.command == "manifest":
