@@ -7,7 +7,7 @@ import pathlib
 
 import yaml
 
-from . import build, diff, manifest
+from . import build, diff, manifest, test
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,6 +75,12 @@ def main() -> None:
         "path", type=pathlib.Path, help="Path to the kustomization or charts"
     )
     manifest_args.set_defaults(cls=manifest.ManifestAction)
+
+    test_args = subparsers.add_parser("test", help="Build and validate the cluster")
+    test_args.add_argument(
+        "path", type=pathlib.Path, help="Path to the kustomization or charts"
+    )
+    test_args.set_defaults(cls=test.TestAction)
 
     args = parser.parse_args()
 

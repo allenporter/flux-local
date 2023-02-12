@@ -1,4 +1,4 @@
-"""Command line tool for building, diffing, validating flux local repositories."""
+"""Flux-local build action."""
 
 import logging
 import pathlib
