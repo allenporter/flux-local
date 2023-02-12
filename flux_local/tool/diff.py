@@ -17,9 +17,11 @@ class DiffAction:
     """Flux-local diff action."""
 
     @classmethod
-    def register(cls, subparsers: SubParsersAction[ArgumentParser]) -> ArgumentParser:
+    def register(
+        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+    ) -> ArgumentParser:
         """Register the subparser commands."""
-        args = subparsers.add_parser(
+        args: ArgumentParser = subparsers.add_parser(
             "diff",
             help="Diff a local flux resource",
         )
