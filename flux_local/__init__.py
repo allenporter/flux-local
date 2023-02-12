@@ -6,5 +6,5 @@ __all__ = [
     "manifest",
     "helm",
     "kustomize",
-    "repo",
+    "git_repo",
 ]
