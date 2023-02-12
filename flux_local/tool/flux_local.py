@@ -19,11 +19,19 @@ from flux_local.manifest import Kustomization
 _LOGGER = logging.getLogger(__name__)
 
 
+CRD_RESOURCE = "CustomResourceDefinition"
+
+
 async def build_kustomization(
-    root: pathlib.Path, kustomization: Kustomization, helm: Helm | None
+    root: pathlib.Path,
+    kustomization: Kustomization,
+    helm: Helm | None,
+    skip_crds: bool,
 ) -> AsyncGenerator[str, None]:
     """Flux-local build action for a kustomization."""
     cmds = kustomize.build(root / kustomization.path)
+    if skip_crds:
+        cmds = cmds.grep(f"kind=^{CRD_RESOURCE}$", invert=True)
     if helm:
         # Exclude HelmReleases and expand below
         cmds = cmds.grep_helm_release(invert=True)
@@ -34,12 +42,14 @@ async def build_kustomization(
         return
 
     for helm_release in kustomization.helm_releases:
-        cmds = await helm.template(helm_release)
+        cmds = await helm.template(helm_release, skip_crds=skip_crds)
         objs = await cmds.objects()
         yield yaml.dump(objs)
 
 
-async def build(path: pathlib.Path, enable_helm: bool) -> AsyncGenerator[str, None]:
+async def build(
+    path: pathlib.Path, enable_helm: bool, skip_crds: bool
+) -> AsyncGenerator[str, None]:
     """Flux-local build action."""
     root = repo.repo_root(repo.git_repo(path))
     manifest = await repo.build_manifest(path)
@@ -58,21 +68,23 @@ async def build(path: pathlib.Path, enable_helm: bool) -> AsyncGenerator[str, No
                 await helm.update()
 
             for kustomization in cluster.kustomizations:
-                async for content in build_kustomization(root, kustomization, helm):
+                async for content in build_kustomization(
+                    root, kustomization, helm, skip_crds
+                ):
                     yield content
 
 
-async def diff(path: pathlib.Path, enable_helm: bool) -> None:
+async def diff(path: pathlib.Path, enable_helm: bool, skip_crds: bool) -> None:
     """Flux-local diff action."""
     git_repo = repo.git_repo(path)
 
     content1 = []
     with repo.create_worktree(git_repo) as worktree_dir:
-        async for content in build(worktree_dir, enable_helm):
+        async for content in build(worktree_dir, enable_helm, skip_crds):
             content1.append(content)
 
     content2 = []
-    async for content in build(repo.repo_root(git_repo), enable_helm):
+    async for content in build(repo.repo_root(git_repo), enable_helm, skip_crds):
         content2.append(content)
 
     diff_text = difflib.unified_diff(
@@ -103,6 +115,13 @@ async def async_main() -> None:
         action=argparse.BooleanOptionalAction,
         help="Enable use of HelmRelease inflation",
     )
+    build_args.add_argument(
+        "--skip-crds",
+        type=bool,
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Allows disabling of outputting CRDs to reduce output size",
+    )
 
     diff_args = subparsers.add_parser(
         "diff", help="Build local flux Kustomization target from a local directory"
@@ -116,6 +135,13 @@ async def async_main() -> None:
         action=argparse.BooleanOptionalAction,
         help="Enable use of HelmRelease inflation",
     )
+    diff_args.add_argument(
+        "--skip-crds",
+        type=bool,
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Allows disabling of outputting CRDs to reduce output size",
+    )
 
     # https://github.com/yaml/pyyaml/issues/89
     yaml.Loader.yaml_implicit_resolvers.pop("=")
@@ -126,12 +152,12 @@ async def async_main() -> None:
         logging.basicConfig(level=args.log_level)
 
     if args.command == "build":
-        async for content in build(args.path, args.enable_helm):
+        async for content in build(args.path, args.enable_helm, args.skip_crds):
             print(content)
         return
 
     if args.command == "diff":
-        await diff(args.path, args.enable_helm)
+        await diff(args.path, args.enable_helm, args.skip_crds)
         return
 
     if args.command == "manifest":
