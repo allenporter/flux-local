@@ -2,8 +2,6 @@
 aiofiles==23.1.0
 black==23.1.0
 coverage==7.1.0
-flake8==6.0.0
-flake8-black==0.3.6
 GitPython==3.1.30
 mypy==1.0.0
 nest_asyncio==1.5.6
@@ -11,12 +9,12 @@ pdoc==12.3.1
 pip==23.0
 pre-commit==3.0.4
 pydantic==1.10.4
-pylint==2.16.1
 pytest==7.2.1
 pytest-asyncio==0.20.3
 pytest-cov==4.0.0
 python-slugify==8.0.0
 PyYAML==6.0
+ruff==0.0.245
 types-aiofiles==22.1.0.7
 types-PyYAML==6.0.12.4
 typing-extensions==4.4.0
