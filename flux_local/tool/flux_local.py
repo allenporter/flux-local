@@ -4,10 +4,12 @@ import argparse
 import asyncio
 import logging
 import pathlib
+import sys
 
 import yaml
 
 from . import build, diff, get, manifest, test
+from flux_local import command
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,8 +73,12 @@ def main() -> None:
     if args.log_level:
         logging.basicConfig(level=args.log_level)
 
-    command = args.cls()
-    asyncio.run(command.run(**vars(args)))
+    action = args.cls()
+    try:
+        asyncio.run(action.run(**vars(args)))
+    except command.CommandException as err:
+        print("Command failed: ", err)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -63,11 +63,31 @@ the `--enable-helm` command line flag:
 $ flux-local build clusters/prod/ --enable-helm
 ```
 
-You may also use `flux-local` to verify your local changes to helm charts have the desired
-effect on resources within the `HelmRelease`:
-
+You may also use `flux-local` to verify your local changes to cluster resources have the desird
+effect. This will run a local `kustomize build` first against the local repo then again
+against a prior repo revision, then prints the output:
 ```bash
-$ flux-local diff clusters/prod/ --enable-helm
+$ flux-local diff ks apps
+---
+
++++
+
+@@ -2,6 +2,13 @@
+
+   kind: Namespace
+   metadata:
+     name: podinfo
++- apiVersion: v1
++  data:
++    foo: bar
++  kind: ConfigMap
++  metadata:
++    name: podinfo-config
++    namespace: podinfo
+ - apiVersion: helm.toolkit.fluxcd.io/v2beta1
+   kind: HelmRelease
+   metadata:
+
 ```
 
 ## Library
