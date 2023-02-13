@@ -27,7 +27,7 @@ __all__ = [
 # Match a prefix of apiVersion to ensure we have the right type of object.
 # We don't check specific versions for forward compatibility on upgrade.
 CLUSTER_KUSTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
-KUSTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
+KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
 
@@ -182,7 +182,7 @@ class Kustomization(BaseModel):
     @classmethod
     def from_doc(cls, doc: dict[str, Any]) -> "Kustomization":
         """Parse a partial Kustomization from a kubernetes resource."""
-        _check_version(doc, KUSTOMIZE_DOMAIN)
+        _check_version(doc, CLUSTER_KUSTOMIZE_DOMAIN)
         if not (metadata := doc.get("metadata")):
             raise ValueError(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
