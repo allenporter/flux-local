@@ -34,6 +34,6 @@ repos:
     require_serial: true
     files: ^(flux_local/|tests/)
 - repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: 'v0.0.245'
+  rev: 'v0.0.246'
   hooks:
   - id: ruff
