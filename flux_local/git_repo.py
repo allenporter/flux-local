@@ -225,7 +225,8 @@ def create_worktree(repo: git.repo.Repo) -> Generator[Path, None, None]:
     orig = os.getcwd()
     with tempfile.TemporaryDirectory() as tmp_dir:
         _LOGGER.debug("Creating worktree in %s", tmp_dir)
-        repo.git.worktree("add", str(tmp_dir))
+        # Add --detach to avoid creating a branch since we will not make modifications
+        repo.git.worktree("add", "--detach", str(tmp_dir))
         os.chdir(tmp_dir)
         yield Path(tmp_dir)
     _LOGGER.debug("Restoring to %s", orig)
