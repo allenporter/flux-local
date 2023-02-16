@@ -8,7 +8,7 @@ nest_asyncio==1.5.6
 pdoc==12.3.1
 pip==23.0
 pre-commit==3.0.4
-pydantic==1.10.4
+pydantic==1.10.5
 pytest==7.2.1
 pytest-asyncio==0.20.3
 pytest-cov==4.0.0
