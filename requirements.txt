@@ -14,7 +14,7 @@ pytest-asyncio==0.20.3
 pytest-cov==4.0.0
 python-slugify==8.0.0
 PyYAML==6.0
-ruff==0.0.246
+ruff==0.0.247
 types-aiofiles==22.1.0.7
 types-PyYAML==6.0.12.6
 typing-extensions==4.5.0
