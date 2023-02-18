@@ -12,7 +12,8 @@ TESTDATA = "tests/testdata/cluster/"
     [
         ["flux-local", "build", TESTDATA],
         ["flux-local", "build", "--enable-helm", TESTDATA],
-        ["flux-local", "diff", "ks", "apps", TESTDATA],
+        ["flux-local", "diff", "ks", "apps", "--path", TESTDATA],
+        ["flux-local", "diff", "hr", "podinfo", "-n", "podinfo", "--path", TESTDATA],
         ["flux-local", "manifest", TESTDATA],
         ["flux-local", "test", TESTDATA],
         ["flux-local", "get", "ks"],
