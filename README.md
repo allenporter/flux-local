@@ -64,8 +64,8 @@ $ flux-local build clusters/prod/ --enable-helm
 ```
 
 You may also use `flux-local` to verify your local changes to cluster resources have the desird
-effect. This will run a local `kustomize build` first against the local repo then again
-against a prior repo revision, then prints the output:
+effect. This is similar to `flux diff` but entirely local. This will run a local `kustomize build`
+first against the local repo then again against a prior repo revision, then prints the output:
 ```bash
 $ flux-local diff ks apps
 ---
@@ -88,6 +88,30 @@ $ flux-local diff ks apps
    kind: HelmRelease
    metadata:
 
+```
+
+Additionally `flux-local` can inflate a `HelmRelease` locally and show diffs in the output
+objects:
+
+```bash
+$ flux-local diff hr -n podinfo podinfo
+---
+
++++
+
+@@ -33,8 +33,8 @@
+
+     labels:
+       app.kubernetes.io/managed-by: Helm
+       app.kubernetes.io/name: podinfo
+-      app.kubernetes.io/version: 6.3.2
+-      helm.sh/chart: podinfo-6.3.2
++      app.kubernetes.io/version: 6.3.3
++      helm.sh/chart: podinfo-6.3.3
+     name: podinfo
+   spec:
+     ports:
+...
 ```
 
 ## Library

@@ -121,6 +121,7 @@ class Helm:
         release: HelmRelease,
         values: dict[str, Any] | None = None,
         skip_crds: bool = True,
+        skip_tests: bool = True,
     ) -> Kustomize:
         """Return command line arguments to template the specified chart.
 
@@ -138,6 +139,8 @@ class Helm:
         ]
         if skip_crds:
             args.append("--skip-crds")
+        if skip_tests:
+            args.append("--skip-tests")
         if release.chart.version:
             args.extend(
                 [
