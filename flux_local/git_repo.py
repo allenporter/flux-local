@@ -23,7 +23,7 @@ for cluster in manifest:
 """
 
 import contextlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
 import os
 import tempfile
@@ -49,6 +49,8 @@ __all__ = [
     "repo_root",
     "build_manifest",
     "ResourceSelector",
+    "PathSelector",
+    "MetadataSelector",
 ]
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,10 +60,12 @@ CLUSTER_KUSTOMIZE_KIND = "Kustomization"
 KUSTOMIZE_KIND = "Kustomization"
 HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
+DEFAULT_NAMESPACE = "flux-system"
 
 
+@cache
 def git_repo(path: Path | None = None) -> git.repo.Repo:
-    """Return the local github repo path."""
+    """Return the local git repo path."""
     if path is None:
         return git.repo.Repo(os.getcwd(), search_parent_directories=True)
     return git.repo.Repo(str(path), search_parent_directories=True)
@@ -69,7 +73,7 @@ def git_repo(path: Path | None = None) -> git.repo.Repo:
 
 @cache
 def repo_root(repo: git.repo.Repo | None = None) -> Path:
-    """Return the local github repo path."""
+    """Return the local git repo path."""
     if repo is None:
         repo = git_repo()
     return Path(repo.git.rev_parse("--show-toplevel"))
@@ -92,6 +96,53 @@ KUSTOMIZE_DOMAIN_FILTER = domain_filter(KUSTOMIZE_DOMAIN)
 
 
 @dataclass
+class PathSelector:
+    """A pathlib.Path inside of a git repo."""
+
+    path: Path | None = None
+    """The path within a repo."""
+
+    @property
+    def repo(self) -> git.repo.Repo:
+        """Return the local git repo."""
+        return git_repo(self.path)
+
+    @property
+    def root(self) -> Path:
+        """Return the local git repo root."""
+        return repo_root(self.repo)
+
+    @property
+    def process_path(self) -> Path:
+        """Return the path to process."""
+        return self.path or self.root
+
+
+@dataclass
+class MetadataSelector:
+    """A filter for objects to select from the cluster."""
+
+    name: str | None = None
+    """Resources returned will match this name."""
+
+    namespace: str | None = DEFAULT_NAMESPACE
+    """Resources returned will be from this namespace."""
+
+    @property
+    def predicate(self) -> Callable[[Kustomization | HelmRelease], bool]:
+        """A predicate that selects Kustomization objects."""
+
+        def predicate(obj: Kustomization | HelmRelease) -> bool:
+            if self.name and obj.name != self.name:
+                return False
+            if self.namespace and obj.namespace != self.namespace:
+                return False
+            return True
+
+        return predicate
+
+
+@dataclass
 class ResourceSelector:
     """A filter for objects to select from the cluster.
 
@@ -100,33 +151,13 @@ class ResourceSelector:
     unnecessary resources.
     """
 
-    kustomizations: set[str] | None = None
+    path: PathSelector = field(default_factory=PathSelector)
+    """Path to find a repo of local flux Kustomization objects"""
+
+    kustomization: MetadataSelector = field(default_factory=MetadataSelector)
     """Kustomization names to return, or all if empty."""
 
-    helm_release_namespace: set[str] | None = None
-    """HelmReleases returned will be from this namespace, or all if empty."""
-
-    @property
-    def kustomization_predicate(self) -> Callable[[Kustomization], bool]:
-        """A predicate that selects Kustomization objects."""
-
-        def predicate(ks: Kustomization) -> bool:
-            if not self.kustomizations:
-                return True
-            return ks.name in self.kustomizations
-
-        return predicate
-
-    @property
-    def helm_release_predicate(self) -> Callable[[HelmRelease], bool]:
-        """A predicate that selects Kustomization objects."""
-
-        def predicate(hr: HelmRelease) -> bool:
-            if not self.helm_release_namespace:
-                return True
-            return hr.namespace in self.helm_release_namespace
-
-        return predicate
+    helm_release: MetadataSelector = field(default_factory=MetadataSelector)
 
 
 async def get_clusters(path: Path) -> list[Cluster]:
@@ -170,40 +201,43 @@ async def build_manifest(
     the Kustomizations within that cluster, as well as all relevant Helm
     resources.
     """
-    root = repo_root(git_repo(path))
+    if path:
+        selector.path = PathSelector(path=path)
 
-    _LOGGER.debug("Processing as a cluster: %s", path or root)
-    clusters = await get_clusters(path or root)
+    _LOGGER.debug("Processing cluster with selector %s", selector)
+    clusters = await get_clusters(selector.path.process_path)
     if len(clusters) > 0:
         for cluster in clusters:
             _LOGGER.debug("Processing cluster: %s", cluster.path)
             cluster.kustomizations = await get_cluster_kustomizations(
-                root / cluster.path.lstrip("./")
+                selector.path.root / cluster.path.lstrip("./")
             )
-    elif path:
-        _LOGGER.debug("No clusters found; Processing as a Kustomization: %s", path)
+    elif selector.path.path:
+        _LOGGER.debug("No clusters found; Processing as a Kustomization: %s", selector)
         # The argument path may be a Kustomization inside a cluster. Create a synthetic
         # cluster with any found Kustomizations
         cluster = Cluster(name="", path="")
-        objects = await get_kustomizations(path)
+        objects = await get_kustomizations(selector.path.path)
         if objects:
-            cluster.kustomizations = [Kustomization(name="", path=str(path))]
+            cluster.kustomizations = [
+                Kustomization(name="", path=str(selector.path.path))
+            ]
             clusters.append(cluster)
 
     for cluster in clusters:
         cluster.kustomizations = list(
-            filter(selector.kustomization_predicate, cluster.kustomizations)
+            filter(selector.kustomization.predicate, cluster.kustomizations)
         )
         for kustomization in cluster.kustomizations:
             _LOGGER.debug("Processing kustomization: %s", kustomization.path)
-            cmd = kustomize.build(root / kustomization.path)
+            cmd = kustomize.build(selector.path.root / kustomization.path)
             kustomization.helm_repos = [
                 HelmRepository.from_doc(doc)
                 for doc in await cmd.grep(f"kind=^{HELM_REPO_KIND}$").objects()
             ]
             kustomization.helm_releases = list(
                 filter(
-                    selector.helm_release_predicate,
+                    selector.helm_release.predicate,
                     [
                         HelmRelease.from_doc(doc)
                         for doc in await cmd.grep(

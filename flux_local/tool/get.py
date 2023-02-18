@@ -1,7 +1,6 @@
 """Flux-local get action."""
 
 import logging
-import pathlib
 from argparse import ArgumentParser
 from argparse import _SubParsersAction as SubParsersAction
 from typing import cast
@@ -9,9 +8,12 @@ from typing import cast
 from flux_local import git_repo
 
 from .format import print_columns
+from . import selector
 
 
 _LOGGER = logging.getLogger(__name__)
+
+DEFAULT_NAMESPACE = "flux-system"
 
 
 class GetKustomizationAction:
@@ -31,38 +33,36 @@ class GetKustomizationAction:
                 description="Print information about local flux Kustomization objects",
             ),
         )
-        args.add_argument(
-            "path",
-            help="Optional path with flux Kustomization resources (multi-cluster ok)",
-            type=pathlib.Path,
-            default=".",
-            nargs="?",
-        )
+        selector.add_ks_selector_flags(args)
         args.set_defaults(cls=cls)
         return args
 
     async def run(  # type: ignore[no-untyped-def]
         self,
-        path: pathlib.Path,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
-        manifest = await git_repo.build_manifest(path)
+        query = selector.build_ks_selector(**kwargs)
+        manifest = await git_repo.build_manifest(selector=query)
         cols = ["NAME", "PATH", "HELMREPOS", "RELEASES"]
         if len(manifest.clusters) > 1:
             cols.insert(0, "CLUSTER")
         results: list[list[str]] = []
         for cluster in manifest.clusters:
-            for kustomization in cluster.kustomizations:
+            for ks in cluster.kustomizations:
                 value = [
-                    kustomization.name,
-                    kustomization.path,
-                    str(len(kustomization.helm_repos)),
-                    str(len(kustomization.helm_releases)),
+                    ks.name,
+                    ks.path,
+                    str(len(ks.helm_repos)),
+                    str(len(ks.helm_releases)),
                 ]
                 if len(manifest.clusters) > 1:
                     value.insert(0, cluster.path)
                 results.append(value)
+        if not results:
+            print(selector.not_found("Kustomization", query.kustomization))
+            return
+
         print_columns(cols, results)
 
 
@@ -83,48 +83,36 @@ class GetHelmReleaseAction:
                 description="Print information about local flux HelmRelease objects",
             ),
         )
-        args.add_argument(
-            "path",
-            help="Optional path with flux Kustomization resources (multi-cluster ok)",
-            type=pathlib.Path,
-            default=".",
-            nargs="?",
-        )
-        args.add_argument(
-            "--namespace",
-            "-n",
-            type=str,
-            default=None,
-            help="If present, the namespace scope for this operation (default ALL)",
-        )
+        selector.add_hr_selector_flags(args)
         args.set_defaults(cls=cls)
         return args
 
     async def run(  # type: ignore[no-untyped-def]
         self,
-        path: pathlib.Path,
-        namespace: str | None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
-        manifest = await git_repo.build_manifest(path)
+        query = selector.build_hr_selector(**kwargs)
+        manifest = await git_repo.build_manifest(selector=query)
         cols = ["NAME", "REVISION", "CHART", "SOURCE"]
-        if namespace is None:
+        if query.helm_release.namespace is None:
             cols.insert(0, "NAMESPACE")
         results: list[list[str]] = []
         for cluster in manifest.clusters:
             for helmrelease in cluster.helm_releases:
-                if namespace is not None and helmrelease.namespace != namespace:
-                    continue
                 value: list[str] = [
                     helmrelease.name,
                     str(helmrelease.chart.version),
                     f"{helmrelease.namespace}-{helmrelease.chart.name}",
                     helmrelease.chart.repo_name,
                 ]
-                if namespace is None:
+                if query.helm_release.namespace is None:
                     value.insert(0, helmrelease.namespace)
                 results.append(value)
+        if not results:
+            print(selector.not_found("HelmRelease", query.helm_release))
+            return
+
         print_columns(cols, results)
 
 

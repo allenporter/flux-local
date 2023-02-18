@@ -18,7 +18,7 @@ from flux_local import git_repo
 from flux_local.helm import Helm
 from flux_local.manifest import HelmRelease
 
-from . import build
+from . import build, selector
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,19 +36,19 @@ def changed_files(repo: git.repo.Repo) -> set[str]:
 
 
 async def build_kustomization(
-    name: str, root: pathlib.Path, path: pathlib.Path
+    query: git_repo.ResourceSelector, root: pathlib.Path | None = None
 ) -> list[str] | None:
     """Return the contents of a kustomization object with the specified name."""
-    selector = git_repo.ResourceSelector(kustomizations={name})
-    manifest = await git_repo.build_manifest(path, selector)
+    if not root:
+        root = query.path.root
+    manifest = await git_repo.build_manifest(selector=query)
     content_list = []
     for cluster in manifest.clusters:
         for kustomization in cluster.kustomizations:
-            _LOGGER.debug(
-                "Building Kustomization for diff: %s", root / kustomization.path
-            )
+            path = root / kustomization.path
+            _LOGGER.debug("Building Kustomization for diff: %s", path)
             async for content in build.build(
-                root / kustomization.path,
+                path,
                 enable_helm=False,
                 skip_crds=False,
             ):
@@ -73,14 +73,19 @@ class HelmReleaseOutput:
 
 
 async def build_helm_release(
-    name: str, namespace: str, root: pathlib.Path, path: pathlib.Path
+    query: git_repo.ResourceSelector, root: pathlib.Path | None = None
 ) -> HelmReleaseOutput | None:
     """Return the contents of a kustomization object with the specified name."""
-    selector = git_repo.ResourceSelector(helm_release_namespace={namespace})
-    manifest = await git_repo.build_manifest(path, selector)
+    if not root:
+        root = query.path.root
+
+    manifest = await git_repo.build_manifest(selector=query)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         for cluster in manifest.clusters:
+            if not cluster.helm_releases:
+                continue
+
             path = pathlib.Path(tmp_dir) / f"{slugify(cluster.path)}"
             await mkdir(path)
 
@@ -88,17 +93,17 @@ async def build_helm_release(
             helm.add_repos(cluster.helm_repos)
             await helm.update()
 
-            for kustomization in cluster.kustomizations:
-                if not kustomization.helm_releases:
-                    continue
-                _LOGGER.debug("Building HelmRelease for diff: %s/%s", name, namespace)
-                for helm_release in kustomization.helm_releases:
-                    if helm_release.name != name or helm_release.namespace != namespace:
-                        continue
-                    cmds = await helm.template(helm_release, skip_crds=False)
-                    objs = await cmds.objects()
-                    content = yaml.dump(objs, explicit_start=True)
-                    return HelmReleaseOutput(helm_release, content.split("\n"))
+            # There should be zero or one HelmRelease
+            helm_release = cluster.helm_releases[0]
+            _LOGGER.debug(
+                "Building HelmRelease for diff: %s/%s",
+                helm_release.name,
+                helm_release.namespace,
+            )
+            cmds = await helm.template(helm_release, skip_crds=False)
+            objs = await cmds.objects()
+            content = yaml.dump(objs, explicit_start=True)
+            return HelmReleaseOutput(helm_release, content.split("\n"))
     return None
 
 
@@ -122,36 +127,22 @@ class DiffKustomizationAction:
                 ),
             ),
         )
-        args.add_argument(
-            "kustomization",
-            help="The name of the flux Kustomization",
-            type=str,
-        )
-        args.add_argument(
-            "--path",
-            help="Optional path with flux Kustomization resources (multi-cluster ok)",
-            type=pathlib.Path,
-            default=".",
-            nargs="?",
-        )
+        selector.add_ks_selector_flags(args)
         args.set_defaults(cls=cls)
         return args
 
     async def run(  # type: ignore[no-untyped-def]
         self,
-        kustomization: str,
-        path: pathlib.Path,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
-        repo = git_repo.git_repo(path)
-        content = await build_kustomization(
-            kustomization, git_repo.repo_root(repo), path
-        )
-        with git_repo.create_worktree(repo) as worktree:
-            orig_content = await build_kustomization(kustomization, worktree, path)
+        query = selector.build_ks_selector(**kwargs)
+
+        content = await build_kustomization(query)
+        with git_repo.create_worktree(query.path.repo) as worktree:
+            orig_content = await build_kustomization(query, worktree)
         if not content and not orig_content:
-            print(f"Kustomization '{kustomization}' not found in cluster")
+            print(f"Kustomization '{query.kustomization.name}' not found in cluster")
             return
 
         diff_text = difflib.unified_diff(
@@ -182,24 +173,7 @@ class DiffHelmReleaseAction:
                 ),
             ),
         )
-        args.add_argument(
-            "helmrelease",
-            help="The name of the flux HelmRelease",
-            type=str,
-        )
-        args.add_argument(
-            "--path",
-            help="Optional path with flux Kustomization resources (multi-cluster ok)",
-            type=pathlib.Path,
-            default=".",
-            nargs="?",
-        )
-        args.add_argument(
-            "--namespace",
-            "-n",
-            type=str,
-            help="If present, the namespace scope for this operation",
-        )
+        selector.add_hr_selector_flags(args)
         args.add_argument(
             "--output",
             "-o",
@@ -212,27 +186,21 @@ class DiffHelmReleaseAction:
 
     async def run(  # type: ignore[no-untyped-def]
         self,
-        helmrelease: str,
-        path: pathlib.Path,
-        namespace: str,
         output: str,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
-        repo = git_repo.git_repo(path)
+        query = selector.build_hr_selector(**kwargs)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             await mkdir(pathlib.Path(tmp_dir) / "cache")
 
-        release_output = await build_helm_release(
-            helmrelease, namespace, git_repo.repo_root(repo), path
-        )
-        with git_repo.create_worktree(repo) as worktree:
-            orig_release_output = await build_helm_release(
-                helmrelease, namespace, worktree, path
-            )
+        release_output = await build_helm_release(query)
+        with git_repo.create_worktree(query.path.repo) as worktree:
+            orig_release_output = await build_helm_release(query, worktree)
+
         if not release_output and not orig_release_output:
-            print(f"HelmRelease '{helmrelease}' not found in cluster")
+            print(f"HelmRelease '{query.helm_release.name}' not found in cluster")
             return
 
         diff_text = difflib.unified_diff(

@@ -5,4 +5,4 @@ metadata:
   name: podinfo-config
   namespace: podinfo
 data:
-  foo: "bar"
+  foo: "baz"
