@@ -48,7 +48,6 @@ async def build(
     path: pathlib.Path, enable_helm: bool, skip_crds: bool
 ) -> AsyncGenerator[str, None]:
     """Flux-local build action."""
-    root = git_repo.repo_root(git_repo.git_repo(path))
     query = git_repo.ResourceSelector()
     query.path = git_repo.PathSelector(path)
     query.kustomization.namespace = None
@@ -71,7 +70,7 @@ async def build(
 
             for kustomization in cluster.kustomizations:
                 async for content in build_kustomization(
-                    root, kustomization, helm, skip_crds
+                    query.path.root, kustomization, helm, skip_crds
                 ):
                     yield content
 

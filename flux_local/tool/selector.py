@@ -1,10 +1,12 @@
 """Library for common selectors."""
 
+import logging
 import pathlib
 from argparse import ArgumentParser, BooleanOptionalAction
 
 from flux_local import git_repo
 
+_LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAMESPACE = "flux-system"
 
@@ -53,14 +55,10 @@ def build_ks_selector(  # type: ignore[no-untyped-def]
     """Build a selector object form the specified flags."""
     selector = git_repo.ResourceSelector()
     selector.path = git_repo.PathSelector(kwargs.get("path"))
-    kustomization = kwargs.get("kustomization")
-    namespace = kwargs.get("namespace")
+    selector.kustomization.name = kwargs.get("kustomization")
+    selector.kustomization.namespace = kwargs.get("namespace")
     if kwargs.get("all_namespaces"):
-        namespace = None
-    if kustomization or namespace:
-        selector.kustomization = git_repo.MetadataSelector(
-            name=kustomization, namespace=namespace
-        )
+        selector.kustomization.namespace = None
     return selector
 
 
@@ -80,16 +78,13 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     **kwargs,
 ) -> git_repo.ResourceSelector:
     """Build a selector object form the specified flags."""
+    _LOGGER.debug("Building HelmRelease selector from args: %s", kwargs)
     selector = git_repo.ResourceSelector()
     selector.path = git_repo.PathSelector(kwargs.get("path"))
-    helmrelease = kwargs.get("helmrelease")
-    namespace = kwargs.get("namespace")
+    selector.helm_release.name = kwargs.get("helmrelease")
+    selector.helm_release.namespace = kwargs.get("namespace")
     if kwargs.get("all_namespaces"):
-        namespace = None
-    if helmrelease or namespace:
-        selector.helm_release = git_repo.MetadataSelector(
-            name=helmrelease, namespace=namespace
-        )
+        selector.helm_release.namespace = None
     return selector
 
 

@@ -9,9 +9,15 @@ from unit tests).
 Example usage:
 
 ```python
-from flux_local import repo
+from flux_local import git_repo
 
-manifest = await repo.build_manifest()
+
+selector = git_repo.Selector(
+    helm_release=git_repo.MetadataSelector(
+        namespace="podinfo"
+    )
+)
+manifest = await git_repo.build_manifest(selector)
 for cluster in manifest:
     print(f"Found cluster: {cluster.path}")
     for kustomization in cluster.kustomizations:
@@ -46,7 +52,6 @@ from .manifest import (
 )
 
 __all__ = [
-    "repo_root",
     "build_manifest",
     "ResourceSelector",
     "PathSelector",
