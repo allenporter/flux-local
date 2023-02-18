@@ -2,11 +2,12 @@
 
 from argparse import ArgumentParser
 from argparse import _SubParsersAction as SubParsersAction
+from dataclasses import dataclass
 import difflib
 import logging
 import pathlib
 import tempfile
-from typing import cast
+from typing import cast, Any
 
 from slugify import slugify
 from aiofiles.os import mkdir
@@ -15,6 +16,7 @@ import yaml
 import git
 from flux_local import git_repo
 from flux_local.helm import Helm
+from flux_local.manifest import HelmRelease
 
 from . import build
 
@@ -54,14 +56,29 @@ async def build_kustomization(
     return content_list
 
 
+@dataclass
+class HelmReleaseOutput:
+    """Holds data related to the output HelmRelease."""
+
+    release: HelmRelease
+    content: list[str]
+
+    @property
+    def summary(self) -> dict[str, Any]:
+        """A short summary of the HelmRelease."""
+        return {
+            "release": self.release.dict(include={"name", "namespace"}),
+            "chart": self.release.chart.dict(),
+        }
+
+
 async def build_helm_release(
     name: str, namespace: str, root: pathlib.Path, path: pathlib.Path
-) -> list[str] | None:
+) -> HelmReleaseOutput | None:
     """Return the contents of a kustomization object with the specified name."""
     selector = git_repo.ResourceSelector(helm_release_namespace={namespace})
     manifest = await git_repo.build_manifest(path, selector)
 
-    content_list = []
     with tempfile.TemporaryDirectory() as tmp_dir:
         for cluster in manifest.clusters:
             path = pathlib.Path(tmp_dir) / f"{slugify(cluster.path)}"
@@ -80,9 +97,9 @@ async def build_helm_release(
                         continue
                     cmds = await helm.template(helm_release, skip_crds=False)
                     objs = await cmds.objects()
-                    content = yaml.dump(objs)
-                    content_list.extend(content.split("\n"))
-    return content_list
+                    content = yaml.dump(objs, explicit_start=True)
+                    return HelmReleaseOutput(helm_release, content.split("\n"))
+    return None
 
 
 class DiffKustomizationAction:
@@ -183,6 +200,13 @@ class DiffHelmReleaseAction:
             type=str,
             help="If present, the namespace scope for this operation",
         )
+        args.add_argument(
+            "--output",
+            "-o",
+            choices=["diff", "yaml"],
+            default="diff",
+            help="If present, the namespace scope for this operation",
+        )
         args.set_defaults(cls=cls)
         return args
 
@@ -191,6 +215,7 @@ class DiffHelmReleaseAction:
         helmrelease: str,
         path: pathlib.Path,
         namespace: str,
+        output: str,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -199,23 +224,31 @@ class DiffHelmReleaseAction:
         with tempfile.TemporaryDirectory() as tmp_dir:
             await mkdir(pathlib.Path(tmp_dir) / "cache")
 
-        content = await build_helm_release(
+        release_output = await build_helm_release(
             helmrelease, namespace, git_repo.repo_root(repo), path
         )
         with git_repo.create_worktree(repo) as worktree:
-            orig_content = await build_helm_release(
+            orig_release_output = await build_helm_release(
                 helmrelease, namespace, worktree, path
             )
-        if not content and not orig_content:
+        if not release_output and not orig_release_output:
             print(f"HelmRelease '{helmrelease}' not found in cluster")
             return
 
         diff_text = difflib.unified_diff(
-            orig_content or [],
-            content or [],
+            orig_release_output.content if orig_release_output else [],
+            release_output.content if release_output else [],
         )
-        for line in diff_text:
-            print(line)
+        if output == "diff":
+            for line in diff_text:
+                print(line)
+        elif output == "yaml":
+            result = {
+                "old": orig_release_output.summary if orig_release_output else None,
+                "new": release_output.summary if release_output else None,
+                "diff": "\n".join(diff_text),
+            }
+            print(yaml.dump(result, explicit_start=True))
 
 
 class DiffAction:
