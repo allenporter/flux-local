@@ -239,7 +239,6 @@ class DiffHelmReleaseAction:
             orig_release_output.content if orig_release_output else [],
             release_output.content if release_output else [],
         )
-        print(output)
         if output == "diff":
             for line in diff_text:
                 print(line)
