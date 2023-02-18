@@ -48,25 +48,29 @@ async def build(
     path: pathlib.Path, enable_helm: bool, skip_crds: bool
 ) -> AsyncGenerator[str, None]:
     """Flux-local build action."""
-    root = git_repo.repo_root(git_repo.git_repo(path))
-    manifest = await git_repo.build_manifest(path)
+    query = git_repo.ResourceSelector()
+    query.path = git_repo.PathSelector(path)
+    query.kustomization.namespace = None
+    query.helm_release.namespace = None
+    manifest = await git_repo.build_manifest(selector=query)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        await mkdir(pathlib.Path(tmp_dir) / "cache")
+        cache_path = pathlib.Path(tmp_dir) / "cache"
+        await mkdir(cache_path)
 
         for cluster in manifest.clusters:
             helm = None
             if enable_helm:
-                path = pathlib.Path(tmp_dir) / f"{slugify(cluster.path)}"
-                await mkdir(path)
+                helm_path = pathlib.Path(tmp_dir) / f"{slugify(cluster.path)}"
+                await mkdir(helm_path)
 
-                helm = Helm(path, pathlib.Path(tmp_dir) / "cache")
+                helm = Helm(helm_path, cache_path)
                 helm.add_repos(cluster.helm_repos)
                 await helm.update()
 
             for kustomization in cluster.kustomizations:
                 async for content in build_kustomization(
-                    root, kustomization, helm, skip_crds
+                    query.path.root, kustomization, helm, skip_crds
                 ):
                     yield content
 

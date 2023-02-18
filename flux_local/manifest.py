@@ -170,6 +170,9 @@ class Kustomization(BaseModel):
     name: str
     """The name of the kustomization."""
 
+    namespace: str | None = None
+    """The namespace of the kustomization."""
+
     path: str
     """The local repo path to the kustomization."""
 
@@ -187,11 +190,13 @@ class Kustomization(BaseModel):
             raise ValueError(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
             raise ValueError(f"Invalid {cls} missing metadata.name: {doc}")
+        if not (namespace := metadata.get("namespace")):
+            raise ValueError(f"Invalid {cls} missing metadata.namespace: {doc}")
         if not (spec := doc.get("spec")):
             raise ValueError(f"Invalid {cls} missing spec: {doc}")
         if not (path := spec.get("path")):
             raise ValueError(f"Invalid {cls} missing spec.path: {doc}")
-        return Kustomization(name=name, path=path)
+        return Kustomization(name=name, namespace=namespace, path=path)
 
     @property
     def id_name(self) -> str:

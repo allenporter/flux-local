@@ -34,14 +34,14 @@ infra-configs        ./tests/testdata/cluster/infrastructure/configs
 
 This example lists all HelmReleases in the cluster:
 ```bash
-$ flux-local get hr
+$ flux-local get hr -A
 NAMESPACE    NAME       REVISION    CHART              SOURCE
 podinfo      podinfo    >=1.0.0     podinfo-podinfo    podinfo
 metallb      metallb    4.1.14      metallb-metallb    bitnami
 ```
 
 This example lists all HelmReleases in a specific namespace:
-$ flux-local get hr  -n metallb
+$ flux-local get hr -n metallb
 NAME       REVISION    CHART              SOURCE
 metallb    4.1.14      metallb-metallb    bitnami
 ```
