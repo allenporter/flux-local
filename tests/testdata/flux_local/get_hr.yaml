@@ -1,5 +1,8 @@
 args:
 - get
 - hr
+- -A
 stdout: |
-  no HelmRelease objects found in 'flux-system' namespace
+  NAMESPACE    NAME       REVISION    CHART              SOURCE     
+  podinfo      podinfo    6.3.2       podinfo-podinfo    podinfo    
+  metallb      metallb    4.1.14      metallb-metallb    bitnami    

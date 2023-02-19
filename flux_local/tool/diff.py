@@ -142,7 +142,7 @@ class DiffKustomizationAction:
         with git_repo.create_worktree(query.path.repo) as worktree:
             orig_content = await build_kustomization(query, worktree)
         if not content and not orig_content:
-            print(f"Kustomization '{query.kustomization.name}' not found in cluster")
+            print(selector.not_found("Kustomization", query.kustomization))
             return
 
         diff_text = difflib.unified_diff(
@@ -200,7 +200,7 @@ class DiffHelmReleaseAction:
             orig_release_output = await build_helm_release(query, worktree)
 
         if not release_output and not orig_release_output:
-            print(f"HelmRelease '{query.helm_release.name}' not found in cluster")
+            print(selector.not_found("HelmRelease", query.helm_release))
             return
 
         diff_text = difflib.unified_diff(

@@ -4,4 +4,4 @@ args:
 - example
 - --all-namespaces
 stdout: |
-  HelmRelease 'example' not found in cluster
+  HelmRelease object 'example' not found in 'None' namespace

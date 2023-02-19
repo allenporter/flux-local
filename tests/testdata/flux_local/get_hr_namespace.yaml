@@ -4,5 +4,5 @@ args:
 - -n
 - metallb
 stdout: |
-  NAME       REVISION    CHART              SOURCE
-  metallb    4.1.14      metallb-metallb    bitnami
+  NAME       REVISION    CHART              SOURCE     
+  metallb    4.1.14      metallb-metallb    bitnami    

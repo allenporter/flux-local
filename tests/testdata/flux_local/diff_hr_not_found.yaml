@@ -3,4 +3,4 @@ args:
 - hr
 - example
 stdout: |
-  HelmRelease 'example' not found in cluster
+  HelmRelease object 'example' not found in 'flux-system' namespace
