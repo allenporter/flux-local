@@ -179,7 +179,7 @@ class DiffHelmReleaseAction:
             "-o",
             choices=["diff", "yaml"],
             default="diff",
-            help="If present, the namespace scope for this operation",
+            help="Output format of the command",
         )
         args.set_defaults(cls=cls)
         return args

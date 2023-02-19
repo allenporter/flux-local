@@ -71,7 +71,14 @@ async def test_read_write_empty_manifest(tmp_path: Path) -> None:
 async def test_read_write_manifest(tmp_path: Path) -> None:
     """Test serializing and reading back a manifest."""
     manifest = Manifest(
-        clusters=[Cluster(name="cluster", path="./example", kustomizations=[])]
+        clusters=[
+            Cluster(
+                name="cluster",
+                namespace="flux-system",
+                path="./example",
+                kustomizations=[],
+            )
+        ]
     )
     await write_manifest(tmp_path / "file.yaml", manifest)
     new_manifest = await read_manifest(tmp_path / "file.yaml")
@@ -79,6 +86,7 @@ async def test_read_write_manifest(tmp_path: Path) -> None:
         "clusters": [
             {
                 "name": "cluster",
+                "namespace": "flux-system",
                 "path": "./example",
                 "kustomizations": [],
             },

@@ -214,6 +214,9 @@ class Cluster(BaseModel):
     name: str
     """The name of the cluster."""
 
+    namespace: str
+    """The namespace of the cluster."""
+
     path: str
     """The local git repo path to the Kustomization objects for the cluster."""
 
@@ -228,11 +231,13 @@ class Cluster(BaseModel):
             raise ValueError(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
             raise ValueError(f"Invalid {cls} missing metadata.name: {doc}")
+        if not (namespace := metadata.get("namespace")):
+            raise ValueError(f"Invalid {cls} missing metadata.namespace: {doc}")
         if not (spec := doc.get("spec")):
             raise ValueError(f"Invalid {cls} missing spec: {doc}")
         if not (path := spec.get("path")):
             raise ValueError(f"Invalid {cls} missing spec.path: {doc}")
-        return Cluster(name=name, path=path)
+        return Cluster(name=name, namespace=namespace, path=path)
 
     @property
     def id_name(self) -> str:

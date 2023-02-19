@@ -5,6 +5,7 @@ stdout: |+
   ---
   clusters:
   - name: flux-system
+    namespace: flux-system
     path: ./tests/testdata/cluster/clusters/prod
     kustomizations:
     - name: apps
