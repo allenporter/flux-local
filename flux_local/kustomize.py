@@ -124,6 +124,16 @@ class Kustomize:
         ]
         await run_piped(cmds)
 
+    async def stash(self, tmp_file: Path) -> "Kustomize":
+        """Output the contents built so far to disk for efficient reuse.
+
+        This is useful to serialize a chain of commands but allow further
+        chaining with multiple branches.
+        """
+        content = await self.run()
+        tmp_file.write_text(content)
+        return Kustomize([Command(["cat", str(tmp_file)])])
+
 
 def build(path: Path) -> Kustomize:
     """Build cluster artifacts from the specified path."""
