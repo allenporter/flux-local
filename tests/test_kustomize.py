@@ -62,6 +62,25 @@ async def test_objects(path: Path) -> None:
     "path",
     [TESTDATA_DIR / "repo", (TESTDATA_DIR / "repo").absolute()],
 )
+async def test_stash(path: Path, tmp_path: Path) -> None:
+    """Test loading yaml documents."""
+    cmd = await kustomize.build(path).stash(tmp_path / "stash")
+    result = await cmd.grep("kind=ConfigMap").objects()
+    assert len(result) == 1
+    assert result[0].get("kind") == "ConfigMap"
+    assert result[0].get("apiVersion") == "v1"
+    result = await cmd.grep("kind=Secret").objects()
+    assert len(result) == 1
+    assert result[0].get("kind") == "Secret"
+    assert result[0].get("apiVersion") == "v1"
+    result = await cmd.grep("kind=Unknown").objects()
+    assert len(result) == 0
+
+
+@pytest.mark.parametrize(
+    "path",
+    [TESTDATA_DIR / "repo", (TESTDATA_DIR / "repo").absolute()],
+)
 async def test_validate_pass(path: Path) -> None:
     """Test applying policies to validate resources."""
     cmd = kustomize.build(path)

@@ -36,6 +36,7 @@ import tempfile
 from collections.abc import Callable
 from functools import cache
 from pathlib import Path
+from slugify import slugify
 from typing import Any, Generator
 
 import git
@@ -257,30 +258,41 @@ async def build_manifest(
             ]
             clusters.append(cluster)
 
-    for cluster in clusters:
-        cluster.kustomizations = list(
-            filter(selector.kustomization.predicate, cluster.kustomizations)
-        )
-        if not selector.helm_release.enabled:
-            continue
-        for kustomization in cluster.kustomizations:
-            _LOGGER.debug("Processing kustomization: %s", kustomization.path)
-            cmd = kustomize.build(selector.path.root / kustomization.path)
-            kustomization.helm_repos = [
-                HelmRepository.parse_doc(doc)
-                for doc in await cmd.grep(f"kind=^{HELM_REPO_KIND}$").objects()
-            ]
-            kustomization.helm_releases = list(
-                filter(
-                    selector.helm_release.predicate,
-                    [
-                        HelmRelease.parse_doc(doc)
-                        for doc in await cmd.grep(
-                            f"kind=^{HELM_RELEASE_KIND}$"
-                        ).objects()
-                    ],
-                )
+    with tempfile.TemporaryDirectory() as stash_dir:
+        for cluster in clusters:
+            cluster.kustomizations = list(
+                filter(selector.kustomization.predicate, cluster.kustomizations)
             )
+            if not selector.helm_release.enabled:
+                continue
+            for kustomization in cluster.kustomizations:
+                _LOGGER.debug("Processing kustomization: %s", kustomization.path)
+                stash_name = "-".join(
+                    [
+                        "stash",
+                        slugify(cluster.path),
+                        slugify(kustomization.path),
+                        kustomization.name,
+                    ]
+                )
+                cmd = await kustomize.build(
+                    selector.path.root / kustomization.path
+                ).stash(Path(stash_dir) / stash_name)
+                kustomization.helm_repos = [
+                    HelmRepository.parse_doc(doc)
+                    for doc in await cmd.grep(f"kind=^{HELM_REPO_KIND}$").objects()
+                ]
+                kustomization.helm_releases = list(
+                    filter(
+                        selector.helm_release.predicate,
+                        [
+                            HelmRelease.parse_doc(doc)
+                            for doc in await cmd.grep(
+                                f"kind=^{HELM_RELEASE_KIND}$"
+                            ).objects()
+                        ],
+                    )
+                )
     return Manifest(clusters=clusters)
 
 
