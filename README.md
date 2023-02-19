@@ -41,6 +41,7 @@ metallb      metallb    4.1.14      metallb-metallb    bitnami
 ```
 
 This example lists all HelmReleases in a specific namespace:
+```bash
 $ flux-local get hr -n metallb
 NAME       REVISION    CHART              SOURCE
 metallb    4.1.14      metallb-metallb    bitnami
