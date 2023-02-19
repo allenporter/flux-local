@@ -92,7 +92,7 @@ $ flux-local diff ks apps
 ```
 
 Additionally `flux-local` can inflate a `HelmRelease` locally and show diffs in the output
-objects:
+objects. This is similar to `flux diff` but for HelmReleases:
 
 ```bash
 $ flux-local diff hr -n podinfo podinfo
