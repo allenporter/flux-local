@@ -28,6 +28,7 @@ for cluster in manifest:
 
 """
 
+import asyncio
 import contextlib
 from dataclasses import dataclass, field
 import logging
@@ -223,6 +224,39 @@ async def get_kustomizations(path: Path) -> list[dict[str, Any]]:
     return list(filter(KUSTOMIZE_DOMAIN_FILTER, docs))
 
 
+async def build_grep_helm(
+    kustomization: Kustomization,
+    root: Path,
+    stash_prefix: str,
+    predicate: Callable[[HelmRelease], bool],
+) -> tuple[list[HelmRepository], list[HelmRelease]]:
+    """Build helm objects for the Kustomization."""
+    cmd = await kustomize.build(root / kustomization.path).stash(
+        Path(
+            "-".join(
+                [
+                    stash_prefix,
+                    slugify(kustomization.path),
+                    slugify(kustomization.name),
+                ]
+            )
+        )
+    )
+    (repo_docs, release_docs) = await asyncio.gather(
+        cmd.grep(f"kind=^{HELM_REPO_KIND}$").objects(),
+        cmd.grep(f"kind=^{HELM_RELEASE_KIND}$").objects(),
+    )
+    return (
+        [HelmRepository.parse_doc(doc) for doc in repo_docs],
+        list(
+            filter(
+                predicate,
+                [HelmRelease.parse_doc(doc) for doc in release_docs],
+            )
+        ),
+    )
+
+
 async def build_manifest(
     path: Path | None = None, selector: ResourceSelector = ResourceSelector()
 ) -> Manifest:
@@ -259,40 +293,39 @@ async def build_manifest(
             clusters.append(cluster)
 
     with tempfile.TemporaryDirectory() as stash_dir:
+        kustomization_tasks = []
         for cluster in clusters:
             cluster.kustomizations = list(
                 filter(selector.kustomization.predicate, cluster.kustomizations)
             )
             if not selector.helm_release.enabled:
                 continue
-            for kustomization in cluster.kustomizations:
-                _LOGGER.debug("Processing kustomization: %s", kustomization.path)
-                stash_name = "-".join(
-                    [
-                        "stash",
-                        slugify(cluster.path),
-                        slugify(kustomization.path),
-                        kustomization.name,
-                    ]
-                )
-                cmd = await kustomize.build(
-                    selector.path.root / kustomization.path
-                ).stash(Path(stash_dir) / stash_name)
-                kustomization.helm_repos = [
-                    HelmRepository.parse_doc(doc)
-                    for doc in await cmd.grep(f"kind=^{HELM_REPO_KIND}$").objects()
-                ]
-                kustomization.helm_releases = list(
-                    filter(
-                        selector.helm_release.predicate,
-                        [
-                            HelmRelease.parse_doc(doc)
-                            for doc in await cmd.grep(
-                                f"kind=^{HELM_RELEASE_KIND}$"
-                            ).objects()
-                        ],
+
+            async def update_kustomization(cluster: Cluster) -> None:
+                cluster_stash = Path(stash_dir) / slugify(cluster.path)
+                helm_tasks = []
+                for kustomization in cluster.kustomizations:
+                    _LOGGER.debug("Processing kustomization: %s", kustomization.path)
+                    helm_tasks.append(
+                        build_grep_helm(
+                            kustomization,
+                            selector.path.root,
+                            str(cluster_stash),
+                            selector.helm_release.predicate,
+                        )
                     )
-                )
+                results = list(await asyncio.gather(*helm_tasks))
+                for kustomization, (helm_repos, helm_releases) in zip(
+                    cluster.kustomizations,
+                    results,
+                ):
+                    kustomization.helm_repos = helm_repos
+                    kustomization.helm_releases = helm_releases
+
+            kustomization_tasks.append(update_kustomization(cluster))
+
+        await asyncio.gather(*kustomization_tasks)
+
     return Manifest(clusters=clusters)
 
 
