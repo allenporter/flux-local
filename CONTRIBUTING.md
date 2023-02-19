@@ -23,6 +23,11 @@ To run the tests locally, you can use the following command:
 $ pytest
 ```
 
+Some tests used `pytest-golden` to test against golden files. These can be updated with:
+```bash
+$ pytest --update-goldens
+```
+
 ## Documentation
 
 Documentation is important for any project. This project uses the pydoc documentation

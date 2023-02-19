@@ -1,6 +1,7 @@
 ---
 ignore: |
   venv
+  tests/testdata/flux_local/
 extends: default
 rules:
   truthy:

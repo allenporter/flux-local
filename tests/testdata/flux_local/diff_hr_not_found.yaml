@@ -1,0 +1,6 @@
+args:
+- diff
+- hr
+- example
+stdout: |
+  HelmRelease object 'example' not found in 'flux-system' namespace

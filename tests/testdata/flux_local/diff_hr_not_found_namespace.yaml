@@ -1,0 +1,7 @@
+args:
+- diff
+- hr
+- --namespace
+- example
+stdout: |
+  no HelmRelease objects found in 'example' namespace

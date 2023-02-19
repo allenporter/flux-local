@@ -1,0 +1,8 @@
+args:
+- get
+- hr
+- metallb
+- -A
+stdout: |
+  NAMESPACE    NAME       REVISION    CHART              SOURCE     
+  metallb      metallb    4.1.14      metallb-metallb    bitnami    
