@@ -1,0 +1,9 @@
+args:
+- get
+- ks
+- --all-namespaces
+- --path
+- ./tests/testdata/cluster/apps/prod
+stdout: |
+  NAME    PATH                                HELMREPOS    RELEASES    
+          tests/testdata/cluster/apps/prod    0            1           

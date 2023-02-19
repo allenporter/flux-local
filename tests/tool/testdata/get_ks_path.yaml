@@ -1,0 +1,10 @@
+args:
+- get
+- ks
+- --path
+- ./tests/testdata/cluster/clusters/prod
+stdout: |
+  NAME                 PATH                                                   HELMREPOS    RELEASES    
+  apps                 ./tests/testdata/cluster/apps/prod                     0            1           
+  infra-controllers    ./tests/testdata/cluster/infrastructure/controllers    0            1           
+  infra-configs        ./tests/testdata/cluster/infrastructure/configs        2            0           
