@@ -1,5 +1,8 @@
 """Library for formatting output."""
 
+from typing import Generator, Any
+from abc import ABC, abstractmethod
+
 
 PADDING = 4
 
@@ -14,9 +17,49 @@ def column_format_string(rows: list[list[str]]) -> str:
     return "".join([f"{{:{w+PADDING}}}" for w in widths])
 
 
-def print_columns(headers: list[str], rows: list[list[str]]) -> None:
+def format_columns(
+    headers: list[str], rows: list[list[str]]
+) -> Generator[str, None, None]:
     """Print the specified output rows in a column format."""
     data = [headers] + rows
     format_string = column_format_string(data)
-    for row in data:
-        print(format_string.format(*[str(x) for x in row]))
+    if format_string:
+        for row in data:
+            yield format_string.format(*[str(x) for x in row])
+
+
+def print_columns(headers: list[str], rows: list[list[str]]) -> None:
+    """Print the specified output rows in a column format."""
+    for line in format_columns(headers, rows):
+        print(line)
+
+
+class Formatter(ABC):
+    """Outputs selected objects."""
+
+    @abstractmethod
+    def print(self, data: list[dict[str, Any]], keys: list[str] | None = None) -> None:
+        """Output the data objects."""
+
+
+class PrintFormatter:
+    """A formatter that prints human readable console output."""
+
+    def format(
+        self, data: list[dict[str, Any]], keys: list[str] | None = None
+    ) -> Generator[str, None, None]:
+        """Format the data objects."""
+        if not data:
+            return
+        if keys is None:
+            keys = list(data[0])
+        rows = []
+        for row in data:
+            rows.append([row[key] for key in keys])
+        for result in format_columns(keys, rows):
+            yield result
+
+    def print(self, data: list[dict[str, Any]], keys: list[str] | None = None) -> None:
+        """Output the data objects."""
+        for result in self.format(data, keys):
+            print(result)
