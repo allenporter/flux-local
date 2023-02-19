@@ -26,17 +26,17 @@ use the flux command on a real cluster.
 This example lists all Kustomizations in the cluster:
 ```bash
 $ flux-local get ks
-NAME                 PATH
-apps                 ./tests/testdata/cluster/apps/prod
-infra-controllers    ./tests/testdata/cluster/infrastructure/controllers
-infra-configs        ./tests/testdata/cluster/infrastructure/configs
+NAME                 PATH                                                   HELMREPOS    RELEASES
+apps                 ./tests/testdata/cluster/apps/prod                     0            0
+infra-controllers    ./tests/testdata/cluster/infrastructure/controllers    0            0
+infra-configs        ./tests/testdata/cluster/infrastructure/configs        2            0
 ```
 
 This example lists all HelmReleases in the cluster:
 ```bash
 $ flux-local get hr -A
 NAMESPACE    NAME       REVISION    CHART              SOURCE
-podinfo      podinfo    >=1.0.0     podinfo-podinfo    podinfo
+podinfo      podinfo    6.3.2       podinfo-podinfo    podinfo
 metallb      metallb    4.1.14      metallb-metallb    bitnami
 ```
 

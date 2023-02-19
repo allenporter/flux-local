@@ -17,7 +17,7 @@ def add_selector_flags(args: ArgumentParser) -> None:
         "--path",
         help="Optional path with flux Kustomization resources (multi-cluster ok)",
         type=pathlib.Path,
-        default=".",
+        default=None,
         nargs="?",
     )
     args.add_argument(
@@ -96,4 +96,4 @@ def not_found(resource: str, mds: git_repo.MetadataSelector) -> str:
         )
     if mds.namespace:
         return f"no {resource} objects found in '{mds.namespace}' namespace"
-    return "no {resource} objects found in cluster"
+    return f"no {resource} objects found in cluster"
