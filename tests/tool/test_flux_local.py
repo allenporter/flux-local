@@ -9,7 +9,7 @@ from flux_local.command import Command, run
 TESTDATA = "tests/testdata/cluster/"
 
 
-@pytest.mark.golden_test("testdata/flux_local/*.yaml")
+@pytest.mark.golden_test("testdata/*.yaml")
 async def test_flux_local_golden(golden: GoldenTestFixture) -> None:
     """Test commands in golden files."""
     args = golden["args"]

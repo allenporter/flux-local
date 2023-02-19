@@ -1,8 +1,8 @@
 """Library for formatting output."""
 
 from typing import Generator, Any
-from abc import ABC, abstractmethod
 
+import yaml
 
 PADDING = 4
 
@@ -34,32 +34,41 @@ def print_columns(headers: list[str], rows: list[list[str]]) -> None:
         print(line)
 
 
-class Formatter(ABC):
-    """Outputs selected objects."""
-
-    @abstractmethod
-    def print(self, data: list[dict[str, Any]], keys: list[str] | None = None) -> None:
-        """Output the data objects."""
-
-
 class PrintFormatter:
     """A formatter that prints human readable console output."""
 
-    def format(
-        self, data: list[dict[str, Any]], keys: list[str] | None = None
-    ) -> Generator[str, None, None]:
+    def __init__(self, keys: list[str] | None = None):
+        """Initialize the PrintFormatter with optional keys to print."""
+        self._keys = keys
+
+    def format(self, data: list[dict[str, Any]]) -> Generator[str, None, None]:
         """Format the data objects."""
         if not data:
             return
-        if keys is None:
-            keys = list(data[0])
+        keys = self._keys if self._keys is not None else list(data[0])
         rows = []
         for row in data:
-            rows.append([row[key] for key in keys])
-        for result in format_columns(keys, rows):
+            rows.append([str(row[key]) for key in keys])
+        cols = [col.upper() for col in keys]
+        for result in format_columns(cols, rows):
             yield result
 
-    def print(self, data: list[dict[str, Any]], keys: list[str] | None = None) -> None:
+    def print(self, data: list[dict[str, Any]]) -> None:
         """Output the data objects."""
-        for result in self.format(data, keys):
+        for result in self.format(data):
             print(result)
+
+
+class YamlFormatter:
+    """A formatter that prints yaml output."""
+
+    def format(self, data: list[dict[str, Any]]) -> Generator[str, None, None]:
+        """Format the data objects."""
+        for line in yaml.dump_all(data, sort_keys=False, explicit_start=True).split(
+            "\n"
+        ):
+            yield line
+
+    def print(self, data: list[dict[str, Any]]) -> None:
+        """Format the data objects."""
+        print(yaml.dump_all(data, sort_keys=False, explicit_start=True))

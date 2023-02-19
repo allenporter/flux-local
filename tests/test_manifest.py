@@ -1,6 +1,5 @@
 """Tests for manifest library."""
 
-import json
 from pathlib import Path
 
 import pytest
@@ -22,7 +21,7 @@ TESTDATA_DIR = Path("tests/testdata/cluster/infrastructure")
 def test_parse_helm_release() -> None:
     """Test parsing a helm release doc."""
 
-    release = HelmRelease.from_doc(
+    release = HelmRelease.parse_doc(
         yaml.load(
             (TESTDATA_DIR / "controllers/metallb-release.yaml").read_text(),
             Loader=yaml.CLoader,
@@ -34,6 +33,28 @@ def test_parse_helm_release() -> None:
     assert release.chart.version == "4.1.14"
     assert release.chart.repo_name == "bitnami"
     assert release.chart.repo_namespace == "flux-system"
+    assert release.values
+
+
+def test_compact_helm_release() -> None:
+    """Test parsing a helm release doc."""
+
+    release = HelmRelease.parse_doc(
+        yaml.load(
+            (TESTDATA_DIR / "controllers/metallb-release.yaml").read_text(),
+            Loader=yaml.CLoader,
+        )
+    )
+    print(release)
+    assert release.compact_dict() == {
+        "name": "metallb",
+        "namespace": "metallb",
+        "chart": {
+            "name": "metallb",
+            "repo_name": "bitnami",
+            "repo_namespace": "flux-system",
+        },
+    }
 
 
 def test_parse_helm_repository() -> None:
@@ -43,16 +64,10 @@ def test_parse_helm_repository() -> None:
         (TESTDATA_DIR / "configs/helm-repositories.yaml").read_text(),
         Loader=yaml.CLoader,
     )
-    repo = HelmRepository.from_doc(next(iter(docs)))
+    repo = HelmRepository.parse_doc(next(iter(docs)))
     assert repo.name == "bitnami"
     assert repo.namespace == "flux-system"
     assert repo.url == "https://charts.bitnami.com/bitnami"
-
-
-async def test_read_manifest_invalid_file() -> None:
-    """Test reading an invalid manifest file."""
-    with pytest.raises(ValidationError, match="validation error for Manifest"):
-        await read_manifest(Path("/dev/null"))
 
 
 async def test_write_manifest_file() -> None:
@@ -68,8 +83,14 @@ async def test_read_write_empty_manifest(tmp_path: Path) -> None:
     assert not new_manifest.clusters
 
 
-async def test_read_write_manifest(tmp_path: Path) -> None:
-    """Test serializing and reading back a manifest."""
+async def test_read_manifest_invalid_file() -> None:
+    """Test reading an invalid manifest file."""
+    with pytest.raises(ValidationError, match="validation error for Manifest"):
+        await read_manifest(Path("/dev/null"))
+
+
+async def test_serializing_manifest(tmp_path: Path) -> None:
+    """Test serializing a manifest to a dictionary."""
     manifest = Manifest(
         clusters=[
             Cluster(
@@ -82,7 +103,7 @@ async def test_read_write_manifest(tmp_path: Path) -> None:
     )
     await write_manifest(tmp_path / "file.yaml", manifest)
     new_manifest = await read_manifest(tmp_path / "file.yaml")
-    assert json.loads(new_manifest.json()) == {
+    assert new_manifest.dict() == {
         "clusters": [
             {
                 "name": "cluster",
@@ -92,3 +113,5 @@ async def test_read_write_manifest(tmp_path: Path) -> None:
             },
         ]
     }
+    assert new_manifest.compact_dict() == new_manifest.dict()
+    assert new_manifest.compact_dict() == manifest.dict()

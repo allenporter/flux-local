@@ -1,6 +1,6 @@
 """Tests for the format library."""
 
-from flux_local.tool.format import format_columns, PrintFormatter
+from flux_local.tool.format import format_columns, PrintFormatter, YamlFormatter
 
 
 def test_format_columns_empty() -> None:
@@ -33,7 +33,7 @@ def test_print_formatter() -> None:
 
 
 def test_print_formatter_data() -> None:
-    """Print formatting with empty data."""
+    """Print formatting data objects."""
     formatter = PrintFormatter()
     assert list(
         formatter.format(
@@ -49,7 +49,61 @@ def test_print_formatter_data() -> None:
             ]
         )
     ) == [
-        "name       namespace    ",
+        "NAME       NAMESPACE    ",
         "podinfo    podinfo      ",
         "metallb    network      ",
+    ]
+
+
+def test_print_formatter_keys() -> None:
+    """Print formatting with column names."""
+    formatter = PrintFormatter(keys=["name"])
+    assert list(
+        formatter.format(
+            [
+                {
+                    "name": "podinfo",
+                    "namespace": "podinfo",
+                },
+                {
+                    "name": "metallb",
+                    "namespace": "network",
+                },
+            ],
+        )
+    ) == [
+        "NAME       ",
+        "podinfo    ",
+        "metallb    ",
+    ]
+
+
+def test_yaml_formatter() -> None:
+    """Print formatting with column names."""
+    formatter = YamlFormatter()
+    assert list(
+        formatter.format(
+            [
+                {
+                    "kustomizations": [
+                        {
+                            "name": "podinfo",
+                            "namespace": "podinfo",
+                        },
+                        {
+                            "name": "metallb",
+                            "namespace": "network",
+                        },
+                    ],
+                }
+            ]
+        )
+    ) == [
+        "---",
+        "kustomizations:",
+        "- name: podinfo",
+        "  namespace: podinfo",
+        "- name: metallb",
+        "  namespace: network",
+        "",
     ]

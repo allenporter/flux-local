@@ -8,7 +8,7 @@ import sys
 
 import yaml
 
-from . import build, diff, get, manifest, test
+from . import build, diff, get, test
 from flux_local import command
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,14 +50,6 @@ def main() -> None:
         help="Allows disabling of outputting CRDs to reduce output size",
     )
     build_args.set_defaults(cls=build.BuildAction)
-
-    manifest_args = subparsers.add_parser(
-        "manifest", help="Build a yaml manifest file representing the cluster"
-    )
-    manifest_args.add_argument(
-        "path", type=pathlib.Path, help="Path to the kustomization or charts"
-    )
-    manifest_args.set_defaults(cls=manifest.ManifestAction)
 
     test_args = subparsers.add_parser("test", help="Build and validate the cluster")
     test_args.add_argument(

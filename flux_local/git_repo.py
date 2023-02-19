@@ -193,7 +193,7 @@ async def get_clusters(path: Path, selector: MetadataSelector) -> list[Cluster]:
         filter(
             selector.predicate,
             [
-                Cluster.from_doc(doc)
+                Cluster.parse_doc(doc)
                 for doc in docs
                 if CLUSTER_KUSTOMIZE_DOMAIN_FILTER(doc)
             ],
@@ -209,7 +209,7 @@ async def get_cluster_kustomizations(path: Path) -> list[Kustomization]:
     )
     docs = await cmd.objects()
     return [
-        Kustomization.from_doc(doc)
+        Kustomization.parse_doc(doc)
         for doc in docs
         if CLUSTER_KUSTOMIZE_DOMAIN_FILTER(doc)
     ]
@@ -267,14 +267,14 @@ async def build_manifest(
             _LOGGER.debug("Processing kustomization: %s", kustomization.path)
             cmd = kustomize.build(selector.path.root / kustomization.path)
             kustomization.helm_repos = [
-                HelmRepository.from_doc(doc)
+                HelmRepository.parse_doc(doc)
                 for doc in await cmd.grep(f"kind=^{HELM_REPO_KIND}$").objects()
             ]
             kustomization.helm_releases = list(
                 filter(
                     selector.helm_release.predicate,
                     [
-                        HelmRelease.from_doc(doc)
+                        HelmRelease.parse_doc(doc)
                         for doc in await cmd.grep(
                             f"kind=^{HELM_RELEASE_KIND}$"
                         ).objects()

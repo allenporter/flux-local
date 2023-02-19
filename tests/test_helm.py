@@ -36,7 +36,7 @@ async def helm_fixture(tmp_config_path: Path, helm_repos: list[dict[str, Any]]) 
         tmp_config_path / "helm",
         tmp_config_path / "cache",
     )
-    helm.add_repos([HelmRepository.from_doc(repo) for repo in helm_repos])
+    helm.add_repos([HelmRepository.parse_doc(repo) for repo in helm_repos])
     return helm
 
 
@@ -58,7 +58,7 @@ async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None
 
     assert len(helm_releases) == 1
     release = helm_releases[0]
-    obj = await helm.template(HelmRelease.from_doc(release))
+    obj = await helm.template(HelmRelease.parse_doc(release))
     docs = await obj.grep("kind=ServiceAccount").objects()
     names = [doc.get("metadata", {}).get("name") for doc in docs]
     assert names == ["metallb-controller", "metallb-speaker"]

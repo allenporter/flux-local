@@ -1,6 +1,10 @@
 args:
-- manifest
+- get
+- cluster
+- --path
 - tests/testdata/cluster/
+- -o
+- yaml
 stdout: |+
   ---
   clusters:

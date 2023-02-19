@@ -100,9 +100,9 @@ def build_cluster_selector(  # type: ignore[no-untyped-def]
     _LOGGER.debug("Building flux cluster Kustomization selector from args: %s", kwargs)
     selector = git_repo.ResourceSelector()
     selector.path = git_repo.PathSelector(kwargs.get("path"))
-    selector.kustomization.namespace = kwargs.get("namespace")
+    selector.cluster.namespace = kwargs.get("namespace")
     if kwargs.get("all_namespaces"):
-        selector.helm_release.namespace = None
+        selector.cluster.namespace = None
     return selector
 
 

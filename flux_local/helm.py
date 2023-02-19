@@ -14,7 +14,7 @@ kustomize = Kustomize.build(TESTDATA_DIR)
 repos = await kustomize.grep("kind=^HelmRepository$").objects()
 helm = Helm("/tmp/path/helm", "/tmp/path/cache")
 for repo in repos:
-  helm.add_repo(HelmRepository.from_doc(repo))
+  helm.add_repo(HelmRepository.parse_doc(repo))
 await helm.update()
 ```
 
@@ -26,7 +26,7 @@ releases = await kustomize.grep("kind=^HelmRelease$").objects()
 if not len(releases) == 1:
     raise ValueError("Expected only one HelmRelease")
 tmpl = helm.template(
-    HelmRelease.from_doc(releases[0]),
+    HelmRelease.parse_doc(releases[0]),
     releases[0]["spec"].get("values"))
 objects = await tmpl.objects()
 for object in objects:
