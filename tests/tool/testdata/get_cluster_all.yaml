@@ -1,0 +1,9 @@
+args:
+- get
+- cluster
+- --all-namespaces
+- --path
+- tests/testdata/cluster/
+stdout: |
+  NAMESPACE      NAME           PATH                                      KUSTOMIZATIONS    
+  flux-system    flux-system    ./tests/testdata/cluster/clusters/prod    3                 
