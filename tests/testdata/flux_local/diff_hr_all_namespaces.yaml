@@ -1,0 +1,6 @@
+args:
+- diff
+- hr
+- podinfo
+- --all-namespaces
+stdout: ''

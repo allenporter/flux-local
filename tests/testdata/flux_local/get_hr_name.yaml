@@ -1,0 +1,6 @@
+args:
+- get
+- hr
+- metallb
+stdout: |
+  HelmRelease object 'metallb' not found in 'flux-system' namespace

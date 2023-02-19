@@ -1,0 +1,7 @@
+args:
+- diff
+- hr
+- example
+- --all-namespaces
+stdout: |
+  HelmRelease 'example' not found in cluster

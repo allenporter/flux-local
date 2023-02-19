@@ -1,0 +1,118 @@
+args:
+- build
+- tests/testdata/cluster/
+stdout: |+
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: podinfo
+  - apiVersion: v1
+    data:
+      foo: bar
+    kind: ConfigMap
+    metadata:
+      name: podinfo-config
+      namespace: podinfo
+  - apiVersion: helm.toolkit.fluxcd.io/v2beta1
+    kind: HelmRelease
+    metadata:
+      name: podinfo
+      namespace: podinfo
+    spec:
+      chart:
+        spec:
+          chart: podinfo
+          sourceRef:
+            kind: HelmRepository
+            name: podinfo
+            namespace: podinfo
+          version: 6.3.2
+      install:
+        remediation:
+          retries: 3
+      interval: 50m
+      releaseName: podinfo
+      values:
+        ingress:
+          className: nginx
+          enabled: true
+          hosts:
+          - host: podinfo.production
+            paths:
+            - path: /
+              pathType: ImplementationSpecific
+        redis:
+          enabled: true
+          repository: public.ecr.aws/docker/library/redis
+          tag: 7.0.6
+
+  - apiVersion: helm.toolkit.fluxcd.io/v2beta1
+    kind: HelmRelease
+    metadata:
+      name: metallb
+      namespace: metallb
+    spec:
+      chart:
+        spec:
+          chart: metallb
+          reconcileStrategy: ChartVersion
+          sourceRef:
+            kind: HelmRepository
+            name: bitnami
+            namespace: flux-system
+          version: 4.1.14
+      install:
+        crds: CreateReplace
+        remediation:
+          retries: 3
+      interval: 5m
+      releaseName: metallb
+      upgrade:
+        crds: CreateReplace
+      values:
+        speaker:
+          secretName: metallb-secret
+
+  - apiVersion: kyverno.io/v1
+    kind: ClusterPolicy
+    metadata:
+      annotations:
+        policies.kyverno.io/description: Policy that is expected to allow resources
+          under test through since no resources should have this annotation.
+        policies.kyverno.io/title: Test Allow Policy
+      name: test-allow-policy
+    spec:
+      background: true
+      rules:
+      - match:
+          resources:
+            kinds:
+            - ConfigMap
+        name: forbid-test-annotation
+        validate:
+          message: Found test-annotation
+          pattern:
+            metadata:
+              =(annotations):
+                X(flux-local/test-annotation): 'null'
+      validationFailureAction: audit
+  - apiVersion: source.toolkit.fluxcd.io/v1beta2
+    kind: HelmRepository
+    metadata:
+      name: bitnami
+      namespace: flux-system
+    spec:
+      interval: 30m
+      provider: generic
+      timeout: 1m0s
+      url: https://charts.bitnami.com/bitnami
+  - apiVersion: source.toolkit.fluxcd.io/v1beta2
+    kind: HelmRepository
+    metadata:
+      name: podinfo
+      namespace: podinfo
+    spec:
+      interval: 5m
+      url: https://stefanprodan.github.io/podinfo
+
+...

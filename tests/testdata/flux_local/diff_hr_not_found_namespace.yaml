@@ -1,0 +1,7 @@
+args:
+- diff
+- hr
+- --namespace
+- example
+stdout: |
+  HelmRelease 'None' not found in cluster

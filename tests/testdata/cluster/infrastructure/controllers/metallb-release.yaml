@@ -22,3 +22,6 @@ spec:
   releaseName: metallb
   upgrade:
     crds: CreateReplace
+  values:
+    speaker:
+      secretName: "metallb-secret"

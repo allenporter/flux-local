@@ -2,35 +2,25 @@
 
 import pytest
 
+from pytest_golden.plugin import GoldenTestFixture
+
 from flux_local.command import Command, run
 
 TESTDATA = "tests/testdata/cluster/"
 
 
+@pytest.mark.golden_test("testdata/flux_local/*.yaml")
+async def test_flux_local_golden(golden: GoldenTestFixture) -> None:
+    """Test commands in golden files."""
+    args = golden["args"]
+    result = await run(Command(["flux-local"] + args))
+    assert result == golden.out["stdout"]
+
+
 @pytest.mark.parametrize(
     "args",
     [
-        ["flux-local", "build", TESTDATA],
-        ["flux-local", "build", "--enable-helm", TESTDATA],
-        ["flux-local", "diff", "ks", "apps", "--path", TESTDATA],
-        ["flux-local", "diff", "hr", "podinfo", "-n", "podinfo", "--path", TESTDATA],
-        [
-            "flux-local",
-            "diff",
-            "hr",
-            "podinfo",
-            "-n",
-            "podinfo",
-            "--path",
-            TESTDATA,
-            "--output",
-            "yaml",
-        ],
-        ["flux-local", "manifest", TESTDATA],
         ["flux-local", "test", TESTDATA],
-        ["flux-local", "get", "ks"],
-        ["flux-local", "get", "hr"],
-        ["flux-local", "get", "hr", "-n", "metallb"],
     ],
 )
 async def test_flux_local_command(args: list[str]) -> None:

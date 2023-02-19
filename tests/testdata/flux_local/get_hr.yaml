@@ -1,0 +1,5 @@
+args:
+- get
+- hr
+stdout: |
+  no HelmRelease objects found in 'flux-system' namespace

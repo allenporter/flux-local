@@ -1,0 +1,5 @@
+args:
+- diff
+- hr
+- --all-namespaces
+stdout: ''
