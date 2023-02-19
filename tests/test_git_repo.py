@@ -23,6 +23,24 @@ async def test_build_manifest() -> None:
     assert len(cluster.helm_releases) == 2
 
 
+async def test_build_manifest_ks_path() -> None:
+    """Tests for building a kustomization directly."""
+
+    query = ResourceSelector()
+    query.path.path = TESTDATA / "apps/prod"
+    query.kustomization.namespace = None
+
+    manifest = await build_manifest(selector=query)
+    assert len(manifest.clusters) == 1
+    cluster = manifest.clusters[0]
+    assert cluster.name == ""
+    assert cluster.namespace == ""
+    assert cluster.path == ""
+    assert len(cluster.kustomizations) == 1
+    assert len(cluster.helm_repos) == 0
+    assert len(cluster.helm_releases) == 1
+
+
 async def test_cluster_selector_disabled() -> None:
     """Tests for building the manifest."""
 
