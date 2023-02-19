@@ -7,7 +7,7 @@ import difflib
 import logging
 import pathlib
 import tempfile
-from typing import cast, Any
+from typing import cast, Any, Generator
 
 from slugify import slugify
 from aiofiles.os import mkdir
@@ -16,9 +16,9 @@ import yaml
 import git
 from flux_local import git_repo
 from flux_local.helm import Helm
-from flux_local.manifest import HelmRelease
+from flux_local.manifest import HelmRelease, Kustomization
 
-from . import build, selector
+from . import selector
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,27 +33,6 @@ def changed_files(repo: git.repo.Repo) -> set[str]:
         | {diff.b_path for diff in index.diff(None)}
         | {*repo.untracked_files}
     )
-
-
-async def build_kustomization(
-    query: git_repo.ResourceSelector, root: pathlib.Path | None = None
-) -> list[str] | None:
-    """Return the contents of a kustomization object with the specified name."""
-    if not root:
-        root = query.path.root
-    manifest = await git_repo.build_manifest(selector=query)
-    content_list = []
-    for cluster in manifest.clusters:
-        for kustomization in cluster.kustomizations:
-            path = root / kustomization.path
-            _LOGGER.debug("Building Kustomization for diff: %s", path)
-            async for content in build.build(
-                path,
-                enable_helm=False,
-                skip_crds=False,
-            ):
-                content_list.extend(content.split("\n"))
-    return content_list
 
 
 @dataclass
@@ -107,6 +86,49 @@ async def build_helm_release(
     return None
 
 
+class ResourceContentOutput:
+    """Helper object for implementing a git_repo.ResourceVisitor that saves content.
+
+    This effectively binds the resource name to the content for later
+    inspection by name.
+    """
+
+    def __init__(self) -> None:
+        """Initialize ResourceContentOutput."""
+        self.content: dict[str, list[str]] = {}
+
+    def visitor(self) -> git_repo.ResourceVisitor:
+        """Return a git_repo.ResourceVisitor that points to this object."""
+        return git_repo.ResourceVisitor(content=True, func=self.call)
+
+    def call(self, ks: Kustomization, content: str | None) -> None:
+        """Visitor function invoked to record build output."""
+        _LOGGER.debug(self.key_func(ks))
+        if content:
+            _LOGGER.debug(len(content))
+            _LOGGER.debug(len(content.split("\n")))
+            self.content[self.key_func(ks)] = content.split("\n") if content else []
+
+    def key_func(self, ks: Kustomization) -> str:
+        return f"{ks.name} - {ks.path}"
+
+
+def perform_diff(
+    a: ResourceContentOutput, b: ResourceContentOutput
+) -> Generator[str, None, None]:
+    """Generate diffs between the two output objects."""
+    for key in set(a.content.keys()) | set(b.content.keys()):
+        _LOGGER.debug("Diffing results for %s", key)
+        diff_text = difflib.unified_diff(
+            a=a.content.get(key) or [],
+            b=b.content.get(key) or [],
+            fromfile=key,
+            tofile=key,
+        )
+        for line in diff_text:
+            yield line
+
+
 class DiffKustomizationAction:
     """Flux-local diff for Kustomizations."""
 
@@ -137,19 +159,24 @@ class DiffKustomizationAction:
     ) -> None:
         """Async Action implementation."""
         query = selector.build_ks_selector(**kwargs)
+        query.helm_release.enabled = False
 
-        content = await build_kustomization(query)
+        content = ResourceContentOutput()
+        query.kustomization.visitor = content.visitor()
+        await git_repo.build_manifest(selector=query)
+
+        orig_content = ResourceContentOutput()
         with git_repo.create_worktree(query.path.repo) as worktree:
-            orig_content = await build_kustomization(query, worktree)
-        if not content and not orig_content:
+            relative_path = query.path.relative_path
+            query.path = git_repo.PathSelector(pathlib.Path(worktree) / relative_path)
+            query.kustomization.visitor = orig_content.visitor()
+            await git_repo.build_manifest(selector=query)
+
+        if not orig_content.content and not content.content:
             print(selector.not_found("Kustomization", query.kustomization))
             return
 
-        diff_text = difflib.unified_diff(
-            orig_content or [],
-            content or [],
-        )
-        for line in diff_text:
+        for line in perform_diff(orig_content, content):
             print(line)
 
 

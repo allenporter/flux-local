@@ -67,6 +67,7 @@ CLUSTER_KUSTOMIZE_KIND = "Kustomization"
 KUSTOMIZE_KIND = "Kustomization"
 HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
+CRD_KIND = "CustomResourceDefinition"
 DEFAULT_NAMESPACE = "flux-system"
 
 
@@ -120,9 +121,30 @@ class PathSelector:
         return repo_root(self.repo)
 
     @property
+    def relative_path(self) -> Path:
+        """Return the relative path within the repo.
+
+        This is used when transposing this path on a worktree.
+        """
+        if not self.process_path.is_absolute():
+            return self.process_path
+        return self.process_path.relative_to(self.root)
+
+    @property
     def process_path(self) -> Path:
         """Return the path to process."""
         return self.path or self.root
+
+
+@dataclass
+class ResourceVisitor:
+    """Invoked when a resource is visited to the caller can intercept."""
+
+    content: bool
+    """If true, content will be produced to the stream for this object if supported."""
+
+    func: Callable[[Any, str | None], None]
+    """Function called with the resource and optional content."""
 
 
 @dataclass
@@ -137,6 +159,12 @@ class MetadataSelector:
 
     namespace: str | None = None
     """Resources returned will be from this namespace."""
+
+    skip_crds: bool = True
+    """If false, CRDs may be processed, depending on the resource type."""
+
+    visitor: ResourceVisitor | None = None
+    """Visitor for the specified object type that can be used for building."""
 
     @property
     def predicate(self) -> Callable[[Kustomization | HelmRelease | Cluster], bool]:
@@ -224,24 +252,40 @@ async def get_kustomizations(path: Path) -> list[dict[str, Any]]:
     return list(filter(KUSTOMIZE_DOMAIN_FILTER, docs))
 
 
-async def build_grep_helm(
+async def build_kustomization(
     kustomization: Kustomization,
     root: Path,
-    stash_prefix: str,
-    predicate: Callable[[HelmRelease], bool],
+    stash_prefix: Path,
+    kustomization_selector: MetadataSelector,
+    helm_selector: MetadataSelector,
 ) -> tuple[list[HelmRepository], list[HelmRelease]]:
     """Build helm objects for the Kustomization."""
-    cmd = await kustomize.build(root / kustomization.path).stash(
+    if not kustomization_selector.visitor and not helm_selector.enabled:
+        return ([], [])
+
+    cmd = kustomize.build(root / kustomization.path)
+    if kustomization_selector.skip_crds:
+        cmd = cmd.grep(f"kind=^{CRD_KIND}$", invert=True)
+    cmd = await cmd.stash(
         Path(
             "-".join(
                 [
-                    stash_prefix,
+                    str(stash_prefix),
                     slugify(kustomization.path),
                     slugify(kustomization.name),
                 ]
             )
         )
     )
+    if kustomization_selector.visitor:
+        content: str | None = None
+        if kustomization_selector.visitor.content:
+            content = await cmd.run()
+        kustomization_selector.visitor.func(kustomization, content)
+
+    if not helm_selector.enabled:
+        return ([], [])
+
     (repo_docs, release_docs) = await asyncio.gather(
         cmd.grep(f"kind=^{HELM_REPO_KIND}$").objects(),
         cmd.grep(f"kind=^{HELM_RELEASE_KIND}$").objects(),
@@ -250,7 +294,7 @@ async def build_grep_helm(
         [HelmRepository.parse_doc(doc) for doc in repo_docs],
         list(
             filter(
-                predicate,
+                helm_selector.predicate,
                 [HelmRelease.parse_doc(doc) for doc in release_docs],
             )
         ),
@@ -258,13 +302,16 @@ async def build_grep_helm(
 
 
 async def build_manifest(
-    path: Path | None = None, selector: ResourceSelector = ResourceSelector()
+    path: Path | None = None,
+    selector: ResourceSelector = ResourceSelector(),
 ) -> Manifest:
     """Build a Manifest object from the local cluster.
 
     This will locate all Kustomizations that represent clusters, then find all
     the Kustomizations within that cluster, as well as all relevant Helm
     resources.
+
+    The path input parameter is deprecated. Use the PathSelector in `selector` instead.
     """
     if path:
         selector.path = PathSelector(path=path)
@@ -298,20 +345,23 @@ async def build_manifest(
             cluster.kustomizations = list(
                 filter(selector.kustomization.predicate, cluster.kustomizations)
             )
-            if not selector.helm_release.enabled:
-                continue
 
             async def update_kustomization(cluster: Cluster) -> None:
                 cluster_stash = Path(stash_dir) / slugify(cluster.path)
                 helm_tasks = []
                 for kustomization in cluster.kustomizations:
-                    _LOGGER.debug("Processing kustomization: %s", kustomization.path)
+                    _LOGGER.debug(
+                        "Processing kustomization: %s (stash=%s)",
+                        kustomization.path,
+                        cluster_stash,
+                    )
                     helm_tasks.append(
-                        build_grep_helm(
+                        build_kustomization(
                             kustomization,
                             selector.path.root,
-                            str(cluster_stash),
-                            selector.helm_release.predicate,
+                            cluster_stash,
+                            selector.kustomization,
+                            selector.helm_release,
                         )
                     )
                 results = list(await asyncio.gather(*helm_tasks))
