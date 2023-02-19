@@ -11,12 +11,24 @@ stdout: |+
       namespace: flux-system
       path: ./tests/testdata/cluster/apps/prod
       helm_repos: []
-      helm_releases: []
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: podinfo
     - name: infra-controllers
       namespace: flux-system
       path: ./tests/testdata/cluster/infrastructure/controllers
       helm_repos: []
-      helm_releases: []
+      helm_releases:
+      - name: metallb
+        namespace: metallb
+        chart:
+          name: metallb
+          repo_name: bitnami
+          repo_namespace: flux-system
     - name: infra-configs
       namespace: flux-system
       path: ./tests/testdata/cluster/infrastructure/configs

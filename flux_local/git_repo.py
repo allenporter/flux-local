@@ -130,7 +130,7 @@ class MetadataSelector:
     name: str | None = None
     """Resources returned will match this name."""
 
-    namespace: str | None = DEFAULT_NAMESPACE
+    namespace: str | None = None
     """Resources returned will be from this namespace."""
 
     @property
@@ -147,6 +147,11 @@ class MetadataSelector:
         return predicate
 
 
+def ks_metadata_selector() -> MetadataSelector:
+    """Create a new MetadataSelector for Kustomizations."""
+    return MetadataSelector(namespace=DEFAULT_NAMESPACE)
+
+
 @dataclass
 class ResourceSelector:
     """A filter for objects to select from the cluster.
@@ -159,7 +164,7 @@ class ResourceSelector:
     path: PathSelector = field(default_factory=PathSelector)
     """Path to find a repo of local flux Kustomization objects"""
 
-    kustomization: MetadataSelector = field(default_factory=MetadataSelector)
+    kustomization: MetadataSelector = field(default_factory=ks_metadata_selector)
     """Kustomization names to return, or all if empty."""
 
     helm_release: MetadataSelector = field(default_factory=MetadataSelector)
