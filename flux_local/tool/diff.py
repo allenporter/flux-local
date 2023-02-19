@@ -103,10 +103,7 @@ class ResourceContentOutput:
 
     def call(self, ks: Kustomization, content: str | None) -> None:
         """Visitor function invoked to record build output."""
-        _LOGGER.debug(self.key_func(ks))
         if content:
-            _LOGGER.debug(len(content))
-            _LOGGER.debug(len(content.split("\n")))
             self.content[self.key_func(ks)] = content.split("\n") if content else []
 
     def key_func(self, ks: Kustomization) -> str:
