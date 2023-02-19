@@ -88,6 +88,24 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     return selector
 
 
+def add_cluster_selector_flags(args: ArgumentParser) -> None:
+    """Add common flux cluster selector flags to the arguments object."""
+    add_selector_flags(args)
+
+
+def build_cluster_selector(  # type: ignore[no-untyped-def]
+    **kwargs,
+) -> git_repo.ResourceSelector:
+    """Build a selector object form the specified flags."""
+    _LOGGER.debug("Building flux cluster Kustomization selector from args: %s", kwargs)
+    selector = git_repo.ResourceSelector()
+    selector.path = git_repo.PathSelector(kwargs.get("path"))
+    selector.cluster.namespace = kwargs.get("namespace")
+    if kwargs.get("all_namespaces"):
+        selector.cluster.namespace = None
+    return selector
+
+
 def not_found(resource: str, mds: git_repo.MetadataSelector) -> str:
     """Return a not found error message for the given resource type and query."""
     if mds.name:

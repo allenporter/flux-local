@@ -1,10 +1,15 @@
 args:
-- manifest
+- get
+- cluster
+- --path
 - tests/testdata/cluster/
+- -o
+- yaml
 stdout: |+
   ---
   clusters:
   - name: flux-system
+    namespace: flux-system
     path: ./tests/testdata/cluster/clusters/prod
     kustomizations:
     - name: apps

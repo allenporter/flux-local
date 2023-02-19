@@ -127,6 +127,9 @@ class PathSelector:
 class MetadataSelector:
     """A filter for objects to select from the cluster."""
 
+    enabled: bool = True
+    """If true, this selector may return objects."""
+
     name: str | None = None
     """Resources returned will match this name."""
 
@@ -134,10 +137,12 @@ class MetadataSelector:
     """Resources returned will be from this namespace."""
 
     @property
-    def predicate(self) -> Callable[[Kustomization | HelmRelease], bool]:
+    def predicate(self) -> Callable[[Kustomization | HelmRelease | Cluster], bool]:
         """A predicate that selects Kustomization objects."""
 
-        def predicate(obj: Kustomization | HelmRelease) -> bool:
+        def predicate(obj: Kustomization | HelmRelease | Cluster) -> bool:
+            if not self.enabled:
+                return False
             if self.name and obj.name != self.name:
                 return False
             if self.namespace and obj.namespace != self.namespace:
@@ -145,6 +150,11 @@ class MetadataSelector:
             return True
 
         return predicate
+
+
+def cluster_metadata_selector() -> MetadataSelector:
+    """Create a new MetadataSelector for Kustomizations."""
+    return MetadataSelector(name=CLUSTER_KUSTOMIZE_NAME, namespace=DEFAULT_NAMESPACE)
 
 
 def ks_metadata_selector() -> MetadataSelector:
@@ -164,21 +174,31 @@ class ResourceSelector:
     path: PathSelector = field(default_factory=PathSelector)
     """Path to find a repo of local flux Kustomization objects"""
 
+    cluster: MetadataSelector = field(default_factory=cluster_metadata_selector)
+    """Cluster names to return, or all if empty."""
+
     kustomization: MetadataSelector = field(default_factory=ks_metadata_selector)
     """Kustomization names to return, or all if empty."""
 
     helm_release: MetadataSelector = field(default_factory=MetadataSelector)
 
 
-async def get_clusters(path: Path) -> list[Cluster]:
+async def get_clusters(path: Path, selector: MetadataSelector) -> list[Cluster]:
     """Load Cluster objects from the specified path."""
     cmd = kustomize.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}", path).grep(
-        f"metadata.name={CLUSTER_KUSTOMIZE_NAME}"
+        f"metadata.name={selector.name}",
     )
     docs = await cmd.objects()
-    return [
-        Cluster.from_doc(doc) for doc in docs if CLUSTER_KUSTOMIZE_DOMAIN_FILTER(doc)
-    ]
+    return list(
+        filter(
+            selector.predicate,
+            [
+                Cluster.parse_doc(doc)
+                for doc in docs
+                if CLUSTER_KUSTOMIZE_DOMAIN_FILTER(doc)
+            ],
+        )
+    )
 
 
 async def get_cluster_kustomizations(path: Path) -> list[Kustomization]:
@@ -189,7 +209,7 @@ async def get_cluster_kustomizations(path: Path) -> list[Kustomization]:
     )
     docs = await cmd.objects()
     return [
-        Kustomization.from_doc(doc)
+        Kustomization.parse_doc(doc)
         for doc in docs
         if CLUSTER_KUSTOMIZE_DOMAIN_FILTER(doc)
     ]
@@ -215,18 +235,21 @@ async def build_manifest(
         selector.path = PathSelector(path=path)
 
     _LOGGER.debug("Processing cluster with selector %s", selector)
-    clusters = await get_clusters(selector.path.process_path)
+    if not selector.cluster.enabled:
+        return Manifest(clusters=[])
+
+    clusters = await get_clusters(selector.path.process_path, selector.cluster)
     if len(clusters) > 0:
         for cluster in clusters:
             _LOGGER.debug("Processing cluster: %s", cluster.path)
             cluster.kustomizations = await get_cluster_kustomizations(
-                selector.path.root / cluster.path.lstrip("./")
+                selector.path.root / cluster.path
             )
     elif selector.path.path:
         _LOGGER.debug("No clusters found; Processing as a Kustomization: %s", selector)
         # The argument path may be a Kustomization inside a cluster. Create a synthetic
         # cluster with any found Kustomizations
-        cluster = Cluster(name="", path="")
+        cluster = Cluster(name="", namespace="", path="")
         objects = await get_kustomizations(selector.path.path)
         if objects:
             cluster.kustomizations = [
@@ -238,18 +261,20 @@ async def build_manifest(
         cluster.kustomizations = list(
             filter(selector.kustomization.predicate, cluster.kustomizations)
         )
+        if not selector.helm_release.enabled:
+            continue
         for kustomization in cluster.kustomizations:
             _LOGGER.debug("Processing kustomization: %s", kustomization.path)
             cmd = kustomize.build(selector.path.root / kustomization.path)
             kustomization.helm_repos = [
-                HelmRepository.from_doc(doc)
+                HelmRepository.parse_doc(doc)
                 for doc in await cmd.grep(f"kind=^{HELM_REPO_KIND}$").objects()
             ]
             kustomization.helm_releases = list(
                 filter(
                     selector.helm_release.predicate,
                     [
-                        HelmRelease.from_doc(doc)
+                        HelmRelease.parse_doc(doc)
                         for doc in await cmd.grep(
                             f"kind=^{HELM_RELEASE_KIND}$"
                         ).objects()

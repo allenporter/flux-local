@@ -4,7 +4,7 @@ repos:
   rev: v4.0.1
   hooks:
   - id: trailing-whitespace
-    exclude: '^tests/testdata/flux_local/.*\.yaml$'
+    exclude: '^tests/tool/testdata/.*\.yaml$'
   - id: end-of-file-fixer
   - id: check-yaml
     args:
@@ -18,7 +18,7 @@ repos:
   rev: v1.29.0
   hooks:
   - id: yamllint
-    exclude: '^tests/testdata/flux_local/.*\.yaml$'
+    exclude: '^tests/tool/testdata/.*\.yaml$'
     args:
     - -c
     - ".yaml-lint.yaml"
