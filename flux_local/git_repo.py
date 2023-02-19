@@ -235,7 +235,7 @@ async def build_manifest(
         selector.path = PathSelector(path=path)
 
     _LOGGER.debug("Processing cluster with selector %s", selector)
-    if not selector.cluster:
+    if not selector.cluster.enabled:
         return Manifest(clusters=[])
 
     clusters = await get_clusters(selector.path.process_path, selector.cluster)

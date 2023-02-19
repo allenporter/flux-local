@@ -28,12 +28,6 @@ def format_columns(
             yield format_string.format(*[str(x) for x in row])
 
 
-def print_columns(headers: list[str], rows: list[list[str]]) -> None:
-    """Print the specified output rows in a column format."""
-    for line in format_columns(headers, rows):
-        print(line)
-
-
 class PrintFormatter:
     """A formatter that prints human readable console output."""
 
