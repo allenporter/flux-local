@@ -1,24 +1,20 @@
 """Flux-local diff action."""
 
+import asyncio
 from argparse import ArgumentParser
 from argparse import _SubParsersAction as SubParsersAction
-from dataclasses import dataclass
 import difflib
 import logging
 import pathlib
 import tempfile
-from typing import cast, Any, Generator
+from typing import cast, Generator
 
-from slugify import slugify
-from aiofiles.os import mkdir
-import yaml
 
 import git
 from flux_local import git_repo
-from flux_local.helm import Helm
-from flux_local.manifest import HelmRelease, Kustomization
 
 from . import selector
+from .visitor import ResourceContentOutput, HelmVisitor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,81 +29,6 @@ def changed_files(repo: git.repo.Repo) -> set[str]:
         | {diff.b_path for diff in index.diff(None)}
         | {*repo.untracked_files}
     )
-
-
-@dataclass
-class HelmReleaseOutput:
-    """Holds data related to the output HelmRelease."""
-
-    release: HelmRelease
-    content: list[str]
-
-    @property
-    def summary(self) -> dict[str, Any]:
-        """A short summary of the HelmRelease."""
-        return {
-            "release": self.release.dict(include={"name", "namespace"}),
-            "chart": self.release.chart.dict(),
-        }
-
-
-async def build_helm_release(
-    query: git_repo.ResourceSelector, root: pathlib.Path | None = None
-) -> HelmReleaseOutput | None:
-    """Return the contents of a kustomization object with the specified name."""
-    if not root:
-        root = query.path.root
-
-    manifest = await git_repo.build_manifest(selector=query)
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        for cluster in manifest.clusters:
-            if not cluster.helm_releases:
-                continue
-
-            path = pathlib.Path(tmp_dir) / f"{slugify(cluster.path)}"
-            await mkdir(path)
-
-            helm = Helm(path, pathlib.Path(tmp_dir) / "cache")
-            helm.add_repos(cluster.helm_repos)
-            await helm.update()
-
-            # There should be zero or one HelmRelease
-            helm_release = cluster.helm_releases[0]
-            _LOGGER.debug(
-                "Building HelmRelease for diff: %s/%s",
-                helm_release.name,
-                helm_release.namespace,
-            )
-            cmds = await helm.template(helm_release, skip_crds=False)
-            objs = await cmds.objects()
-            content = yaml.dump(objs, explicit_start=True)
-            return HelmReleaseOutput(helm_release, content.split("\n"))
-    return None
-
-
-class ResourceContentOutput:
-    """Helper object for implementing a git_repo.ResourceVisitor that saves content.
-
-    This effectively binds the resource name to the content for later
-    inspection by name.
-    """
-
-    def __init__(self) -> None:
-        """Initialize ResourceContentOutput."""
-        self.content: dict[str, list[str]] = {}
-
-    def visitor(self) -> git_repo.ResourceVisitor:
-        """Return a git_repo.ResourceVisitor that points to this object."""
-        return git_repo.ResourceVisitor(content=True, func=self.call)
-
-    def call(self, ks: Kustomization, content: str | None) -> None:
-        """Visitor function invoked to record build output."""
-        if content:
-            self.content[self.key_func(ks)] = content.split("\n") if content else []
-
-    def key_func(self, ks: Kustomization) -> str:
-        return f"{ks.name} - {ks.path}"
 
 
 def perform_diff(
@@ -173,6 +94,7 @@ class DiffKustomizationAction:
             print(selector.not_found("Kustomization", query.kustomization))
             return
 
+        _LOGGER.debug("Diffing content")
         for line in perform_diff(orig_content, content):
             print(line)
 
@@ -215,32 +137,41 @@ class DiffHelmReleaseAction:
     ) -> None:
         """Async Action implementation."""
         query = selector.build_hr_selector(**kwargs)
+        helm_visitor = HelmVisitor()
+        query.helm_repo.visitor = helm_visitor.repo_visitor()
+        query.helm_release.visitor = helm_visitor.release_visitor()
+        await git_repo.build_manifest(selector=query)
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            await mkdir(pathlib.Path(tmp_dir) / "cache")
-
-        release_output = await build_helm_release(query)
+        orig_helm_visitor = HelmVisitor()
         with git_repo.create_worktree(query.path.repo) as worktree:
-            orig_release_output = await build_helm_release(query, worktree)
+            relative_path = query.path.relative_path
+            query.path = git_repo.PathSelector(pathlib.Path(worktree) / relative_path)
+            query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
+            query.helm_release.visitor = orig_helm_visitor.release_visitor()
+            await git_repo.build_manifest(selector=query)
 
-        if not release_output and not orig_release_output:
+        if not helm_visitor.releases and not orig_helm_visitor.releases:
             print(selector.not_found("HelmRelease", query.helm_release))
             return
 
-        diff_text = difflib.unified_diff(
-            orig_release_output.content if orig_release_output else [],
-            release_output.content if release_output else [],
-        )
-        if output == "diff":
-            for line in diff_text:
-                print(line)
-        elif output == "yaml":
-            result = {
-                "old": orig_release_output.summary if orig_release_output else None,
-                "new": release_output.summary if release_output else None,
-                "diff": "\n".join(diff_text),
-            }
-            print(yaml.dump(result, explicit_start=True))
+        content = ResourceContentOutput()
+        orig_content = ResourceContentOutput()
+        with tempfile.TemporaryDirectory() as helm_cache_dir:
+            await asyncio.gather(
+                helm_visitor.inflate(
+                    pathlib.Path(helm_cache_dir),
+                    content.visitor(),
+                    query.helm_release.skip_crds,
+                ),
+                orig_helm_visitor.inflate(
+                    pathlib.Path(helm_cache_dir),
+                    orig_content.visitor(),
+                    query.helm_release.skip_crds,
+                ),
+            )
+
+        for line in perform_diff(orig_content, content):
+            print(line)
 
 
 class DiffAction:
@@ -266,9 +197,6 @@ class DiffAction:
 
     async def run(  # type: ignore[no-untyped-def]
         self,
-        path: pathlib.Path,
-        enable_helm: bool,
-        skip_crds: bool,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""

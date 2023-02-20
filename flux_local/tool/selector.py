@@ -35,6 +35,13 @@ def add_selector_flags(args: ArgumentParser) -> None:
         default=DEFAULT_NAMESPACE,
         help="If present, the namespace scope for this request",
     )
+    args.add_argument(
+        "--skip-crds",
+        type=str,
+        default=True,
+        action=BooleanOptionalAction,
+        help="When true do not include CRDs to reduce output size",
+    )
 
 
 def add_ks_selector_flags(args: ArgumentParser) -> None:
@@ -55,10 +62,11 @@ def build_ks_selector(  # type: ignore[no-untyped-def]
     """Build a selector object form the specified flags."""
     selector = git_repo.ResourceSelector()
     selector.path = git_repo.PathSelector(kwargs.get("path"))
-    selector.kustomization.name = kwargs.get("kustomization")
-    selector.kustomization.namespace = kwargs.get("namespace")
-    if kwargs.get("all_namespaces"):
+    selector.kustomization.name = kwargs["kustomization"]
+    selector.kustomization.namespace = kwargs["namespace"]
+    if kwargs["all_namespaces"]:
         selector.kustomization.namespace = None
+    selector.kustomization.skip_crds = kwargs["skip_crds"]
     return selector
 
 
@@ -82,9 +90,10 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     selector = git_repo.ResourceSelector()
     selector.path = git_repo.PathSelector(kwargs.get("path"))
     selector.helm_release.name = kwargs.get("helmrelease")
-    selector.helm_release.namespace = kwargs.get("namespace")
-    if kwargs.get("all_namespaces"):
+    selector.helm_release.namespace = kwargs["namespace"]
+    if kwargs["all_namespaces"]:
         selector.helm_release.namespace = None
+    selector.helm_release.skip_crds = kwargs["skip_crds"]
     return selector
 
 

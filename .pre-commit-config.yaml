@@ -6,6 +6,7 @@ repos:
   - id: trailing-whitespace
     exclude: '^tests/tool/testdata/.*\.yaml$'
   - id: end-of-file-fixer
+    exclude: '^tests/tool/testdata/.*\.yaml$'
   - id: check-yaml
     args:
     - --allow-multiple-documents

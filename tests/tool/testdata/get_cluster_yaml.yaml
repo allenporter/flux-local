@@ -22,7 +22,7 @@ stdout: |+
         chart:
           name: podinfo
           repo_name: podinfo
-          repo_namespace: podinfo
+          repo_namespace: flux-system
     - name: infra-controllers
       namespace: flux-system
       path: ./tests/testdata/cluster/infrastructure/controllers
@@ -42,7 +42,7 @@ stdout: |+
         namespace: flux-system
         url: https://charts.bitnami.com/bitnami
       - name: podinfo
-        namespace: podinfo
+        namespace: flux-system
         url: https://stefanprodan.github.io/podinfo
       helm_releases: []
 

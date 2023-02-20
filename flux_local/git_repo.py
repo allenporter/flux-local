@@ -44,6 +44,7 @@ import git
 
 from . import kustomize
 from .manifest import (
+    CRD_KIND,
     CLUSTER_KUSTOMIZE_DOMAIN,
     KUSTOMIZE_DOMAIN,
     Cluster,
@@ -67,7 +68,6 @@ CLUSTER_KUSTOMIZE_KIND = "Kustomization"
 KUSTOMIZE_KIND = "Kustomization"
 HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
-CRD_KIND = "CustomResourceDefinition"
 DEFAULT_NAMESPACE = "flux-system"
 
 
@@ -143,8 +143,16 @@ class ResourceVisitor:
     content: bool
     """If true, content will be produced to the stream for this object if supported."""
 
-    func: Callable[[Any, str | None], None]
-    """Function called with the resource and optional content."""
+    func: Callable[[Path, Any, str | None], None]
+    """Function called with the resource and optional content.
+
+    The function arguments are:
+      - path: This is the cluster or kustomization path needed to disambiguate
+        when there are multiple clusters in the repository.
+      - doc: The resource object (e.g. Kustomization, HelmRelease, etc)
+      - content: The content if content bool above is true. Only supported for
+        Kustomizations.
+    """
 
 
 @dataclass
@@ -167,10 +175,14 @@ class MetadataSelector:
     """Visitor for the specified object type that can be used for building."""
 
     @property
-    def predicate(self) -> Callable[[Kustomization | HelmRelease | Cluster], bool]:
+    def predicate(
+        self,
+    ) -> Callable[[Kustomization | HelmRelease | Cluster | HelmRepository], bool]:
         """A predicate that selects Kustomization objects."""
 
-        def predicate(obj: Kustomization | HelmRelease | Cluster) -> bool:
+        def predicate(
+            obj: Kustomization | HelmRelease | Cluster | HelmRepository,
+        ) -> bool:
             if not self.enabled:
                 return False
             if self.name and obj.name != self.name:
@@ -205,12 +217,16 @@ class ResourceSelector:
     """Path to find a repo of local flux Kustomization objects"""
 
     cluster: MetadataSelector = field(default_factory=cluster_metadata_selector)
-    """Cluster names to return, or all if empty."""
+    """Cluster names to return."""
 
     kustomization: MetadataSelector = field(default_factory=ks_metadata_selector)
-    """Kustomization names to return, or all if empty."""
+    """Kustomization names to return."""
+
+    helm_repo: MetadataSelector = field(default_factory=MetadataSelector)
+    """HelmRepository objects to return."""
 
     helm_release: MetadataSelector = field(default_factory=MetadataSelector)
+    """HelmRelease objects to return."""
 
 
 async def get_clusters(path: Path, selector: MetadataSelector) -> list[Cluster]:
@@ -257,10 +273,15 @@ async def build_kustomization(
     root: Path,
     stash_prefix: Path,
     kustomization_selector: MetadataSelector,
-    helm_selector: MetadataSelector,
+    helm_release_selector: MetadataSelector,
+    helm_repo_selector: MetadataSelector,
 ) -> tuple[list[HelmRepository], list[HelmRelease]]:
     """Build helm objects for the Kustomization."""
-    if not kustomization_selector.visitor and not helm_selector.enabled:
+    if (
+        not kustomization_selector.visitor
+        and not helm_release_selector.enabled
+        and not helm_repo_selector.enabled
+    ):
         return ([], [])
 
     cmd = kustomize.build(root / kustomization.path)
@@ -281,9 +302,11 @@ async def build_kustomization(
         content: str | None = None
         if kustomization_selector.visitor.content:
             content = await cmd.run()
-        kustomization_selector.visitor.func(kustomization, content)
+        kustomization_selector.visitor.func(
+            Path(kustomization.path), kustomization, content
+        )
 
-    if not helm_selector.enabled:
+    if not helm_release_selector.enabled and not helm_repo_selector.enabled:
         return ([], [])
 
     (repo_docs, release_docs) = await asyncio.gather(
@@ -291,10 +314,15 @@ async def build_kustomization(
         cmd.grep(f"kind=^{HELM_RELEASE_KIND}$").objects(),
     )
     return (
-        [HelmRepository.parse_doc(doc) for doc in repo_docs],
         list(
             filter(
-                helm_selector.predicate,
+                helm_repo_selector.predicate,
+                [HelmRepository.parse_doc(doc) for doc in repo_docs],
+            )
+        ),
+        list(
+            filter(
+                helm_release_selector.predicate,
                 [HelmRelease.parse_doc(doc) for doc in release_docs],
             )
         ),
@@ -327,11 +355,14 @@ async def build_manifest(
             cluster.kustomizations = await get_cluster_kustomizations(
                 selector.path.root / cluster.path
             )
+            cluster.kustomizations = list(
+                filter(selector.kustomization.predicate, cluster.kustomizations)
+            )
     elif selector.path.path:
         _LOGGER.debug("No clusters found; Processing as a Kustomization: %s", selector)
         # The argument path may be a Kustomization inside a cluster. Create a synthetic
         # cluster with any found Kustomizations
-        cluster = Cluster(name="", namespace="", path="")
+        cluster = Cluster(name="", namespace="", path=str(selector.path.path))
         objects = await get_kustomizations(selector.path.path)
         if objects:
             cluster.kustomizations = [
@@ -339,42 +370,51 @@ async def build_manifest(
             ]
             clusters.append(cluster)
 
+    async def update_kustomization(cluster: Cluster, stash_dir: str) -> None:
+        cluster_stash = Path(stash_dir) / slugify(cluster.path)
+        helm_tasks = []
+        for kustomization in cluster.kustomizations:
+            _LOGGER.debug(
+                "Processing kustomization: %s (stash=%s)",
+                kustomization.path,
+                cluster_stash,
+            )
+            helm_tasks.append(
+                build_kustomization(
+                    kustomization,
+                    selector.path.root,
+                    cluster_stash,
+                    selector.kustomization,
+                    selector.helm_release,
+                    selector.helm_repo,
+                )
+            )
+        results = list(await asyncio.gather(*helm_tasks))
+        for kustomization, (helm_repos, helm_releases) in zip(
+            cluster.kustomizations,
+            results,
+        ):
+            kustomization.helm_repos = helm_repos
+            kustomization.helm_releases = helm_releases
+
     with tempfile.TemporaryDirectory() as stash_dir:
         kustomization_tasks = []
+        # Expand and visit Kustomizations
         for cluster in clusters:
-            cluster.kustomizations = list(
-                filter(selector.kustomization.predicate, cluster.kustomizations)
-            )
-
-            async def update_kustomization(cluster: Cluster) -> None:
-                cluster_stash = Path(stash_dir) / slugify(cluster.path)
-                helm_tasks = []
-                for kustomization in cluster.kustomizations:
-                    _LOGGER.debug(
-                        "Processing kustomization: %s (stash=%s)",
-                        kustomization.path,
-                        cluster_stash,
-                    )
-                    helm_tasks.append(
-                        build_kustomization(
-                            kustomization,
-                            selector.path.root,
-                            cluster_stash,
-                            selector.kustomization,
-                            selector.helm_release,
-                        )
-                    )
-                results = list(await asyncio.gather(*helm_tasks))
-                for kustomization, (helm_repos, helm_releases) in zip(
-                    cluster.kustomizations,
-                    results,
-                ):
-                    kustomization.helm_repos = helm_repos
-                    kustomization.helm_releases = helm_releases
-
-            kustomization_tasks.append(update_kustomization(cluster))
-
+            kustomization_tasks.append(update_kustomization(cluster, stash_dir))
         await asyncio.gather(*kustomization_tasks)
+
+        # Visit Helm resources
+        for cluster in clusters:
+            if selector.helm_repo.visitor:
+                for helm_repo in cluster.helm_repos:
+                    selector.helm_repo.visitor.func(Path(cluster.path), helm_repo, None)
+
+            if selector.helm_release.visitor:
+                for helm_release in cluster.helm_releases:
+                    selector.helm_release.visitor.func(
+                        Path(cluster.path), helm_release, None
+                    )
 
     return Manifest(clusters=clusters)
 

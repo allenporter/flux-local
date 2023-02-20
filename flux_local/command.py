@@ -9,6 +9,9 @@ from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 
+_CONCURRENCY = 20
+_SEM = asyncio.Semaphore(_CONCURRENCY)
+
 
 # No public API
 __all__: list[str] = []
@@ -38,7 +41,7 @@ class Command:
         return f"({self.cwd}) {self.string}"
 
 
-async def run_piped(cmds: list[Command]) -> str:
+async def _run_piped_with_sem(cmds: list[Command]) -> str:
     """Run a set of commands, piped together, returning stdout of last."""
     stdin = None
     out = None
@@ -63,6 +66,13 @@ async def run_piped(cmds: list[Command]) -> str:
             )
         stdin = out
     return out.decode("utf-8") if out else ""
+
+
+async def run_piped(cmds: list[Command]) -> str:
+    """Run a set of commands, piped together, returning stdout of last."""
+    async with _SEM:
+        result = await _run_piped_with_sem(cmds)
+    return result
 
 
 async def run(cmd: Command) -> str:

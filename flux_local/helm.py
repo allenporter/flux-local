@@ -44,7 +44,7 @@ import yaml
 
 from . import command
 from .kustomize import Kustomize
-from .manifest import HelmRelease, HelmRepository
+from .manifest import HelmRelease, HelmRepository, CRD_KIND
 
 __all__ = [
     "Helm",
@@ -111,6 +111,7 @@ class Helm:
 
         Typically the repository must be updated before doing any chart templating.
         """
+        _LOGGER.debug("Updating %d repositories", len(self._repos))
         content = yaml.dump(RepositoryConfig(self._repos).config)
         async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
             await config_file.write(content)
@@ -155,4 +156,7 @@ class Helm:
             async with aiofiles.open(values_path, mode="w") as values_file:
                 await values_file.write(yaml.dump(values))
             args.extend(["--values", str(values_path)])
-        return Kustomize([command.Command(args + self._flags)])
+        cmd = Kustomize([command.Command(args + self._flags)])
+        if skip_crds:
+            cmd = cmd.grep(f"kind=^{CRD_KIND}$", invert=True)
+        return cmd

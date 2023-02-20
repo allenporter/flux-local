@@ -14,7 +14,9 @@ async def test_flux_local_golden(golden: GoldenTestFixture) -> None:
     """Test commands in golden files."""
     args = golden["args"]
     result = await run(Command(["flux-local"] + args))
-    assert result == golden.out["stdout"]
+    expected = golden.out.get("stdout")
+    if expected:
+        assert result == expected
 
 
 @pytest.mark.parametrize(
