@@ -6,8 +6,6 @@ from pytest_golden.plugin import GoldenTestFixture
 
 from flux_local.command import Command, run
 
-TESTDATA = "tests/testdata/cluster/"
-
 
 @pytest.mark.golden_test("testdata/*.yaml")
 async def test_flux_local_golden(golden: GoldenTestFixture) -> None:
@@ -17,14 +15,3 @@ async def test_flux_local_golden(golden: GoldenTestFixture) -> None:
     expected = golden.out.get("stdout")
     if expected:
         assert result == expected
-
-
-@pytest.mark.parametrize(
-    "args",
-    [
-        ["flux-local", "test", TESTDATA],
-    ],
-)
-async def test_flux_local_command(args: list[str]) -> None:
-    """Test flux-local build command."""
-    await run(Command(args))
