@@ -44,6 +44,7 @@ import git
 
 from . import kustomize
 from .manifest import (
+    CRD_KIND,
     CLUSTER_KUSTOMIZE_DOMAIN,
     KUSTOMIZE_DOMAIN,
     Cluster,
@@ -67,7 +68,6 @@ CLUSTER_KUSTOMIZE_KIND = "Kustomization"
 KUSTOMIZE_KIND = "Kustomization"
 HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
-CRD_KIND = "CustomResourceDefinition"
 DEFAULT_NAMESPACE = "flux-system"
 
 

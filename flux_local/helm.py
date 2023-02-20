@@ -44,7 +44,7 @@ import yaml
 
 from . import command
 from .kustomize import Kustomize
-from .manifest import HelmRelease, HelmRepository
+from .manifest import HelmRelease, HelmRepository, CRD_KIND
 
 __all__ = [
     "Helm",
@@ -156,4 +156,7 @@ class Helm:
             async with aiofiles.open(values_path, mode="w") as values_file:
                 await values_file.write(yaml.dump(values))
             args.extend(["--values", str(values_path)])
-        return Kustomize([command.Command(args + self._flags)])
+        cmd = Kustomize([command.Command(args + self._flags)])
+        if skip_crds:
+            cmd = cmd.grep(f"kind=^{CRD_KIND}$", invert=True)
+        return cmd

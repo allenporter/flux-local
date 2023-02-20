@@ -49,19 +49,43 @@ metallb    4.1.14      metallb-metallb    bitnami
 
 You can use the `flux-local` cli to build all objects in a cluster, similar to how you
 use `kustomize build`, which is used underneath. Here is an example to build all flux
-`Kustomization` objects within a git repository, which will then build all resources within those:
+`Kustomization` objects within a git repository, using `kustomize cfg count` to parse
+the yaml output:
 
 ```bash
-$ flux-local build clusters/prod/
+$ flux-local build tests/testdata/cluster/ | kustomize cfg count
+ClusterPolicy: 1
+ConfigMap: 1
+HelmRelease: 2
+HelmRepository: 2
+Namespace: 1
 ```
 
 You can also specify the root to build all clusters.
 
 Additionally, you can inflate `HelmRelease` objects inside each `Kustomization` by adding
-the `--enable-helm` command line flag:
+the `--enable-helm` command line flag. This example again shows `kustomize cfg count`
+to parse the yaml output which now includes the resources from `HelmRelease` objects
+defined in the cluster:
 
 ```bash
-$ flux-local build clusters/prod/ --enable-helm
+$ flux-local build tests/testdata/cluster/ --enable-helm --skip-crds | kustomize cfg count
+ClusterPolicy: 1
+ClusterRole: 2
+ClusterRoleBinding: 2
+ConfigMap: 3
+DaemonSet: 1
+Deployment: 3
+HelmRelease: 2
+HelmRepository: 2
+Ingress: 1
+Namespace: 1
+Role: 3
+RoleBinding: 3
+Secret: 1
+Service: 3
+ServiceAccount: 2
+ValidatingWebhookConfiguration: 1
 ```
 
 You may also use `flux-local` to verify your local changes to cluster resources have the desird

@@ -158,9 +158,15 @@ class DiffHelmReleaseAction:
         orig_content = ResourceContentOutput()
         with tempfile.TemporaryDirectory() as helm_cache_dir:
             await asyncio.gather(
-                helm_visitor.inflate(pathlib.Path(helm_cache_dir), content.visitor()),
+                helm_visitor.inflate(
+                    pathlib.Path(helm_cache_dir),
+                    content.visitor(),
+                    query.helm_release.skip_crds,
+                ),
                 orig_helm_visitor.inflate(
-                    pathlib.Path(helm_cache_dir), orig_content.visitor()
+                    pathlib.Path(helm_cache_dir),
+                    orig_content.visitor(),
+                    query.helm_release.skip_crds,
                 ),
             )
 
@@ -191,9 +197,6 @@ class DiffAction:
 
     async def run(  # type: ignore[no-untyped-def]
         self,
-        path: pathlib.Path,
-        enable_helm: bool,
-        skip_crds: bool,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""

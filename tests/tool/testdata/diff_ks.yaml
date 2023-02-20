@@ -4,3 +4,4 @@ args:
 - apps
 - --path
 - tests/testdata/cluster/
+stdout: ''

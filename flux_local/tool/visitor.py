@@ -5,8 +5,6 @@ import logging
 import pathlib
 import tempfile
 
-import yaml
-
 from flux_local import git_repo
 from flux_local.helm import Helm
 from flux_local.manifest import HelmRelease, Kustomization, HelmRepository
@@ -35,9 +33,10 @@ class ResourceContentOutput:
     ) -> None:
         """Visitor function invoked to record build output."""
         if content:
-            self.content[self.key_func(path, doc)] = (
-                content.split("\n") if content else []
-            )
+            lines = content.split("\n")
+            if lines[0] != "---":
+                lines.insert(0, "---")
+            self.content[self.key_func(path, doc)] = lines
 
     def key_func(
         self, path: pathlib.Path, resource: Kustomization | HelmRelease
@@ -86,7 +85,10 @@ class HelmVisitor:
         return git_repo.ResourceVisitor(content=False, func=add_release)
 
     async def inflate(
-        self, helm_cache_dir: pathlib.Path, visitor: git_repo.ResourceVisitor
+        self,
+        helm_cache_dir: pathlib.Path,
+        visitor: git_repo.ResourceVisitor,
+        skip_crds: bool,
     ) -> None:
         """Expand and notify about HelmReleases discovered."""
         if not visitor.content:
@@ -98,9 +100,8 @@ class HelmVisitor:
             release: HelmRelease,
             visitor: git_repo.ResourceVisitor,
         ) -> None:
-            cmd = await helm.template(release, skip_crds=True)
-            objs = await cmd.objects()
-            content = yaml.dump(objs, explicit_start=True)
+            cmd = await helm.template(release, skip_crds=skip_crds)
+            content = await cmd.run()
             visitor.func(cluster_path, release, content)
 
         async def inflate_cluster(cluster_path: pathlib.Path) -> None:
