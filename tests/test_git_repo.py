@@ -36,7 +36,7 @@ async def test_build_manifest_ks_path() -> None:
     cluster = manifest.clusters[0]
     assert cluster.name == ""
     assert cluster.namespace == ""
-    assert cluster.path == ""
+    assert cluster.path == "tests/testdata/cluster/apps/prod"
     assert len(cluster.kustomizations) == 1
     assert len(cluster.helm_repos) == 0
     assert len(cluster.helm_releases) == 1
@@ -113,8 +113,8 @@ async def test_kustomization_visitor() -> None:
 
     stream = io.StringIO()
 
-    def write(x: Any, y: str | None = None) -> None:
-        stream.write(y or "")
+    def write(x: Path, y: Any, z: str | None = None) -> None:
+        stream.write(z or "")
 
     query.kustomization.visitor = ResourceVisitor(content=True, func=write)
 
@@ -145,7 +145,7 @@ async def test_helm_repo_visitor() -> None:
     objects: list[HelmRepository] = []
 
     query.helm_repo.visitor = ResourceVisitor(
-        content=True, func=lambda x, y: objects.append(x)
+        content=True, func=lambda x, y, z: objects.append(y)
     )
 
     manifest = await build_manifest(selector=query)
@@ -176,7 +176,7 @@ async def test_helm_release_visitor() -> None:
     objects: list[HelmRelease] = []
 
     query.helm_release.visitor = ResourceVisitor(
-        content=True, func=lambda x, y: objects.append(x)
+        content=True, func=lambda x, y, z: objects.append(y)
     )
 
     manifest = await build_manifest(selector=query)

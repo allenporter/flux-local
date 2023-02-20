@@ -41,6 +41,7 @@ async def build_kustomization(
     for helm_release in kustomization.helm_releases:
         cmds = await helm.template(helm_release, skip_crds=skip_crds)
         objs = await cmds.objects()
+        print(objs)
         yield yaml.dump(objs)
 
 
@@ -61,7 +62,9 @@ async def build(
         for cluster in manifest.clusters:
             helm = None
             if enable_helm:
-                helm_path = pathlib.Path(tmp_dir) / f"{slugify(cluster.path)}"
+                helm_path = (
+                    pathlib.Path(tmp_dir) / f"{slugify(cluster.path or 'cluster')}"
+                )
                 await mkdir(helm_path)
 
                 helm = Helm(helm_path, cache_path)

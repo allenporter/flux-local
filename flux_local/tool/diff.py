@@ -1,22 +1,21 @@
 """Flux-local diff action."""
 
+import asyncio
 from argparse import ArgumentParser
 from argparse import _SubParsersAction as SubParsersAction
-from dataclasses import dataclass
 import difflib
 import logging
 import pathlib
 import tempfile
-from typing import cast, Any, Generator
+from typing import cast, Generator
 
-from slugify import slugify
 from aiofiles.os import mkdir
 import yaml
 
 import git
 from flux_local import git_repo
 from flux_local.helm import Helm
-from flux_local.manifest import HelmRelease, Kustomization
+from flux_local.manifest import HelmRelease, Kustomization, HelmRepository
 
 from . import selector
 
@@ -35,57 +34,6 @@ def changed_files(repo: git.repo.Repo) -> set[str]:
     )
 
 
-@dataclass
-class HelmReleaseOutput:
-    """Holds data related to the output HelmRelease."""
-
-    release: HelmRelease
-    content: list[str]
-
-    @property
-    def summary(self) -> dict[str, Any]:
-        """A short summary of the HelmRelease."""
-        return {
-            "release": self.release.dict(include={"name", "namespace"}),
-            "chart": self.release.chart.dict(),
-        }
-
-
-async def build_helm_release(
-    query: git_repo.ResourceSelector, root: pathlib.Path | None = None
-) -> HelmReleaseOutput | None:
-    """Return the contents of a kustomization object with the specified name."""
-    if not root:
-        root = query.path.root
-
-    manifest = await git_repo.build_manifest(selector=query)
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        for cluster in manifest.clusters:
-            if not cluster.helm_releases:
-                continue
-
-            path = pathlib.Path(tmp_dir) / f"{slugify(cluster.path)}"
-            await mkdir(path)
-
-            helm = Helm(path, pathlib.Path(tmp_dir) / "cache")
-            helm.add_repos(cluster.helm_repos)
-            await helm.update()
-
-            # There should be zero or one HelmRelease
-            helm_release = cluster.helm_releases[0]
-            _LOGGER.debug(
-                "Building HelmRelease for diff: %s/%s",
-                helm_release.name,
-                helm_release.namespace,
-            )
-            cmds = await helm.template(helm_release, skip_crds=False)
-            objs = await cmds.objects()
-            content = yaml.dump(objs, explicit_start=True)
-            return HelmReleaseOutput(helm_release, content.split("\n"))
-    return None
-
-
 class ResourceContentOutput:
     """Helper object for implementing a git_repo.ResourceVisitor that saves content.
 
@@ -94,20 +42,94 @@ class ResourceContentOutput:
     """
 
     def __init__(self) -> None:
-        """Initialize ResourceContentOutput."""
+        """Initialize KustomizationContentOutput."""
         self.content: dict[str, list[str]] = {}
 
     def visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
         return git_repo.ResourceVisitor(content=True, func=self.call)
 
-    def call(self, ks: Kustomization, content: str | None) -> None:
+    def call(
+        self, path: pathlib.Path, doc: Kustomization | HelmRelease, content: str | None
+    ) -> None:
         """Visitor function invoked to record build output."""
         if content:
-            self.content[self.key_func(ks)] = content.split("\n") if content else []
+            self.content[self.key_func(path, doc)] = (
+                content.split("\n") if content else []
+            )
 
-    def key_func(self, ks: Kustomization) -> str:
-        return f"{ks.name} - {ks.path}"
+    def key_func(
+        self, path: pathlib.Path, resource: Kustomization | HelmRelease
+    ) -> str:
+        return f"{str(path)} - {resource.namespace or 'default'}/{resource.name}"
+
+
+class HelmVisitor:
+    """Helper that visits Helm related objects and handles inflation."""
+
+    def __init__(self) -> None:
+        """Initialize KustomizationContentOutput."""
+        self.repos: dict[str, list[HelmRepository]] = {}
+        self.releases: dict[str, list[HelmRelease]] = {}
+
+    def repo_visitor(self) -> git_repo.ResourceVisitor:
+        """Return a git_repo.ResourceVisitor that points to this object."""
+
+        def add_repo(
+            path: pathlib.Path, doc: HelmRepository, content: str | None
+        ) -> None:
+            self.repos[str(path)] = self.repos.get(str(path), []) + [doc]
+
+        return git_repo.ResourceVisitor(content=False, func=add_repo)
+
+    def release_visitor(self) -> git_repo.ResourceVisitor:
+        """Return a git_repo.ResourceVisitor that points to this object."""
+
+        def add_release(
+            path: pathlib.Path, doc: HelmRelease, content: str | None
+        ) -> None:
+            self.releases[str(path)] = self.releases.get(str(path), []) + [doc]
+
+        return git_repo.ResourceVisitor(content=False, func=add_release)
+
+    async def inflate(self, visitor: git_repo.ResourceVisitor) -> None:
+        """Expand and notify about HelmReleases discovered."""
+        if not visitor.content:
+            return
+
+        async def inflate_release(
+            cluster_path: pathlib.Path,
+            helm: Helm,
+            release: HelmRelease,
+            visitor: git_repo.ResourceVisitor,
+        ) -> None:
+            cmd = await helm.template(release, skip_crds=True)
+            objs = await cmd.objects()
+            content = yaml.dump(objs, explicit_start=True)
+            visitor.func(cluster_path, release, content)
+
+        async def inflate_cluster(cluster_path: pathlib.Path) -> None:
+            _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                helm_path = pathlib.Path(tmp_dir)
+                await mkdir(helm_path / "cache")
+                helm = Helm(helm_path, helm_path / "cache")
+                helm.add_repos(self.repos.get(str(cluster_path), []))
+                await helm.update()
+                tasks = [
+                    inflate_release(cluster_path, helm, release, visitor)
+                    for release in self.releases.get(str(cluster_path), [])
+                ]
+                _LOGGER.debug("Waiting for tasks to inflate %s", cluster_path)
+                await asyncio.gather(*tasks)
+
+        cluster_paths = set(list(self.releases)) | set(list(self.repos))
+        tasks = [
+            inflate_cluster(pathlib.Path(cluster_path))
+            for cluster_path in cluster_paths
+        ]
+        _LOGGER.debug("Waiting for cluster inflation to complete")
+        await asyncio.gather(*tasks)
 
 
 def perform_diff(
@@ -173,6 +195,7 @@ class DiffKustomizationAction:
             print(selector.not_found("Kustomization", query.kustomization))
             return
 
+        _LOGGER.debug("Diffing content")
         for line in perform_diff(orig_content, content):
             print(line)
 
@@ -215,32 +238,41 @@ class DiffHelmReleaseAction:
     ) -> None:
         """Async Action implementation."""
         query = selector.build_hr_selector(**kwargs)
+        with (
+            tempfile.TemporaryDirectory() as helm_dir,
+            tempfile.TemporaryDirectory() as orig_helm_dir,
+        ):
+            await mkdir(pathlib.Path(helm_dir) / "cache")
+            await mkdir(pathlib.Path(orig_helm_dir) / "cache")
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            await mkdir(pathlib.Path(tmp_dir) / "cache")
+            helm_visitor = HelmVisitor()
+            query.helm_repo.visitor = helm_visitor.repo_visitor()
+            query.helm_release.visitor = helm_visitor.release_visitor()
+            await git_repo.build_manifest(selector=query)
 
-        release_output = await build_helm_release(query)
-        with git_repo.create_worktree(query.path.repo) as worktree:
-            orig_release_output = await build_helm_release(query, worktree)
+            orig_helm_visitor = HelmVisitor()
+            with git_repo.create_worktree(query.path.repo) as worktree:
+                relative_path = query.path.relative_path
+                query.path = git_repo.PathSelector(
+                    pathlib.Path(worktree) / relative_path
+                )
+                query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
+                query.helm_release.visitor = orig_helm_visitor.release_visitor()
+                await git_repo.build_manifest(selector=query)
 
-        if not release_output and not orig_release_output:
+        if not helm_visitor.releases and not orig_helm_visitor.releases:
             print(selector.not_found("HelmRelease", query.helm_release))
             return
 
-        diff_text = difflib.unified_diff(
-            orig_release_output.content if orig_release_output else [],
-            release_output.content if release_output else [],
+        content = ResourceContentOutput()
+        orig_content = ResourceContentOutput()
+        await asyncio.gather(
+            helm_visitor.inflate(content.visitor()),
+            orig_helm_visitor.inflate(orig_content.visitor()),
         )
-        if output == "diff":
-            for line in diff_text:
-                print(line)
-        elif output == "yaml":
-            result = {
-                "old": orig_release_output.summary if orig_release_output else None,
-                "new": release_output.summary if release_output else None,
-                "diff": "\n".join(diff_text),
-            }
-            print(yaml.dump(result, explicit_start=True))
+
+        for line in perform_diff(orig_content, content):
+            print(line)
 
 
 class DiffAction:
