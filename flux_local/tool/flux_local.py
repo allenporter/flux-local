@@ -51,14 +51,9 @@ def main() -> None:
     )
     build_args.set_defaults(cls=build.BuildAction)
 
-    test_args = subparsers.add_parser("test", help="Build and validate the cluster")
-    test_args.add_argument(
-        "path", type=pathlib.Path, help="Path to the kustomization or charts"
-    )
-    test_args.set_defaults(cls=test.TestAction)
-
     get.GetAction.register(subparsers)
     diff.DiffAction.register(subparsers)
+    test.TestAction.register(subparsers)
 
     args = parser.parse_args()
 

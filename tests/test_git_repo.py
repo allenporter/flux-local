@@ -34,7 +34,7 @@ async def test_build_manifest_ks_path() -> None:
     manifest = await build_manifest(selector=query)
     assert len(manifest.clusters) == 1
     cluster = manifest.clusters[0]
-    assert cluster.name == ""
+    assert cluster.name == "cluster"
     assert cluster.namespace == ""
     assert cluster.path == "tests/testdata/cluster/apps/prod"
     assert len(cluster.kustomizations) == 1
