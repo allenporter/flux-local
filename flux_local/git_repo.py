@@ -167,10 +167,14 @@ class MetadataSelector:
     """Visitor for the specified object type that can be used for building."""
 
     @property
-    def predicate(self) -> Callable[[Kustomization | HelmRelease | Cluster], bool]:
+    def predicate(
+        self,
+    ) -> Callable[[Kustomization | HelmRelease | Cluster | HelmRepository], bool]:
         """A predicate that selects Kustomization objects."""
 
-        def predicate(obj: Kustomization | HelmRelease | Cluster) -> bool:
+        def predicate(
+            obj: Kustomization | HelmRelease | Cluster | HelmRepository,
+        ) -> bool:
             if not self.enabled:
                 return False
             if self.name and obj.name != self.name:
@@ -205,12 +209,16 @@ class ResourceSelector:
     """Path to find a repo of local flux Kustomization objects"""
 
     cluster: MetadataSelector = field(default_factory=cluster_metadata_selector)
-    """Cluster names to return, or all if empty."""
+    """Cluster names to return."""
 
     kustomization: MetadataSelector = field(default_factory=ks_metadata_selector)
-    """Kustomization names to return, or all if empty."""
+    """Kustomization names to return."""
+
+    helm_repo: MetadataSelector = field(default_factory=MetadataSelector)
+    """HelmRepository objects to return."""
 
     helm_release: MetadataSelector = field(default_factory=MetadataSelector)
+    """HelmRelease objects to return."""
 
 
 async def get_clusters(path: Path, selector: MetadataSelector) -> list[Cluster]:
@@ -257,10 +265,15 @@ async def build_kustomization(
     root: Path,
     stash_prefix: Path,
     kustomization_selector: MetadataSelector,
-    helm_selector: MetadataSelector,
+    helm_release_selector: MetadataSelector,
+    helm_repo_selector: MetadataSelector,
 ) -> tuple[list[HelmRepository], list[HelmRelease]]:
     """Build helm objects for the Kustomization."""
-    if not kustomization_selector.visitor and not helm_selector.enabled:
+    if (
+        not kustomization_selector.visitor
+        and not helm_release_selector.enabled
+        and not helm_repo_selector.enabled
+    ):
         return ([], [])
 
     cmd = kustomize.build(root / kustomization.path)
@@ -283,7 +296,7 @@ async def build_kustomization(
             content = await cmd.run()
         kustomization_selector.visitor.func(kustomization, content)
 
-    if not helm_selector.enabled:
+    if not helm_release_selector.enabled and not helm_repo_selector.enabled:
         return ([], [])
 
     (repo_docs, release_docs) = await asyncio.gather(
@@ -291,10 +304,15 @@ async def build_kustomization(
         cmd.grep(f"kind=^{HELM_RELEASE_KIND}$").objects(),
     )
     return (
-        [HelmRepository.parse_doc(doc) for doc in repo_docs],
         list(
             filter(
-                helm_selector.predicate,
+                helm_repo_selector.predicate,
+                [HelmRepository.parse_doc(doc) for doc in repo_docs],
+            )
+        ),
+        list(
+            filter(
+                helm_release_selector.predicate,
                 [HelmRelease.parse_doc(doc) for doc in release_docs],
             )
         ),
@@ -362,6 +380,7 @@ async def build_manifest(
                             cluster_stash,
                             selector.kustomization,
                             selector.helm_release,
+                            selector.helm_repo,
                         )
                     )
                 results = list(await asyncio.gather(*helm_tasks))
@@ -375,6 +394,14 @@ async def build_manifest(
             kustomization_tasks.append(update_kustomization(cluster))
 
         await asyncio.gather(*kustomization_tasks)
+
+        if selector.helm_repo.visitor:
+            for helm_repo in cluster.helm_repos:
+                selector.helm_repo.visitor.func(helm_repo, None)
+
+        if selector.helm_release.visitor:
+            for helm_release in cluster.helm_releases:
+                selector.helm_release.visitor.func(helm_release, None)
 
     return Manifest(clusters=clusters)
 

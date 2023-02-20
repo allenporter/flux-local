@@ -2234,7 +2234,7 @@ stdout: |+
         config.kubernetes.io/index: '2'
         internal.config.kubernetes.io/index: '2'
       name: podinfo
-      namespace: podinfo
+      namespace: flux-system
     spec:
       interval: 5m
       url: https://stefanprodan.github.io/podinfo

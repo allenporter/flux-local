@@ -5,6 +5,7 @@ import io
 from typing import Any
 
 from flux_local.git_repo import build_manifest, ResourceSelector, ResourceVisitor
+from flux_local.manifest import HelmRepository
 
 TESTDATA = Path("tests/testdata/cluster")
 
@@ -69,7 +70,7 @@ async def test_kustomization_selector_disabled() -> None:
 
 
 async def test_helm_release_selector_disabled() -> None:
-    """Tests for building the manifest."""
+    """Tests for building the manifest with helm releases disabled."""
 
     query = ResourceSelector()
     query.path.path = TESTDATA
@@ -82,12 +83,30 @@ async def test_helm_release_selector_disabled() -> None:
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
     assert len(cluster.kustomizations) == 3
-    assert len(cluster.helm_repos) == 0
+    assert len(cluster.helm_repos) == 2
     assert len(cluster.helm_releases) == 0
 
 
-async def test_kustomization_build() -> None:
-    """Tests for building the manifest."""
+async def test_helm_repo_selector_disabled() -> None:
+    """Tests for building the manifest with helm repos disabled."""
+
+    query = ResourceSelector()
+    query.path.path = TESTDATA
+    query.helm_repo.enabled = False
+
+    manifest = await build_manifest(selector=query)
+    assert len(manifest.clusters) == 1
+    cluster = manifest.clusters[0]
+    assert cluster.name == "flux-system"
+    assert cluster.namespace == "flux-system"
+    assert cluster.path == "./tests/testdata/cluster/clusters/prod"
+    assert len(cluster.kustomizations) == 3
+    assert len(cluster.helm_repos) == 0
+    assert len(cluster.helm_releases) == 2
+
+
+async def test_kustomization_visitor() -> None:
+    """Tests for visiting Kustomizations."""
 
     query = ResourceSelector()
     query.path.path = TESTDATA
@@ -115,3 +134,36 @@ async def test_kustomization_build() -> None:
     assert content
     assert "kind: HelmRelease" in content
     assert "name: metallb" in content
+
+
+async def test_helm_repo_visitor() -> None:
+    """Tests for visiting a HelmRepository objects."""
+
+    query = ResourceSelector()
+    query.path.path = TESTDATA
+
+    objects: list[HelmRepository] = []
+
+    query.helm_repo.visitor = ResourceVisitor(
+        content=True, func=lambda x, y: objects.append(x)
+    )
+
+    manifest = await build_manifest(selector=query)
+    assert len(manifest.clusters) == 1
+    cluster = manifest.clusters[0]
+    assert cluster.name == "flux-system"
+    assert cluster.namespace == "flux-system"
+    assert cluster.path == "./tests/testdata/cluster/clusters/prod"
+    assert len(cluster.kustomizations) == 3
+    kustomization = cluster.kustomizations[0]
+    assert kustomization.name == "apps"
+    assert kustomization.namespace == "flux-system"
+    assert kustomization.path == "./tests/testdata/cluster/apps/prod"
+
+    assert len(objects) == 2
+    obj = objects[0]
+    assert obj.name == "bitnami"
+    assert obj.namespace == "flux-system"
+    obj = objects[1]
+    assert obj.name == "podinfo"
+    assert obj.namespace == "flux-system"
