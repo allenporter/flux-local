@@ -111,6 +111,7 @@ class Helm:
 
         Typically the repository must be updated before doing any chart templating.
         """
+        _LOGGER.debug("Updating %d repositories", len(self._repos))
         content = yaml.dump(RepositoryConfig(self._repos).config)
         async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
             await config_file.write(content)

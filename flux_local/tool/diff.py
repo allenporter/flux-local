@@ -71,6 +71,18 @@ class HelmVisitor:
         self.repos: dict[str, list[HelmRepository]] = {}
         self.releases: dict[str, list[HelmRelease]] = {}
 
+    def active_repos(self, cluster_path: str) -> list[HelmRepository]:
+        """Return HelpRepositories referenced by a HelmRelease."""
+        repo_keys: set[str] = {
+            f"{release.chart.repo_namespace}-{release.chart.repo_name}"
+            for release in self.releases.get(cluster_path, [])
+        }
+        return [
+            repo
+            for repo in self.repos.get(cluster_path, [])
+            if repo.repo_name in repo_keys
+        ]
+
     def repo_visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
 
@@ -113,7 +125,7 @@ class HelmVisitor:
             _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
             with tempfile.TemporaryDirectory() as tmp_dir:
                 helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
-                helm.add_repos(self.repos.get(str(cluster_path), []))
+                helm.add_repos(self.active_repos(str(cluster_path)))
                 await helm.update()
                 tasks = [
                     inflate_release(cluster_path, helm, release, visitor)
