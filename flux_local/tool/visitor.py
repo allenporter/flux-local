@@ -44,6 +44,18 @@ class ResourceContentOutput:
         return f"{str(path)} - {resource.namespace or 'default'}/{resource.name}"
 
 
+async def inflate_release(
+    cluster_path: pathlib.Path,
+    helm: Helm,
+    release: HelmRelease,
+    visitor: git_repo.ResourceVisitor,
+    skip_crds: bool,
+) -> None:
+    cmd = await helm.template(release, skip_crds=skip_crds)
+    content = await cmd.run()
+    visitor.func(cluster_path, release, content)
+
+
 class HelmVisitor:
     """Helper that visits Helm related objects and handles inflation."""
 
@@ -94,33 +106,31 @@ class HelmVisitor:
         if not visitor.content:
             return
 
-        async def inflate_release(
-            cluster_path: pathlib.Path,
-            helm: Helm,
-            release: HelmRelease,
-            visitor: git_repo.ResourceVisitor,
-        ) -> None:
-            cmd = await helm.template(release, skip_crds=skip_crds)
-            content = await cmd.run()
-            visitor.func(cluster_path, release, content)
-
-        async def inflate_cluster(cluster_path: pathlib.Path) -> None:
-            _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
-                helm.add_repos(self.active_repos(str(cluster_path)))
-                await helm.update()
-                tasks = [
-                    inflate_release(cluster_path, helm, release, visitor)
-                    for release in self.releases.get(str(cluster_path), [])
-                ]
-                _LOGGER.debug("Waiting for tasks to inflate %s", cluster_path)
-                await asyncio.gather(*tasks)
-
         cluster_paths = set(list(self.releases)) | set(list(self.repos))
         tasks = [
-            inflate_cluster(pathlib.Path(cluster_path))
+            self.inflate_cluster(
+                helm_cache_dir, pathlib.Path(cluster_path), visitor, skip_crds
+            )
             for cluster_path in cluster_paths
         ]
         _LOGGER.debug("Waiting for cluster inflation to complete")
         await asyncio.gather(*tasks)
+
+    async def inflate_cluster(
+        self,
+        helm_cache_dir: pathlib.Path,
+        cluster_path: pathlib.Path,
+        visitor: git_repo.ResourceVisitor,
+        skip_crds: bool,
+    ) -> None:
+        _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
+            helm.add_repos(self.active_repos(str(cluster_path)))
+            await helm.update()
+            tasks = [
+                inflate_release(cluster_path, helm, release, visitor, skip_crds)
+                for release in self.releases.get(str(cluster_path), [])
+            ]
+            _LOGGER.debug("Waiting for tasks to inflate %s", cluster_path)
+            await asyncio.gather(*tasks)

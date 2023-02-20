@@ -20,6 +20,8 @@ The CLI is written in python and packaged as part of the `flux-local` python lib
 $ pip3 install flux-local
 ```
 
+### flux-local get
+
 You can use the `flux-local` cli to inspect objects in the cluster, similar to how you might
 use the flux command on a real cluster.
 
@@ -46,6 +48,8 @@ $ flux-local get hr -n metallb
 NAME       REVISION    CHART              SOURCE
 metallb    4.1.14      metallb-metallb    bitnami
 ```
+
+### flux-local build
 
 You can use the `flux-local` cli to build all objects in a cluster, similar to how you
 use `kustomize build`, which is used underneath. Here is an example to build all flux
@@ -87,6 +91,8 @@ Service: 3
 ServiceAccount: 2
 ValidatingWebhookConfiguration: 1
 ```
+
+### flux-local diff
 
 You may also use `flux-local` to verify your local changes to cluster resources have the desird
 effect. This is similar to `flux diff` but entirely local. This will run a local `kustomize build`
@@ -137,6 +143,60 @@ $ flux-local diff hr -n podinfo podinfo
    spec:
      ports:
 ...
+```
+
+### flux-local test
+
+You can verify that the resources in the cluster are formatted properly before commit or as part
+of a CI system. The `flux-local test` command will build the `Kustomization` resources in the
+cluster:
+
+```
+$ flux-local test
+============================================= test session starts =============================================
+collected 18 items
+
+clusters/dev .........                                                                                  [ 50%]
+clusters/prod .........                                                                                 [100%]
+
+============================================= 18 passed in 11.43s =============================================
+$ flux-local test -v
+============================================= test session starts =============================================
+collected 18 items
+
+./clusters/dev::certmanager::kustomization PASSED                                                       [  5%]
+./clusters/dev::crds::kustomization PASSED                                                              [ 11%]
+./clusters/dev::games::kustomization PASSED                                                             [ 16%]
+./clusters/dev::home::kustomization PASSED                                                              [ 22%]
+./clusters/dev::infrastructure::kustomization PASSED                                                    [ 27%]
+./clusters/dev::monitoring::kustomization PASSED                                                        [ 33%]
+./clusters/dev::network::kustomization PASSED                                                           [ 38%]
+./clusters/dev::services::kustomization PASSED                                                          [ 44%]
+./clusters/dev::settings::kustomization PASSED                                                          [ 50%]
+./clusters/prod::certmanager::kustomization PASSED                                                      [ 55%]
+./clusters/prod::crds::kustomization PASSED                                                             [ 61%]
+./clusters/prod::games::kustomization PASSED                                                            [ 66%]
+./clusters/prod::home::kustomization PASSED                                                             [ 72%]
+./clusters/prod::infrastructure::kustomization PASSED                                                   [ 77%]
+./clusters/prod::monitoring::kustomization PASSED                                                       [ 83%]
+./clusters/prod::network::kustomization PASSED                                                          [ 88%]
+./clusters/prod::services::kustomization PASSED                                                         [ 94%]
+./clusters/prod::settings::kustomization PASSED                                                         [100%]
+
+============================================= 18 passed in 11.81s ============================================
+```
+
+You may also validate `HelmRelease` objects can be templated properly with the `--enable-helm` flag. This
+will run `kustomize build` then run `helm template` on all the `HelmRelease` objects found:
+```
+$ flux-local test --enable-helm
+============================================= test session starts =============================================
+collected 81 items
+
+clusters/dev .....................................                                                      [ 45%]
+clusters/prod ............................................                                              [100%]
+
+======================================== 81 passed in 75.40s (0:01:15) ========================================
 ```
 
 ## Library
