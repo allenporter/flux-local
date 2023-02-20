@@ -71,7 +71,8 @@ async def _run_piped_with_sem(cmds: list[Command]) -> str:
 async def run_piped(cmds: list[Command]) -> str:
     """Run a set of commands, piped together, returning stdout of last."""
     async with _SEM:
-        return await _run_piped_with_sem(cmds)
+        result = await _run_piped_with_sem(cmds)
+    return result
 
 
 async def run(cmd: Command) -> str:

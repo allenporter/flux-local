@@ -9,7 +9,6 @@ import pathlib
 import tempfile
 from typing import cast, Generator
 
-from aiofiles.os import mkdir
 import yaml
 
 import git
@@ -92,7 +91,9 @@ class HelmVisitor:
 
         return git_repo.ResourceVisitor(content=False, func=add_release)
 
-    async def inflate(self, visitor: git_repo.ResourceVisitor) -> None:
+    async def inflate(
+        self, helm_cache_dir: pathlib.Path, visitor: git_repo.ResourceVisitor
+    ) -> None:
         """Expand and notify about HelmReleases discovered."""
         if not visitor.content:
             return
@@ -111,9 +112,7 @@ class HelmVisitor:
         async def inflate_cluster(cluster_path: pathlib.Path) -> None:
             _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
             with tempfile.TemporaryDirectory() as tmp_dir:
-                helm_path = pathlib.Path(tmp_dir)
-                await mkdir(helm_path / "cache")
-                helm = Helm(helm_path, helm_path / "cache")
+                helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
                 helm.add_repos(self.repos.get(str(cluster_path), []))
                 await helm.update()
                 tasks = [
@@ -238,27 +237,18 @@ class DiffHelmReleaseAction:
     ) -> None:
         """Async Action implementation."""
         query = selector.build_hr_selector(**kwargs)
-        with (
-            tempfile.TemporaryDirectory() as helm_dir,
-            tempfile.TemporaryDirectory() as orig_helm_dir,
-        ):
-            await mkdir(pathlib.Path(helm_dir) / "cache")
-            await mkdir(pathlib.Path(orig_helm_dir) / "cache")
+        helm_visitor = HelmVisitor()
+        query.helm_repo.visitor = helm_visitor.repo_visitor()
+        query.helm_release.visitor = helm_visitor.release_visitor()
+        await git_repo.build_manifest(selector=query)
 
-            helm_visitor = HelmVisitor()
-            query.helm_repo.visitor = helm_visitor.repo_visitor()
-            query.helm_release.visitor = helm_visitor.release_visitor()
+        orig_helm_visitor = HelmVisitor()
+        with git_repo.create_worktree(query.path.repo) as worktree:
+            relative_path = query.path.relative_path
+            query.path = git_repo.PathSelector(pathlib.Path(worktree) / relative_path)
+            query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
+            query.helm_release.visitor = orig_helm_visitor.release_visitor()
             await git_repo.build_manifest(selector=query)
-
-            orig_helm_visitor = HelmVisitor()
-            with git_repo.create_worktree(query.path.repo) as worktree:
-                relative_path = query.path.relative_path
-                query.path = git_repo.PathSelector(
-                    pathlib.Path(worktree) / relative_path
-                )
-                query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
-                query.helm_release.visitor = orig_helm_visitor.release_visitor()
-                await git_repo.build_manifest(selector=query)
 
         if not helm_visitor.releases and not orig_helm_visitor.releases:
             print(selector.not_found("HelmRelease", query.helm_release))
@@ -266,10 +256,13 @@ class DiffHelmReleaseAction:
 
         content = ResourceContentOutput()
         orig_content = ResourceContentOutput()
-        await asyncio.gather(
-            helm_visitor.inflate(content.visitor()),
-            orig_helm_visitor.inflate(orig_content.visitor()),
-        )
+        with tempfile.TemporaryDirectory() as helm_cache_dir:
+            await asyncio.gather(
+                helm_visitor.inflate(pathlib.Path(helm_cache_dir), content.visitor()),
+                orig_helm_visitor.inflate(
+                    pathlib.Path(helm_cache_dir), orig_content.visitor()
+                ),
+            )
 
         for line in perform_diff(orig_content, content):
             print(line)
