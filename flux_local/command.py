@@ -70,8 +70,6 @@ async def _run_piped_with_sem(cmds: list[Command]) -> str:
 
 async def run_piped(cmds: list[Command]) -> str:
     """Run a set of commands, piped together, returning stdout of last."""
-    if _SEM.locked():
-        _LOGGER.debug("Blocked; Waiting")
     async with _SEM:
         result = await _run_piped_with_sem(cmds)
     return result
