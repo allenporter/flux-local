@@ -32,12 +32,14 @@ import asyncio
 import contextlib
 from dataclasses import dataclass, field
 import logging
+import networkx
 import os
 import tempfile
 from collections.abc import Callable
 from functools import cache
 from pathlib import Path
 from slugify import slugify
+import queue
 from typing import Any, Generator
 
 import git
@@ -63,11 +65,11 @@ __all__ = [
 
 _LOGGER = logging.getLogger(__name__)
 
-CLUSTER_KUSTOMIZE_NAME = "flux-system"
 CLUSTER_KUSTOMIZE_KIND = "Kustomization"
 KUSTOMIZE_KIND = "Kustomization"
 HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
+GIT_REPO_KIND = "GitRepository"
 DEFAULT_NAMESPACE = "flux-system"
 
 
@@ -196,7 +198,7 @@ class MetadataSelector:
 
 def cluster_metadata_selector() -> MetadataSelector:
     """Create a new MetadataSelector for Kustomizations."""
-    return MetadataSelector(name=CLUSTER_KUSTOMIZE_NAME, namespace=DEFAULT_NAMESPACE)
+    return MetadataSelector(namespace=DEFAULT_NAMESPACE)
 
 
 def ks_metadata_selector() -> MetadataSelector:
@@ -229,36 +231,145 @@ class ResourceSelector:
     """HelmRelease objects to return."""
 
 
-async def get_clusters(path: Path, selector: MetadataSelector) -> list[Cluster]:
-    """Load Cluster objects from the specified path."""
-    cmd = kustomize.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}", path).grep(
-        f"metadata.name={selector.name}",
-    )
-    docs = await cmd.objects()
-    return list(
-        filter(
-            selector.predicate,
-            [
-                Cluster.parse_doc(doc)
-                for doc in docs
-                if CLUSTER_KUSTOMIZE_DOMAIN_FILTER(doc)
-            ],
-        )
-    )
+async def get_flux_kustomizations(
+    root: Path, relative_path: Path
+) -> list[Kustomization]:
+    """Find all flux Kustomizations in the specified path.
 
-
-async def get_cluster_kustomizations(path: Path) -> list[Kustomization]:
-    """Load Kustomization objects from the specified path."""
-    cmd = kustomize.grep(f"kind={KUSTOMIZE_KIND}", path).grep(
-        f"metadata.name={CLUSTER_KUSTOMIZE_NAME}",
-        invert=True,
+    This may be called repeatedly with different paths to repeatedly collect
+    Kustomizations from the repo. Assumes that any flux Kustomization
+    for a GitRepository is pointed at this cluster, following normal conventions.
+    """
+    cmd = kustomize.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}", root / relative_path).grep(
+        f"spec.sourceRef.kind={GIT_REPO_KIND}"
     )
     docs = await cmd.objects()
     return [
         Kustomization.parse_doc(doc)
-        for doc in docs
-        if CLUSTER_KUSTOMIZE_DOMAIN_FILTER(doc)
+        for doc in filter(CLUSTER_KUSTOMIZE_DOMAIN_FILTER, docs)
     ]
+
+
+def find_path_parent(search: Path, prefixes: set[Path]) -> Path | None:
+    """Return a prefix path that is a parent of the search path."""
+    for parent in search.parents:
+        if parent in prefixes:
+            return parent
+    return None
+
+
+async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomization]:
+    """Search for kustomizations in the specified path."""
+
+    kustomizations: list[Kustomization] = []
+    visited: set[Path] = set()  # Relative paths within the cluster
+
+    path_queue: queue.Queue[Path] = queue.Queue()
+    path_queue.put(path_selector.relative_path)
+    root = path_selector.root
+    while not path_queue.empty():
+        path = path_queue.get()
+        _LOGGER.debug("Visiting path (%s) %s", root, path)
+        docs = await get_flux_kustomizations(root, path)
+
+        # Source path is relative to the search path. Update to have the
+        # full prefix relative to the root.
+        for kustomization in docs:
+            if not kustomization.source_path:
+                continue
+            _LOGGER.debug(
+                "Updating relative path: %s, %s, %s",
+                root,
+                path,
+                kustomization.source_path,
+            )
+            kustomization.source_path = str(
+                ((root / path) / kustomization.source_path).relative_to(root)
+            )
+
+        visited |= set({path})
+
+        _LOGGER.debug("Found %s Kustomizations", len(docs))
+        for doc in docs:
+            found_path = Path(doc.path)
+            if not find_path_parent(found_path, visited) and found_path not in visited:
+                path_queue.put(found_path)
+            else:
+                _LOGGER.debug("Already visited %s", found_path)
+        kustomizations.extend(docs)
+    return kustomizations
+
+
+def make_clusters(kustomizations: list[Kustomization]) -> list[Cluster]:
+    """Convert the flat list of Kustomizations into a Cluster.
+
+    This will reverse engineer which Kustomizations are root nodes for the cluster
+    based on the parent paths. Root Kustomizations are made the cluster and everything
+    else is made a child.
+    """
+
+    # Build a directed graph from a kustomization path to the path
+    # of the kustomization that created it.
+    graph = networkx.DiGraph()
+    parent_paths = set([Path(ks.path) for ks in kustomizations])
+    for ks in kustomizations:
+        if not ks.source_path:
+            raise ValueError("Kustomization did not have source path; Old kustomize?")
+        path = Path(ks.path)
+        source = Path(ks.source_path)
+        graph.add_node(path, ks=ks)
+        # Find the parent Kustomization that produced this based on the
+        # matching the kustomize source parent paths with a Kustomization
+        # target path.
+        if (
+            parent_path := find_path_parent(source, parent_paths)
+        ) and parent_path != path:
+            _LOGGER.debug("Found parent %s => %s", path, parent_path)
+            graph.add_edge(parent_path, path)
+        else:
+            _LOGGER.debug("No parent for %s (%s)", path, source)
+
+    # Clusters are subgraphs within the graph that are connected, with the root
+    # node being the cluster itself. All children Kustomizations are flattended.
+    _LOGGER.debug("Creating clusters based on connectivity")
+    roots = [node for node, degree in graph.in_degree() if degree == 0]
+    roots.sort()
+    clusters: list[Cluster] = []
+    _LOGGER.debug("roots=%s", roots)
+    for root in roots:
+        root_ks = graph.nodes[root]["ks"]
+        child_nodes = list(networkx.descendants(graph, root))
+        child_nodes.sort()
+        children = [graph.nodes[child]["ks"] for child in child_nodes]
+        clusters.append(
+            Cluster(
+                name=root_ks.name,
+                namespace=root_ks.namespace,
+                path=root_ks.path,
+                kustomizations=children,
+            )
+        )
+        _LOGGER.debug(
+            "Created cluster %s with %s kustomizations", root_ks.name, len(children)
+        )
+
+    return clusters
+
+
+async def get_clusters(
+    path_selector: PathSelector,
+    cluster_selector: MetadataSelector,
+    kustomization_selector: MetadataSelector,
+) -> list[Cluster]:
+    """Load Cluster objects from the specified path."""
+
+    kustomizations = await kustomization_traversal(path_selector)
+    clusters = list(filter(cluster_selector.predicate, make_clusters(kustomizations)))
+    for cluster in clusters:
+        cluster.kustomizations = list(
+            filter(kustomization_selector.predicate, cluster.kustomizations)
+        )
+    return clusters
 
 
 async def get_kustomizations(path: Path) -> list[dict[str, Any]]:
@@ -348,17 +459,10 @@ async def build_manifest(
     if not selector.cluster.enabled:
         return Manifest(clusters=[])
 
-    clusters = await get_clusters(selector.path.process_path, selector.cluster)
-    if len(clusters) > 0:
-        for cluster in clusters:
-            _LOGGER.debug("Processing cluster: %s", cluster.path)
-            cluster.kustomizations = await get_cluster_kustomizations(
-                selector.path.root / cluster.path
-            )
-            cluster.kustomizations = list(
-                filter(selector.kustomization.predicate, cluster.kustomizations)
-            )
-    elif selector.path.path:
+    clusters = await get_clusters(
+        selector.path, selector.cluster, selector.kustomization
+    )
+    if not clusters and selector.path.path:
         _LOGGER.debug("No clusters found; Processing as a Kustomization: %s", selector)
         # The argument path may be a Kustomization inside a cluster. Create a synthetic
         # cluster with any found Kustomizations

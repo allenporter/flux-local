@@ -5,6 +5,7 @@ import asyncio
 import logging
 import pathlib
 import sys
+import traceback
 
 import yaml
 
@@ -64,6 +65,8 @@ def main() -> None:
     try:
         asyncio.run(action.run(**vars(args)))
     except command.CommandException as err:
+        if args.log_level == "DEBUG":
+            traceback.print_exc()
         print("Command failed: ", err)
         sys.exit(1)
 

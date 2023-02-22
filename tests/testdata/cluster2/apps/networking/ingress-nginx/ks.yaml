@@ -1,0 +1,40 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: cluster-apps-ingress-nginx-certificates
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: cluster-apps-cert-manager-issuers
+  path: ./tests/testdata/cluster2/apps/networking/ingress-nginx/certificates
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: home-ops-kubernetes
+  wait: true
+  interval: 30m
+  retryInterval: 1m
+  timeout: 3m
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: cluster-apps-ingress-nginx
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: cluster-apps-ingress-nginx-certificates
+  path: ./tests/testdata/cluster2/apps/networking/ingress-nginx/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: home-ops-kubernetes
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2beta1
+      kind: HelmRelease
+      name: ingress-nginx
+      namespace: networking
+  interval: 30m
+  retryInterval: 1m
+  timeout: 3m

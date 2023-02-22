@@ -12,6 +12,5 @@ async def test_flux_local_golden(golden: GoldenTestFixture) -> None:
     """Test commands in golden files."""
     args = golden["args"]
     result = await run(Command(["flux-local"] + args))
-    expected = golden.out.get("stdout")
-    if expected:
-        assert result == expected
+    if golden.get("stdout"):
+        assert result == golden.out["stdout"]

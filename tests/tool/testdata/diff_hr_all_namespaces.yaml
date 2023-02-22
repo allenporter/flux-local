@@ -3,4 +3,5 @@ args:
 - hr
 - podinfo
 - --all-namespaces
-stdout: ''
+- --path
+- tests/testdata/cluster

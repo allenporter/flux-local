@@ -2,6 +2,8 @@ args:
 - get
 - hr
 - -A
+- --path
+- tests/testdata/cluster
 stdout: |
   NAMESPACE    NAME       REVISION    CHART              SOURCE     
   podinfo      podinfo    6.3.2       podinfo-podinfo    podinfo    

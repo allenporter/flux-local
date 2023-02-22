@@ -23,17 +23,6 @@ stdout: |+
           name: podinfo
           repo_name: podinfo
           repo_namespace: flux-system
-    - name: infra-controllers
-      namespace: flux-system
-      path: ./tests/testdata/cluster/infrastructure/controllers
-      helm_repos: []
-      helm_releases:
-      - name: metallb
-        namespace: metallb
-        chart:
-          name: metallb
-          repo_name: bitnami
-          repo_namespace: flux-system
     - name: infra-configs
       namespace: flux-system
       path: ./tests/testdata/cluster/infrastructure/configs
@@ -45,5 +34,16 @@ stdout: |+
         namespace: flux-system
         url: https://stefanprodan.github.io/podinfo
       helm_releases: []
+    - name: infra-controllers
+      namespace: flux-system
+      path: ./tests/testdata/cluster/infrastructure/controllers
+      helm_repos: []
+      helm_releases:
+      - name: metallb
+        namespace: metallb
+        chart:
+          name: metallb
+          repo_name: bitnami
+          repo_namespace: flux-system
 
 ...

@@ -1,0 +1,11 @@
+args:
+- get
+- ks
+- --path
+- tests/testdata/cluster2
+stdout: |
+  NAME                                       PATH                                                                    HELMREPOS    RELEASES    
+  cluster-apps                               ./tests/testdata/cluster2/apps                                          0            0           
+  cluster-apps-kubernetes-dashboard          ./tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app      0            1           
+  cluster-apps-ingress-nginx                 ./tests/testdata/cluster2/apps/networking/ingress-nginx/app             0            1           
+  cluster-apps-ingress-nginx-certificates    ./tests/testdata/cluster2/apps/networking/ingress-nginx/certificates    0            0           
