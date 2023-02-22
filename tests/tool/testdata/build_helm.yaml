@@ -1324,3 +1324,4 @@ stdout: |+
       speaker:
         secretName: metallb-secret
 
+...

@@ -2,5 +2,7 @@ args:
 - diff
 - hr
 - example
+- --path
+- tests/testdata/cluster
 stdout: |
   HelmRelease object 'example' not found in 'flux-system' namespace

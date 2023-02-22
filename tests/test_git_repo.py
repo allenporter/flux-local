@@ -3,9 +3,18 @@
 from pathlib import Path
 import io
 from typing import Any
+import pytest
+from unittest.mock import patch
 
-from flux_local.git_repo import build_manifest, ResourceSelector, ResourceVisitor
-from flux_local.manifest import HelmRepository, HelmRelease
+from flux_local.git_repo import (
+    build_manifest,
+    ResourceSelector,
+    ResourceVisitor,
+    kustomization_traversal,
+    PathSelector,
+    make_clusters,
+)
+from flux_local.manifest import HelmRepository, HelmRelease, Kustomization
 
 TESTDATA = Path("tests/testdata/cluster")
 
@@ -196,3 +205,168 @@ async def test_helm_release_visitor() -> None:
     obj = objects[1]
     assert obj.name == "metallb"
     assert obj.namespace == "metallb"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "kubernetes/flux/",
+        "./kubernetes/flux",
+        "kubernetes/flux",
+    ],
+)
+async def test_kustomization_traversal(path: str) -> None:
+    """Tests for finding Kustomizations."""
+
+    results = [
+        # First traversal
+        [
+            Kustomization(
+                name="cluster-apps",
+                namespace="flux-system",
+                path="./kubernetes/apps",
+                source_path="apps.yaml",
+            ),
+            Kustomization(
+                name="cluster",
+                namespace="flux-system",
+                path="./kubernetes/flux",
+                source_path="config/cluster.yaml",
+            ),
+        ],
+        # Second traversal
+        [
+            Kustomization(
+                name="cluster-apps-rook-ceph",
+                namespace="flux-system",
+                path="./kubernetes/apps/rook-ceph/rook-ceph/app",
+                source_path="rook-ceph/rook-ceph/ks.yaml",
+            ),
+            Kustomization(
+                name="cluster-apps-volsync",
+                namespace="flux-system",
+                path="./kubernetes/apps/volsync/volsync/app",
+                source_path="volsync/volsync/ks.yaml",
+            ),
+        ],
+        # The returned kustomizations point to subdirectories that have
+        # already been searched so no need to search further.
+    ]
+    paths = []
+
+    async def fetch(root: Path, p: Path) -> list[Kustomization]:
+        nonlocal paths, results
+        paths.append((str(root), str(p)))
+        return results.pop(0)
+
+    with patch("flux_local.git_repo.PathSelector.root", Path("/home/example")), patch(
+        "flux_local.git_repo.get_flux_kustomizations", fetch
+    ):
+        kustomizations = await kustomization_traversal(
+            path_selector=PathSelector(path=Path(path))
+        )
+    assert len(kustomizations) == 4
+    assert paths == [
+        ("/home/example", "kubernetes/flux"),
+        ("/home/example", "kubernetes/apps"),
+    ]
+
+    clusters = make_clusters(kustomizations)
+    assert len(clusters) == 1
+    cluster = clusters[0]
+    assert cluster.name == "cluster"
+    assert cluster.namespace == "flux-system"
+    assert len(cluster.kustomizations) == 3
+    assert [ks.path for ks in cluster.kustomizations] == [
+        # TODO: Include the "self" kustomization here
+        "./kubernetes/apps",
+        "./kubernetes/apps/rook-ceph/rook-ceph/app",
+        "./kubernetes/apps/volsync/volsync/app",
+    ]
+
+
+async def test_kustomization_traversal_multi_cluster() -> None:
+    """Test discovery of multiple clusters in the repo."""
+
+    results = [
+        # First traversal
+        [
+            Kustomization(
+                name="cluster",
+                namespace="flux-system",
+                path="./clusters/prod",
+                source_path="clusters/prod/flux-system/gotk-sync.yaml",
+            ),
+            Kustomization(
+                name="cluster",
+                namespace="flux-system",
+                path="./clusters/dev",
+                source_path="clusters/dev/flux-system/gotk-sync.yaml",
+            ),
+            Kustomization(
+                name="certmanager",
+                namespace="flux-system",
+                path="./certmanager/dev",
+                source_path="clusters/dev/certmanager.yaml",
+            ),
+            # crds are referenced by both clusters
+            Kustomization(
+                name="crds",
+                namespace="flux-system",
+                path="./crds",
+                source_path="clusters/dev/crds.yaml",
+            ),
+            Kustomization(
+                name="certmanager",
+                namespace="flux-system",
+                path="./certmanager/prod",
+                source_path="clusters/prod/certmanager.yaml",
+            ),
+            Kustomization(
+                name="crds",
+                namespace="flux-system",
+                path="./crds",
+                source_path="clusters/prod/crds.yaml",
+            ),
+        ],
+    ]
+    paths = []
+
+    async def fetch(root: Path, p: Path) -> list[Kustomization]:
+        nonlocal paths, results
+        paths.append((str(root), str(p)))
+        return results.pop(0)
+
+    with patch("flux_local.git_repo.PathSelector.root", Path("/home/example")), patch(
+        "flux_local.git_repo.get_flux_kustomizations", fetch
+    ):
+        kustomizations = await kustomization_traversal(
+            path_selector=PathSelector(path=Path("."))
+        )
+    assert len(kustomizations) == 6
+    # We don't need to visit the clusters subdirectories because the original
+    # traversal was at the root
+    assert paths == [
+        ("/home/example", "."),
+    ]
+
+    clusters = make_clusters(kustomizations)
+    assert len(clusters) == 2
+    cluster = clusters[0]
+    assert cluster.name == "cluster"
+    assert cluster.namespace == "flux-system"
+    assert cluster.path == "./clusters/dev"
+    assert [ks.path for ks in cluster.kustomizations] == [
+        # TODO: Include the "self" kustomization here
+        "./certmanager/dev",
+        "./crds",
+    ]
+    cluster = clusters[1]
+    assert cluster.name == "cluster"
+    assert cluster.namespace == "flux-system"
+    assert cluster.path == "./clusters/prod"
+    assert [ks.path for ks in cluster.kustomizations] == [
+        # TODO: Include the "self" kustomization here
+        "./certmanager/prod",
+        "./crds",
+    ]

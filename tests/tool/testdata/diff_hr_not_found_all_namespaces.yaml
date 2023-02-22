@@ -3,5 +3,7 @@ args:
 - hr
 - example
 - --all-namespaces
+- --path
+- tests/testdata/cluster
 stdout: |
   HelmRelease object 'example' not found in 'None' namespace

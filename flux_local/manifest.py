@@ -93,8 +93,7 @@ class HelmChart(BaseManifest):
             raise ValueError(f"Invalid {cls} missing spec.chart.spec: {doc}")
         if not (chart := chart_spec.get("chart")):
             raise ValueError(f"Invalid {cls} missing spec.chart.spec.chart: {doc}")
-        if not (version := chart_spec.get("version")):
-            raise ValueError(f"Invalid {cls} missing spec.chart.spec.version: {doc}")
+        version = chart_spec.get("version")
         if not (source_ref := chart_spec.get("sourceRef")):
             raise ValueError(f"Invalid {cls} missing spec.chart.spec.sourceRef: {doc}")
         if "namespace" not in source_ref or "name" not in source_ref:
@@ -207,13 +206,16 @@ class Kustomization(BaseManifest):
     """The namespace of the kustomization."""
 
     path: str
-    """The local repo path to the kustomization."""
+    """The local repo path to the kustomization contents."""
 
     helm_repos: list[HelmRepository] = Field(default_factory=list)
     """The set of HelmRepositories represented in this kustomization."""
 
     helm_releases: list[HelmRelease] = Field(default_factory=list)
     """The set of HelmRelease represented in this kustomization."""
+
+    source_path: str | None = None
+    """Optional source path for this Kustomization, relative to the build path."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":
@@ -229,7 +231,10 @@ class Kustomization(BaseManifest):
             raise ValueError(f"Invalid {cls} missing spec: {doc}")
         if not (path := spec.get("path")):
             raise ValueError(f"Invalid {cls} missing spec.path: {doc}")
-        return Kustomization(name=name, namespace=namespace, path=path)
+        source_path = metadata.get("annotations", {}).get("config.kubernetes.io/path")
+        return Kustomization(
+            name=name, namespace=namespace, path=path, source_path=source_path
+        )
 
     @property
     def id_name(self) -> str:
@@ -239,7 +244,8 @@ class Kustomization(BaseManifest):
     _COMPACT_EXCLUDE_FIELDS = {
         "helm_releases": {
             "__all__": HelmRelease._COMPACT_EXCLUDE_FIELDS,
-        }
+        },
+        "source_path": True,
     }
 
 
