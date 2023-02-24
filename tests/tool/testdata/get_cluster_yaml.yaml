@@ -45,5 +45,3 @@ stdout: |+
           name: metallb
           repo_name: bitnami
           repo_namespace: flux-system
-
-...

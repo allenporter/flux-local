@@ -7,7 +7,8 @@ definition is simple. Secrets are ignored as the content is not needed to valida
 cluster is creating valid objects.
 
 This library at first glance is little more than shell scripts running commands, but is easier
-to test, maintain, and evolve.
+to test, maintain, and evolve. This does not support all features of flux, but should
+be close enough for home use.
 
 See [documentation](https://allenporter.github.io/flux-local/) for full quickstart and API reference.
 See the [github project](https://github.com/allenporter/flux-local).

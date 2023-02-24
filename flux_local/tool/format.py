@@ -65,4 +65,4 @@ class YamlFormatter:
 
     def print(self, data: list[dict[str, Any]]) -> None:
         """Format the data objects."""
-        print(yaml.dump_all(data, sort_keys=False, explicit_start=True))
+        print(yaml.dump_all(data, sort_keys=False, explicit_start=True), end="")
