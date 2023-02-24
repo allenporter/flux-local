@@ -7,6 +7,7 @@ import logging
 import pathlib
 import tempfile
 from pathlib import Path
+import sys
 from typing import cast, Generator, Any
 
 import nest_asyncio
@@ -322,7 +323,9 @@ class TestAction:
             "no:pytest-golden",
         ]
         _LOGGER.debug("pytest.main: %s", pytest_args)
-        pytest.main(
+        retcode = pytest.main(
             pytest_args,
             plugins=[ManifestPlugin(query)],
         )
+        if retcode:
+            sys.exit(retcode)
