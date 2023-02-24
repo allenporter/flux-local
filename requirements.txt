@@ -17,7 +17,7 @@ pytest-golden==0.2.2
 python-slugify==8.0.0
 PyYAML==6.0
 ruff==0.0.247
-types-aiofiles==22.1.0.7
+types-aiofiles==22.1.0.9
 types-PyYAML==6.0.12.8
 typing-extensions==4.5.0
 types-python-slugify==8.0.0.0
