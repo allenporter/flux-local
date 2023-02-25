@@ -8,6 +8,13 @@ from flux_local import command, kustomize
 
 TESTDATA_DIR = Path("tests/testdata")
 
+KUSTOMIZATION = """---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- example.yaml
+"""
+
 
 @pytest.mark.parametrize(
     "path",
@@ -98,3 +105,73 @@ async def test_validate_fail(path: Path) -> None:
         command.CommandException, match="require-test-annotation: validation error"
     ):
         await cmd.validate(TESTDATA_DIR / "policies/fail.yaml")
+
+
+async def test_cannot_kustomize(tmp_path: Path) -> None:
+    """Test that empty directories cannot be kustomized."""
+    assert not await kustomize.can_kustomize_dir(tmp_path)
+
+
+async def test_can_kustomize(tmp_path: Path) -> None:
+    """Test that empty directories cannot be kustomized."""
+    ks = tmp_path / "kustomization.yaml"
+    ks.write_text(KUSTOMIZATION)
+    assert await kustomize.can_kustomize_dir(tmp_path)
+
+
+async def test_fluxtomize_file(tmp_path: Path) -> None:
+    """Test implicit kustomization of files in a directory."""
+    settings = (TESTDATA_DIR / "repo/cluster-settings.yaml").read_text()
+    example_yaml = tmp_path / "example.yaml"
+    example_yaml.write_text(settings)
+
+    content = await kustomize.fluxtomize(tmp_path)
+    assert content
+    assert content.decode("utf-8").split("\n") == [
+        "---",
+        "apiVersion: v1",
+        "kind: ConfigMap",
+        "metadata:",
+        "  namespace: flux-system",
+        "  name: cluster-settings",
+        "data:",
+        "  CLUSTER: dev",
+        "  DOMAIN: example.org",
+        "",
+    ]
+
+
+async def test_fluxtomize_subdir(tmp_path: Path) -> None:
+    """Test implicit kustomization of subdirectories that can be kustomized."""
+    subdir = tmp_path / "subdir"
+    subdir.mkdir()
+    ks = subdir / "kustomization.yaml"
+    ks.write_text(KUSTOMIZATION)
+
+    settings = (TESTDATA_DIR / "repo/cluster-settings.yaml").read_text()
+    example_yaml = subdir / "example.yaml"
+    example_yaml.write_text(settings)
+
+    content = await kustomize.fluxtomize(tmp_path)
+    assert content
+    assert content.decode("utf-8").split("\n") == [
+        "---",
+        "apiVersion: v1",
+        "data:",
+        "  CLUSTER: dev",
+        "  DOMAIN: example.org",
+        "kind: ConfigMap",
+        "metadata:",
+        "  name: cluster-settings",
+        "  namespace: flux-system",
+        "",
+    ]
+
+
+async def test_fluxtomize_ignores_empty_subdir(tmp_path: Path) -> None:
+    """Test implicit kustomization."""
+    subdir = tmp_path / "subdir"
+    subdir.mkdir()
+
+    content = await kustomize.fluxtomize(tmp_path)
+    assert not content
