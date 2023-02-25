@@ -187,11 +187,10 @@ async def yaml_load_all(path: Path) -> list[dict[str, Any]]:
 async def fluxtomize(path: Path) -> bytes:
     """Create a synthentic Kustomization file and attempt to build it.
 
-    This matches the behavior of flux, which kustomize does not support.
+    This is similar to the behavior of flux, which kustomize does not support
+    directly. Every yaml file found is read and written to the output. Every
+    directory that can be kustomized is built using the CLI like build()
     """
-
-    # TODO: Convert out of bytes to str
-
     # Every file resource is read and output
     # Every directory is kustomized
     tasks = []
