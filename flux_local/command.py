@@ -1,11 +1,13 @@
 """Library for issuing commands using asyncio and returning the result."""
 
 import asyncio
+from abc import ABC, abstractmethod
 import logging
 import shlex
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Sequence
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,8 +23,16 @@ class CommandException(Exception):
     """Error while running a command."""
 
 
+class Task(ABC):
+    """An instance of a async task to execute."""
+
+    @abstractmethod
+    async def run(self, stdin: bytes | None = None) -> bytes:
+        """Execute the task and return the result."""
+
+
 @dataclass
-class Command:
+class Command(Task):
     """An instance of a command to run."""
 
     cmd: list[str]
@@ -40,19 +50,15 @@ class Command:
         """Render as a debug string."""
         return f"({self.cwd}) {self.string}"
 
-
-async def _run_piped_with_sem(cmds: list[Command]) -> str:
-    """Run a set of commands, piped together, returning stdout of last."""
-    stdin = None
-    out = None
-    for cmd in cmds:
-        _LOGGER.debug("Running command: %s", cmd)
+    async def run(self, stdin: bytes | None = None) -> bytes:
+        """Run the command, returning stdout."""
+        _LOGGER.debug("Running command: %s", self)
         proc = await asyncio.create_subprocess_shell(
-            cmd.string,
+            self.string,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=cmd.cwd,
+            cwd=self.cwd,
         )
         out, err = await proc.communicate(stdin)
         if proc.returncode:
@@ -61,20 +67,29 @@ async def _run_piped_with_sem(cmds: list[Command]) -> str:
             if err:
                 _LOGGER.error(err.decode("utf-8"))
             raise CommandException(
-                f"Subprocess '{cmd}' failed with return code {proc.returncode}: "
+                f"Subprocess '{self}' failed with return code {proc.returncode}: "
                 + out.decode("utf-8")
             )
+        return out
+
+
+async def _run_piped_with_sem(cmds: Sequence[Task]) -> str:
+    """Run a set of commands, piped together, returning stdout of last."""
+    stdin = None
+    out = None
+    for cmd in cmds:
+        out = await cmd.run(stdin)
         stdin = out
     return out.decode("utf-8") if out else ""
 
 
-async def run_piped(cmds: list[Command]) -> str:
+async def run_piped(cmds: Sequence[Task]) -> str:
     """Run a set of commands, piped together, returning stdout of last."""
     async with _SEM:
         result = await _run_piped_with_sem(cmds)
     return result
 
 
-async def run(cmd: Command) -> str:
+async def run(cmd: Task) -> str:
     """Run the specified command and return stdout."""
     return await run_piped([cmd])

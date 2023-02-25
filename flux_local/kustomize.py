@@ -34,13 +34,17 @@ for object in objects:
 You can apply kyverno policies to the objects with the `validate` method.
 """
 
+import aiofiles
+from aiofiles.os import listdir  # type: ignore[attr-defined]
+from aiofiles.ospath import isdir, exists
+import asyncio
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
 import yaml
 
 from . import manifest
-from .command import Command, run_piped
+from .command import Command, run_piped, Task, CommandException
 
 __all__ = [
     "build",
@@ -51,12 +55,13 @@ __all__ = [
 KUSTOMIZE_BIN = "kustomize"
 KYVERNO_BIN = "kyverno"
 HELM_RELEASE_KIND = "HelmRelease"
+KUSTOMIZE_FILES = ["kustomization.yaml", "kustomization.yml", "Kustomization"]
 
 
 class Kustomize:
     """Library for issuing a kustomize command."""
 
-    def __init__(self, cmds: list[Command]) -> None:
+    def __init__(self, cmds: list[Task]) -> None:
         """Initialize Kustomize, used internally for copying object."""
         self._cmds = cmds
 
@@ -135,15 +140,82 @@ class Kustomize:
         return Kustomize([Command(["cat", str(tmp_file)])])
 
 
+class Build(Task):
+    """A task that issues a build command, handling implicit Kustomizations."""
+
+    def __init__(self, path: Path) -> None:
+        """Initialize Build."""
+        self._path = path
+
+    async def run(self, stdin: bytes | None = None) -> bytes:
+        """Run the task."""
+        if stdin is not None:
+            raise ValueError("Invalid stdin cannot be passed to build command")
+
+        if not await isdir(self._path):
+            raise CommandException(f"Specified path is not a directory: {self._path}")
+        if not await can_kustomize_dir(self._path):
+            # Attempt to effectively generate a kustomization.yaml on the fly
+            # mirroring the behavior of flux
+            return await fluxtomize(self._path)
+
+        args = [KUSTOMIZE_BIN, "build"]
+        cwd: Path | None = None
+        if self._path.is_absolute():
+            cwd = self._path
+        else:
+            args.append(str(self._path))
+        task = Command(args, cwd=cwd)
+        return await task.run()
+
+
+async def can_kustomize_dir(path: Path) -> bool:
+    """Return true if a kustomize file exists for the specified directory."""
+    for name in KUSTOMIZE_FILES:
+        if await exists(path / name):
+            return True
+    return False
+
+
+async def yaml_load_all(path: Path) -> list[dict[str, Any]]:
+    """Load all documents from the file."""
+    async with aiofiles.open(path) as f:
+        contents = await f.read()
+        return list(yaml.load_all(contents, Loader=yaml.Loader))
+
+
+async def fluxtomize(path: Path) -> bytes:
+    """Create a synthentic Kustomization file and attempt to build it.
+
+    This matches the behavior of flux, which kustomize does not support.
+    """
+
+    # TODO: Convert out of bytes to str
+
+    # Every file resource is read and output
+    # Every directory is kustomized
+    tasks = []
+    filenames = await listdir(path)
+    for filename in filenames:
+        new_path = path / filename
+        if new_path.is_dir() and await can_kustomize_dir(new_path):
+            tasks.append(build(new_path).objects())
+        elif filename.endswith(".yaml") or filename.endswith(".yml"):
+            tasks.append(yaml_load_all(new_path))
+        else:
+            continue
+
+    results = await asyncio.gather(*tasks)
+    docs = []
+    for result in results:
+        docs.extend(result)
+    out = yaml.dump_all(docs, sort_keys=False, explicit_start=True)
+    return str(out).encode("utf-8")
+
+
 def build(path: Path) -> Kustomize:
     """Build cluster artifacts from the specified path."""
-    args = [KUSTOMIZE_BIN, "build"]
-    cwd: Path | None = None
-    if path.is_absolute():
-        cwd = path
-    else:
-        args.append(str(path))
-    return Kustomize(cmds=[Command(args, cwd=cwd)])
+    return Kustomize(cmds=[Build(path)])
 
 
 def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
