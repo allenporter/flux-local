@@ -1,0 +1,9 @@
+args:
+- diff
+- ks
+- apps
+- --path
+- tests/testdata/cluster/
+- -o
+- yaml
+

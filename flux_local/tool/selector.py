@@ -42,6 +42,13 @@ def add_selector_flags(args: ArgumentParser) -> None:
         action=BooleanOptionalAction,
         help="When true do not include CRDs to reduce output size",
     )
+    args.add_argument(
+        "--skip-secrets",
+        type=str,
+        default=True,
+        action=BooleanOptionalAction,
+        help="When true do not include Secrets to reduce output size and randomness",
+    )
 
 
 def add_ks_selector_flags(args: ArgumentParser) -> None:
@@ -67,6 +74,7 @@ def build_ks_selector(  # type: ignore[no-untyped-def]
     if kwargs["all_namespaces"]:
         selector.kustomization.namespace = None
     selector.kustomization.skip_crds = kwargs["skip_crds"]
+    selector.kustomization.skip_secrets = kwargs["skip_secrets"]
     return selector
 
 
@@ -94,6 +102,7 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     if kwargs["all_namespaces"]:
         selector.helm_release.namespace = None
     selector.helm_release.skip_crds = kwargs["skip_crds"]
+    selector.helm_release.skip_secrets = kwargs["skip_secrets"]
     return selector
 
 

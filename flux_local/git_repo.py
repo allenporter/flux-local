@@ -54,6 +54,7 @@ from .manifest import (
     HelmRepository,
     Kustomization,
     Manifest,
+    SECRET_KIND,
 )
 
 __all__ = [
@@ -172,6 +173,9 @@ class MetadataSelector:
 
     skip_crds: bool = True
     """If false, CRDs may be processed, depending on the resource type."""
+
+    skip_secrets: bool = True
+    """If false, Secrets may be processed, depending on the resource type."""
 
     visitor: ResourceVisitor | None = None
     """Visitor for the specified object type that can be used for building."""
@@ -396,8 +400,12 @@ async def build_kustomization(
         return ([], [])
 
     cmd = kustomize.build(root / kustomization.path)
+    skips = []
     if kustomization_selector.skip_crds:
-        cmd = cmd.grep(f"kind=^{CRD_KIND}$", invert=True)
+        skips.append(CRD_KIND)
+    if kustomization_selector.skip_secrets:
+        skips.append(SECRET_KIND)
+    cmd = cmd.skip_resources(skips)
     cmd = await cmd.stash(
         Path(
             "-".join(
