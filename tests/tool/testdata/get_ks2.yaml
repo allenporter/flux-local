@@ -9,3 +9,4 @@ stdout: |
   cluster-apps-kubernetes-dashboard          ./tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app      0            1           
   cluster-apps-ingress-nginx                 ./tests/testdata/cluster2/apps/networking/ingress-nginx/app             0            1           
   cluster-apps-ingress-nginx-certificates    ./tests/testdata/cluster2/apps/networking/ingress-nginx/certificates    0            0           
+  cluster                                    ./tests/testdata/cluster2/flux                                          3            0           

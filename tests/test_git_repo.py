@@ -28,7 +28,7 @@ async def test_build_manifest() -> None:
     assert cluster.name == "flux-system"
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 3
+    assert len(cluster.kustomizations) == 4
     assert len(cluster.helm_repos) == 2
     assert len(cluster.helm_releases) == 2
 
@@ -91,7 +91,7 @@ async def test_helm_release_selector_disabled() -> None:
     assert cluster.name == "flux-system"
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 3
+    assert len(cluster.kustomizations) == 4
     assert len(cluster.helm_repos) == 2
     assert len(cluster.helm_releases) == 0
 
@@ -109,7 +109,7 @@ async def test_helm_repo_selector_disabled() -> None:
     assert cluster.name == "flux-system"
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 3
+    assert len(cluster.kustomizations) == 4
     assert len(cluster.helm_repos) == 0
     assert len(cluster.helm_releases) == 2
 
@@ -133,7 +133,7 @@ async def test_kustomization_visitor() -> None:
     assert cluster.name == "flux-system"
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 3
+    assert len(cluster.kustomizations) == 4
     kustomization = cluster.kustomizations[0]
     assert kustomization.name == "apps"
     assert kustomization.namespace == "flux-system"
@@ -163,7 +163,7 @@ async def test_helm_repo_visitor() -> None:
     assert cluster.name == "flux-system"
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 3
+    assert len(cluster.kustomizations) == 4
     assert len(cluster.helm_repos) == 2
     assert len(cluster.helm_releases) == 2
 
@@ -194,7 +194,7 @@ async def test_helm_release_visitor() -> None:
     assert cluster.name == "flux-system"
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 3
+    assert len(cluster.kustomizations) == 4
     assert len(cluster.helm_repos) == 2
     assert len(cluster.helm_releases) == 2
 
@@ -276,12 +276,11 @@ async def test_kustomization_traversal(path: str) -> None:
     cluster = clusters[0]
     assert cluster.name == "cluster"
     assert cluster.namespace == "flux-system"
-    assert len(cluster.kustomizations) == 3
     assert [ks.path for ks in cluster.kustomizations] == [
-        # TODO: Include the "self" kustomization here
         "./kubernetes/apps",
         "./kubernetes/apps/rook-ceph/rook-ceph/app",
         "./kubernetes/apps/volsync/volsync/app",
+        "./kubernetes/flux",
     ]
 
 
@@ -357,8 +356,8 @@ async def test_kustomization_traversal_multi_cluster() -> None:
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./clusters/dev"
     assert [ks.path for ks in cluster.kustomizations] == [
-        # TODO: Include the "self" kustomization here
         "./certmanager/dev",
+        "./clusters/dev",
         "./crds",
     ]
     cluster = clusters[1]
@@ -366,7 +365,7 @@ async def test_kustomization_traversal_multi_cluster() -> None:
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./clusters/prod"
     assert [ks.path for ks in cluster.kustomizations] == [
-        # TODO: Include the "self" kustomization here
         "./certmanager/prod",
+        "./clusters/prod",
         "./crds",
     ]

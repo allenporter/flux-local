@@ -194,7 +194,8 @@ async def fluxtomize(path: Path) -> bytes:
     # Every file resource is read and output
     # Every directory is kustomized
     tasks = []
-    filenames = await listdir(path)
+    filenames = list(await listdir(path))
+    filenames.sort()
     for filename in filenames:
         new_path = path / filename
         if new_path.is_dir() and await can_kustomize_dir(new_path):

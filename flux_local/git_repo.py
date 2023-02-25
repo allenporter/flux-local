@@ -338,19 +338,19 @@ def make_clusters(kustomizations: list[Kustomization]) -> list[Cluster]:
     _LOGGER.debug("roots=%s", roots)
     for root in roots:
         root_ks = graph.nodes[root]["ks"]
-        child_nodes = list(networkx.descendants(graph, root))
-        child_nodes.sort()
-        children = [graph.nodes[child]["ks"] for child in child_nodes]
+        nodes = [root] + list(networkx.descendants(graph, root))
+        nodes.sort()
+        kustomizations = [graph.nodes[node]["ks"] for node in nodes]
         clusters.append(
             Cluster(
                 name=root_ks.name,
                 namespace=root_ks.namespace,
                 path=root_ks.path,
-                kustomizations=children,
+                kustomizations=kustomizations,
             )
         )
         _LOGGER.debug(
-            "Created cluster %s with %s kustomizations", root_ks.name, len(children)
+            "Created cluster %s with %s kustomizations", root_ks.name, len(nodes)
         )
 
     return clusters

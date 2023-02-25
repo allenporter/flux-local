@@ -5,7 +5,7 @@ args:
 - tests/testdata/cluster/
 - -o
 - yaml
-stdout: |+
+stdout: |
   ---
   clusters:
   - name: flux-system
@@ -23,6 +23,11 @@ stdout: |+
           name: podinfo
           repo_name: podinfo
           repo_namespace: flux-system
+    - name: flux-system
+      namespace: flux-system
+      path: ./tests/testdata/cluster/clusters/prod
+      helm_repos: []
+      helm_releases: []
     - name: infra-configs
       namespace: flux-system
       path: ./tests/testdata/cluster/infrastructure/configs

@@ -5,4 +5,4 @@ args:
 - tests/testdata/cluster/
 stdout: |
   NAME           PATH                                      KUSTOMIZATIONS    
-  flux-system    ./tests/testdata/cluster/clusters/prod    3                 
+  flux-system    ./tests/testdata/cluster/clusters/prod    4                 

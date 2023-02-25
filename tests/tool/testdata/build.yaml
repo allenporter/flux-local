@@ -50,6 +50,83 @@ stdout: |+
         tag: 7.0.6
 
   ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+  kind: Kustomization
+  metadata:
+    name: apps
+    namespace: flux-system
+  spec:
+    interval: 10m0s
+    dependsOn:
+    - name: infra-configs
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    path: ./tests/testdata/cluster/apps/prod
+    prune: true
+    wait: true
+    timeout: 5m0s
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+  kind: Kustomization
+  metadata:
+    name: flux-system
+    namespace: flux-system
+  spec:
+    interval: 10m0s
+    path: ./tests/testdata/cluster/clusters/prod
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta1
+  kind: GitRepository
+  metadata:
+    name: flux-system
+    namespace: flux-system
+  spec:
+    interval: 1m0s
+    ref:
+      branch: main
+    secretRef:
+      name: flux-system
+    url: ssh://git@github.com/allenporter/flux-local
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+  kind: Kustomization
+  metadata:
+    name: infra-controllers
+    namespace: flux-system
+  spec:
+    interval: 1h
+    retryInterval: 1m
+    timeout: 5m
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    path: ./tests/testdata/cluster/infrastructure/controllers
+    prune: true
+    wait: true
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+  kind: Kustomization
+  metadata:
+    name: infra-configs
+    namespace: flux-system
+  spec:
+    dependsOn:
+    - name: infra-controllers
+    interval: 1h
+    retryInterval: 1m
+    timeout: 5m
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    path: ./tests/testdata/cluster/infrastructure/configs
+    prune: true
+
+  ---
   apiVersion: kyverno.io/v1
   kind: ClusterPolicy
   metadata:
