@@ -50,8 +50,9 @@ async def inflate_release(
     release: HelmRelease,
     visitor: git_repo.ResourceVisitor,
     skip_crds: bool,
+    skip_secrets: bool,
 ) -> None:
-    cmd = await helm.template(release, skip_crds=skip_crds)
+    cmd = await helm.template(release, skip_crds=skip_crds, skip_secrets=skip_secrets)
     content = await cmd.run()
     visitor.func(cluster_path, release, content)
 
@@ -101,6 +102,7 @@ class HelmVisitor:
         helm_cache_dir: pathlib.Path,
         visitor: git_repo.ResourceVisitor,
         skip_crds: bool,
+        skip_secrets: bool,
     ) -> None:
         """Expand and notify about HelmReleases discovered."""
         if not visitor.content:
@@ -109,7 +111,11 @@ class HelmVisitor:
         cluster_paths = set(list(self.releases)) | set(list(self.repos))
         tasks = [
             self.inflate_cluster(
-                helm_cache_dir, pathlib.Path(cluster_path), visitor, skip_crds
+                helm_cache_dir,
+                pathlib.Path(cluster_path),
+                visitor,
+                skip_crds,
+                skip_secrets,
             )
             for cluster_path in cluster_paths
         ]
@@ -122,6 +128,7 @@ class HelmVisitor:
         cluster_path: pathlib.Path,
         visitor: git_repo.ResourceVisitor,
         skip_crds: bool,
+        skip_secrets: bool,
     ) -> None:
         _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -129,7 +136,9 @@ class HelmVisitor:
             helm.add_repos(self.active_repos(str(cluster_path)))
             await helm.update()
             tasks = [
-                inflate_release(cluster_path, helm, release, visitor, skip_crds)
+                inflate_release(
+                    cluster_path, helm, release, visitor, skip_crds, skip_secrets
+                )
                 for release in self.releases.get(str(cluster_path), [])
             ]
             _LOGGER.debug("Waiting for tasks to inflate %s", cluster_path)

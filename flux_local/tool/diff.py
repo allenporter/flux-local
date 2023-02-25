@@ -1,7 +1,7 @@
 """Flux-local diff action."""
 
 import asyncio
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
 from argparse import _SubParsersAction as SubParsersAction
 import difflib
 import logging
@@ -32,16 +32,19 @@ def changed_files(repo: git.repo.Repo) -> set[str]:
 
 
 def perform_diff(
-    a: ResourceContentOutput, b: ResourceContentOutput
+    a: ResourceContentOutput,
+    b: ResourceContentOutput,
+    n: int,
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
     for key in set(a.content.keys()) | set(b.content.keys()):
-        _LOGGER.debug("Diffing results for %s", key)
+        _LOGGER.debug("Diffing results for %s (n=%d)", key, n)
         diff_text = difflib.unified_diff(
             a=a.content.get(key) or [],
             b=b.content.get(key) or [],
             fromfile=key,
             tofile=key,
+            n=n,
         )
         for line in diff_text:
             yield line
@@ -68,11 +71,19 @@ class DiffKustomizationAction:
             ),
         )
         selector.add_ks_selector_flags(args)
+        args.add_argument(
+            "--unified",
+            "-u",
+            type=int,
+            default=3,
+            help="output NUM (default 3) lines of unified context",
+        )
         args.set_defaults(cls=cls)
         return args
 
     async def run(  # type: ignore[no-untyped-def]
         self,
+        unified: int,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -95,7 +106,7 @@ class DiffKustomizationAction:
             return
 
         _LOGGER.debug("Diffing content")
-        for line in perform_diff(orig_content, content):
+        for line in perform_diff(orig_content, content, unified):
             print(line)
 
 
@@ -121,11 +132,25 @@ class DiffHelmReleaseAction:
         )
         selector.add_hr_selector_flags(args)
         args.add_argument(
+            "--skip-secrets",
+            type=bool,
+            default=True,
+            action=BooleanOptionalAction,
+            help="Omit secrets from the diff (typically to avoid randomness)",
+        )
+        args.add_argument(
             "--output",
             "-o",
             choices=["diff", "yaml"],
             default="diff",
             help="Output format of the command",
+        )
+        args.add_argument(
+            "--unified",
+            "-u",
+            type=int,
+            default=3,
+            help="output NUM (default 3) lines of unified context",
         )
         args.set_defaults(cls=cls)
         return args
@@ -133,6 +158,8 @@ class DiffHelmReleaseAction:
     async def run(  # type: ignore[no-untyped-def]
         self,
         output: str,
+        skip_secrets: bool,
+        unified: int,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -162,15 +189,17 @@ class DiffHelmReleaseAction:
                     pathlib.Path(helm_cache_dir),
                     content.visitor(),
                     query.helm_release.skip_crds,
+                    skip_secrets=skip_secrets,
                 ),
                 orig_helm_visitor.inflate(
                     pathlib.Path(helm_cache_dir),
                     orig_content.visitor(),
                     query.helm_release.skip_crds,
+                    skip_secrets=skip_secrets,
                 ),
             )
 
-        for line in perform_diff(orig_content, content):
+        for line in perform_diff(orig_content, content, unified):
             print(line)
 
 

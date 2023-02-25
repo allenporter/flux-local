@@ -21,6 +21,7 @@ class BuildAction:
         path: pathlib.Path,
         enable_helm: bool,
         skip_crds: bool,
+        skip_secrets: bool,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -41,7 +42,10 @@ class BuildAction:
         if enable_helm:
             with tempfile.TemporaryDirectory() as helm_cache_dir:
                 await helm_visitor.inflate(
-                    pathlib.Path(helm_cache_dir), content.visitor(), skip_crds
+                    pathlib.Path(helm_cache_dir),
+                    content.visitor(),
+                    skip_crds,
+                    skip_secrets,
                 )
 
         keys = list(content.content)

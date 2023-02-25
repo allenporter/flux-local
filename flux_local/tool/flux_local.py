@@ -50,6 +50,13 @@ def main() -> None:
         action=argparse.BooleanOptionalAction,
         help="Allows disabling of outputting CRDs to reduce output size",
     )
+    build_args.add_argument(
+        "--skip-secrets",
+        type=bool,
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Omit secrets from the output to reduce random output.",
+    )
     build_args.set_defaults(cls=build.BuildAction)
 
     get.GetAction.register(subparsers)

@@ -109,13 +109,20 @@ class Kustomize:
         """Run the kustomize command and return the result cluster objects as a list."""
         return [doc async for doc in self._docs()]
 
+    def skip_resources(self, kinds: list[str]) -> "Kustomize":
+        """Skip resources kinds of the specified types."""
+        if not kinds:
+            return self
+        skip_re = "|".join(kinds)
+        return self.grep(f"kind=^({skip_re})$", invert=True)
+
     async def validate(self, policy_path: Path) -> None:
         """Apply kyverno policies from the directory to any objects built so far.
 
         The specified `policy_path` is a file or directory containing policy objects.
         All secrets will stripped since otherwise they fail the kyverno cli.
         """
-        kustomize = self.grep("kind=^Secret$", invert=True)
+        kustomize = self.skip_resources([manifest.SECRET_KIND])
         cmds = kustomize._cmds + [  # pylint: disable=protected-access
             Command(
                 [

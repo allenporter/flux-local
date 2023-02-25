@@ -44,7 +44,7 @@ import yaml
 
 from . import command
 from .kustomize import Kustomize
-from .manifest import HelmRelease, HelmRepository, CRD_KIND
+from .manifest import HelmRelease, HelmRepository, CRD_KIND, SECRET_KIND
 
 __all__ = [
     "Helm",
@@ -123,6 +123,7 @@ class Helm:
         values: dict[str, Any] | None = None,
         skip_crds: bool = True,
         skip_tests: bool = True,
+        skip_secrets: bool = False,
     ) -> Kustomize:
         """Return command line arguments to template the specified chart.
 
@@ -157,6 +158,11 @@ class Helm:
                 await values_file.write(yaml.dump(values))
             args.extend(["--values", str(values_path)])
         cmd = Kustomize([command.Command(args + self._flags)])
+        skips = []
         if skip_crds:
-            cmd = cmd.grep(f"kind=^{CRD_KIND}$", invert=True)
+            skips.append(CRD_KIND)
+        if skip_secrets:
+            skips.append(SECRET_KIND)
+        if skips:
+            cmd = cmd.skip_resources(skips)
         return cmd
