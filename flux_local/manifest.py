@@ -31,6 +31,7 @@ KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
 CRD_KIND = "CustomResourceDefinition"
+SECRET_KIND = "Secret"
 
 
 def _check_version(doc: dict[str, Any], version: str) -> None:
