@@ -7,6 +7,9 @@ stdout: |+
   kind: Namespace
   metadata:
     name: podinfo
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
   ---
   apiVersion: v1
   data:
@@ -15,12 +18,18 @@ stdout: |+
   metadata:
     name: podinfo-config
     namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1
   kind: HelmRelease
   metadata:
     name: podinfo
     namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
   spec:
     chart:
       spec:
@@ -55,6 +64,9 @@ stdout: |+
   metadata:
     name: apps
     namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
   spec:
     interval: 10m0s
     dependsOn:
@@ -72,6 +84,9 @@ stdout: |+
   metadata:
     name: flux-system
     namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
   spec:
     interval: 10m0s
     path: ./tests/testdata/cluster/clusters/prod
@@ -85,6 +100,9 @@ stdout: |+
   metadata:
     name: flux-system
     namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
   spec:
     interval: 1m0s
     ref:
@@ -98,6 +116,9 @@ stdout: |+
   metadata:
     name: infra-controllers
     namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
   spec:
     interval: 1h
     retryInterval: 1m
@@ -114,6 +135,9 @@ stdout: |+
   metadata:
     name: infra-configs
     namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
   spec:
     dependsOn:
     - name: infra-controllers
@@ -131,9 +155,10 @@ stdout: |+
   kind: ClusterPolicy
   metadata:
     annotations:
-      policies.kyverno.io/description: Policy that is expected to allow resources under
-        test through since no resources should have this annotation.
+      policies.kyverno.io/description: Policy that is expected to allow resources under test through since no resources should have this annotation.
       policies.kyverno.io/title: Test Allow Policy
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
     name: test-allow-policy
   spec:
     background: true
@@ -156,6 +181,9 @@ stdout: |+
   metadata:
     name: bitnami
     namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
   spec:
     interval: 30m
     provider: generic
@@ -167,6 +195,9 @@ stdout: |+
   metadata:
     name: podinfo
     namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
   spec:
     interval: 5m
     url: https://stefanprodan.github.io/podinfo
@@ -177,6 +208,9 @@ stdout: |+
   metadata:
     name: metallb
     namespace: metallb
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
   spec:
     chart:
       spec:

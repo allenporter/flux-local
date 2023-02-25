@@ -29,6 +29,7 @@ class BuildAction:
         query = git_repo.ResourceSelector(path=git_repo.PathSelector(path=path))
         query.kustomization.namespace = None
         query.kustomization.skip_crds = skip_crds
+        query.kustomization.skip_secrets = skip_secrets
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
 

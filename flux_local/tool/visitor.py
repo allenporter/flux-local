@@ -1,6 +1,7 @@
 """Visitors used by multiple commands."""
 
 import asyncio
+from dataclasses import dataclass
 import logging
 import pathlib
 import tempfile
@@ -13,6 +14,19 @@ from flux_local.manifest import HelmRelease, Kustomization, HelmRepository
 _LOGGER = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True, order=True)
+class ResourceKey:
+    """Key for a Kustomization object output."""
+
+    path: str
+    namespace: str | None = None
+    name: str | None = None
+
+    @property
+    def label(self) -> str:
+        return f"{self.path} - {self.namespace}/{self.name}"
+
+
 class ResourceContentOutput:
     """Helper object for implementing a git_repo.ResourceVisitor that saves content.
 
@@ -22,7 +36,7 @@ class ResourceContentOutput:
 
     def __init__(self) -> None:
         """Initialize KustomizationContentOutput."""
-        self.content: dict[str, list[str]] = {}
+        self.content: dict[ResourceKey, list[str]] = {}
 
     def visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
@@ -40,8 +54,10 @@ class ResourceContentOutput:
 
     def key_func(
         self, path: pathlib.Path, resource: Kustomization | HelmRelease
-    ) -> str:
-        return f"{str(path)} - {resource.namespace or 'default'}/{resource.name}"
+    ) -> ResourceKey:
+        return ResourceKey(
+            path=str(path), namespace=resource.namespace, name=resource.name
+        )
 
 
 async def inflate_release(
