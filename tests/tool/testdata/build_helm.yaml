@@ -187,20 +187,6 @@ stdout: |+
       internal.config.kubernetes.io/index: '1'
   automountServiceAccountToken: true
   ---
-  # Source: metallb/templates/controller/webhooks.yaml
-  apiVersion: v1
-  kind: Secret
-  metadata:
-    name: webhook-server-cert
-    labels:
-      app.kubernetes.io/name: metallb
-      helm.sh/chart: metallb-4.1.14
-      app.kubernetes.io/instance: metallb
-      app.kubernetes.io/managed-by: Helm
-    annotations:
-      config.kubernetes.io/index: '2'
-      internal.config.kubernetes.io/index: '2'
-  ---
   # Source: metallb/templates/controller/configmap.yaml
   apiVersion: v1
   kind: ConfigMap
