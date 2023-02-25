@@ -1,4 +1,4 @@
 args:
 - test
 - --enable-helm
-- tests/testdata/cluster/
+- tests/testdata/
