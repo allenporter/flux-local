@@ -40,7 +40,7 @@ from typing import Any, AsyncGenerator
 import yaml
 
 from . import manifest
-from .command import Command, run_piped
+from .command import Command, run_piped, Task
 
 __all__ = [
     "build",
@@ -56,7 +56,7 @@ HELM_RELEASE_KIND = "HelmRelease"
 class Kustomize:
     """Library for issuing a kustomize command."""
 
-    def __init__(self, cmds: list[Command]) -> None:
+    def __init__(self, cmds: list[Task]) -> None:
         """Initialize Kustomize, used internally for copying object."""
         self._cmds = cmds
 
@@ -135,15 +135,30 @@ class Kustomize:
         return Kustomize([Command(["cat", str(tmp_file)])])
 
 
+class Build(Task):
+    """A task that issues a build command, handling implicit Kustomizations."""
+
+    def __init__(self, path: Path) -> None:
+        """Initialize Build."""
+        self._path = path
+
+    async def run(self, stdin: bytes | None = None) -> bytes:
+        """Run the task."""
+        if stdin is not None:
+            raise ValueError("Invalid stdin cannot be passed to build command")
+        args = [KUSTOMIZE_BIN, "build"]
+        cwd: Path | None = None
+        if self._path.is_absolute():
+            cwd = self._path
+        else:
+            args.append(str(self._path))
+        task = Command(args, cwd=cwd)
+        return await task.run()
+
+
 def build(path: Path) -> Kustomize:
     """Build cluster artifacts from the specified path."""
-    args = [KUSTOMIZE_BIN, "build"]
-    cwd: Path | None = None
-    if path.is_absolute():
-        cwd = path
-    else:
-        args.append(str(path))
-    return Kustomize(cmds=[Command(args, cwd=cwd)])
+    return Kustomize(cmds=[Build(path)])
 
 
 def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
