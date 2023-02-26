@@ -35,7 +35,7 @@ import logging
 import networkx
 import os
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Awaitable
 from functools import cache
 from pathlib import Path
 from slugify import slugify
@@ -146,7 +146,7 @@ class ResourceVisitor:
     content: bool
     """If true, content will be produced to the stream for this object if supported."""
 
-    func: Callable[[Path, Any, str | None], None]
+    func: Callable[[Path, Any, str | None], Awaitable[None]]
     """Function called with the resource and optional content.
 
     The function arguments are:
@@ -421,7 +421,7 @@ async def build_kustomization(
         content: str | None = None
         if kustomization_selector.visitor.content:
             content = await cmd.run()
-        kustomization_selector.visitor.func(
+        await kustomization_selector.visitor.func(
             Path(kustomization.path), kustomization, content
         )
 
@@ -520,11 +520,13 @@ async def build_manifest(
         for cluster in clusters:
             if selector.helm_repo.visitor:
                 for helm_repo in cluster.helm_repos:
-                    selector.helm_repo.visitor.func(Path(cluster.path), helm_repo, None)
+                    await selector.helm_repo.visitor.func(
+                        Path(cluster.path), helm_repo, None
+                    )
 
             if selector.helm_release.visitor:
                 for helm_release in cluster.helm_releases:
-                    selector.helm_release.visitor.func(
+                    await selector.helm_release.visitor.func(
                         Path(cluster.path), helm_release, None
                     )
 
