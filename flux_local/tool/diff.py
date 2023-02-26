@@ -119,20 +119,20 @@ def add_diff_flags(args: ArgumentParser) -> None:
 
 @contextmanager
 def create_diff_path(
-    repo: git.repo.Repo,
+    selector: git_repo.PathSelector,
     **kwargs: Any,
-) -> Generator[pathlib.Path, None, None]:
+) -> Generator[git_repo.PathSelector, None, None]:
     """Create a context manager for the diff path.
 
     This will create a new worktree by default, or use the path in the flags
     which is useful when run from CI.
     """
     if path_orig := kwargs.get("path_orig"):
-        yield path_orig
+        yield git_repo.PathSelector(path_orig)
         return
 
-    with git_repo.create_worktree(repo) as worktree:
-        yield pathlib.Path(worktree)
+    with git_repo.create_worktree(selector.repo) as worktree:
+        yield git_repo.PathSelector(pathlib.Path(worktree) / selector.relative_path)
 
 
 class DiffKustomizationAction:
@@ -175,9 +175,8 @@ class DiffKustomizationAction:
         await git_repo.build_manifest(selector=query)
 
         orig_content = ResourceContentOutput()
-        with create_diff_path(query.path.repo, **kwargs) as diff_path:
-            relative_path = query.path.relative_path
-            query.path = git_repo.PathSelector(diff_path / relative_path)
+        with create_diff_path(query.path, **kwargs) as path_selector:
+            query.path = path_selector
             query.kustomization.visitor = orig_content.visitor()
             await git_repo.build_manifest(selector=query)
 
@@ -233,9 +232,8 @@ class DiffHelmReleaseAction:
         await git_repo.build_manifest(selector=query)
 
         orig_helm_visitor = HelmVisitor()
-        with create_diff_path(query.path.repo, **kwargs) as diff_path:
-            relative_path = query.path.relative_path
-            query.path = git_repo.PathSelector(diff_path / relative_path)
+        with create_diff_path(query.path, **kwargs) as path_selector:
+            query.path = path_selector
             query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
             query.helm_release.visitor = orig_helm_visitor.release_visitor()
             await git_repo.build_manifest(selector=query)

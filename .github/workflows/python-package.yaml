@@ -37,10 +37,13 @@ jobs:
         version: v1.9.0
     - name: Test with pytest
       run: |
-        pytest --cov=flux_local --cov-report=term-missing
+        SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing
     - uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         env_vars: OS,PYTHON
         fail_ci_if_error: true
         verbose: true
+    - name: Test flux-local diff
+      run: |
+        pytest tests/tool/test_diff.py
