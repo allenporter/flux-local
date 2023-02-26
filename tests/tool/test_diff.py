@@ -6,6 +6,9 @@ Kustomization paths would need to change which makes the resources
 look like they belong to a separate cluster.
 """
 
+import pytest
+import os
+
 from flux_local import git_repo
 from flux_local.command import Command, run
 
@@ -13,6 +16,11 @@ from flux_local.command import Command, run
 CLUSTER_DIR = "tests/testdata/cluster"
 
 
+# These tests fool codecov so run separately
+@pytest.mark.skipif(
+    os.environ.get("SKIP_DIFF_TESTS", False),
+    reason="SKIP_DIFF_TESTS set in environment",
+)
 async def test_diff_ks() -> None:
     """Test a diff in resources within a Kustomization."""
 
