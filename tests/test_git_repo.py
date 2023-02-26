@@ -122,7 +122,7 @@ async def test_kustomization_visitor() -> None:
 
     stream = io.StringIO()
 
-    def write(x: Path, y: Any, z: str | None = None) -> None:
+    async def write(x: Path, y: Any, z: str | None = None) -> None:
         stream.write(z or "")
 
     query.kustomization.visitor = ResourceVisitor(content=True, func=write)
@@ -153,8 +153,12 @@ async def test_helm_repo_visitor() -> None:
 
     objects: list[HelmRepository] = []
 
+    async def append(x: Path, y: Any, z: str | None = None) -> None:
+        objects.append(y)
+
     query.helm_repo.visitor = ResourceVisitor(
-        content=True, func=lambda x, y, z: objects.append(y)
+        content=True,
+        func=append,
     )
 
     manifest = await build_manifest(selector=query)
@@ -184,8 +188,12 @@ async def test_helm_release_visitor() -> None:
 
     objects: list[HelmRelease] = []
 
+    async def append(x: Path, y: Any, z: str | None = None) -> None:
+        objects.append(y)
+
     query.helm_release.visitor = ResourceVisitor(
-        content=True, func=lambda x, y, z: objects.append(y)
+        content=True,
+        func=append,
     )
 
     manifest = await build_manifest(selector=query)

@@ -40,9 +40,9 @@ class ResourceContentOutput:
 
     def visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
-        return git_repo.ResourceVisitor(content=True, func=self.call)
+        return git_repo.ResourceVisitor(content=True, func=self.call_async)
 
-    def call(
+    async def call_async(
         self, path: pathlib.Path, doc: Kustomization | HelmRelease, content: str | None
     ) -> None:
         """Visitor function invoked to record build output."""
@@ -70,7 +70,7 @@ async def inflate_release(
 ) -> None:
     cmd = await helm.template(release, skip_crds=skip_crds, skip_secrets=skip_secrets)
     content = await cmd.run()
-    visitor.func(cluster_path, release, content)
+    await visitor.func(cluster_path, release, content)
 
 
 class HelmVisitor:
@@ -96,7 +96,7 @@ class HelmVisitor:
     def repo_visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
 
-        def add_repo(
+        async def add_repo(
             path: pathlib.Path, doc: HelmRepository, content: str | None
         ) -> None:
             self.repos[str(path)] = self.repos.get(str(path), []) + [doc]
@@ -106,7 +106,7 @@ class HelmVisitor:
     def release_visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
 
-        def add_release(
+        async def add_release(
             path: pathlib.Path, doc: HelmRelease, content: str | None
         ) -> None:
             self.releases[str(path)] = self.releases.get(str(path), []) + [doc]
