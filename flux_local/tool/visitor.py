@@ -7,6 +7,7 @@ import pathlib
 import tempfile
 
 from flux_local import git_repo
+from flux_local.kustomize import Kustomize
 from flux_local.helm import Helm
 from flux_local.manifest import HelmRelease, Kustomization, HelmRepository
 
@@ -40,20 +41,26 @@ class ResourceContentOutput:
 
     def visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
-        return git_repo.ResourceVisitor(content=True, func=self.call_async)
+        return git_repo.ResourceVisitor(func=self.call_async)
 
     async def call_async(
-        self, path: pathlib.Path, doc: Kustomization | HelmRelease, content: str | None
+        self,
+        path: pathlib.Path,
+        doc: Kustomization | HelmRelease | HelmRepository,
+        cmd: Kustomize | None,
     ) -> None:
         """Visitor function invoked to record build output."""
-        if content:
+        if cmd:
+            content = await cmd.run()
             lines = content.split("\n")
             if lines[0] != "---":
                 lines.insert(0, "---")
             self.content[self.key_func(path, doc)] = lines
 
     def key_func(
-        self, path: pathlib.Path, resource: Kustomization | HelmRelease
+        self,
+        path: pathlib.Path,
+        resource: Kustomization | HelmRelease | HelmRepository,
     ) -> ResourceKey:
         return ResourceKey(
             path=str(path), namespace=resource.namespace, name=resource.name
@@ -69,8 +76,7 @@ async def inflate_release(
     skip_secrets: bool,
 ) -> None:
     cmd = await helm.template(release, skip_crds=skip_crds, skip_secrets=skip_secrets)
-    content = await cmd.run()
-    await visitor.func(cluster_path, release, content)
+    await visitor.func(cluster_path, release, cmd)
 
 
 class HelmVisitor:
@@ -97,21 +103,29 @@ class HelmVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
 
         async def add_repo(
-            path: pathlib.Path, doc: HelmRepository, content: str | None
+            path: pathlib.Path,
+            doc: Kustomization | HelmRelease | HelmRepository,
+            cmd: Kustomize | None,
         ) -> None:
+            if not isinstance(doc, HelmRepository):
+                raise ValueError(f"Expected HelmRepository: {doc}")
             self.repos[str(path)] = self.repos.get(str(path), []) + [doc]
 
-        return git_repo.ResourceVisitor(content=False, func=add_repo)
+        return git_repo.ResourceVisitor(func=add_repo)
 
     def release_visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
 
         async def add_release(
-            path: pathlib.Path, doc: HelmRelease, content: str | None
+            path: pathlib.Path,
+            doc: Kustomization | HelmRelease | HelmRepository,
+            cmd: Kustomize | None,
         ) -> None:
+            if not isinstance(doc, HelmRelease):
+                raise ValueError(f"Expected HelmRelease: {doc}")
             self.releases[str(path)] = self.releases.get(str(path), []) + [doc]
 
-        return git_repo.ResourceVisitor(content=False, func=add_release)
+        return git_repo.ResourceVisitor(func=add_release)
 
     async def inflate(
         self,
@@ -121,9 +135,6 @@ class HelmVisitor:
         skip_secrets: bool,
     ) -> None:
         """Expand and notify about HelmReleases discovered."""
-        if not visitor.content:
-            return
-
         cluster_paths = set(list(self.releases)) | set(list(self.repos))
         tasks = [
             self.inflate_cluster(
