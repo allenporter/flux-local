@@ -1,10 +1,12 @@
 """Visitors used by multiple commands."""
 
 import asyncio
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import logging
 import pathlib
 import tempfile
+from typing import Any
 
 from flux_local import git_repo
 from flux_local.kustomize import Kustomize
@@ -28,20 +30,42 @@ class ResourceKey:
         return f"{self.path} - {self.namespace}/{self.name}"
 
 
-class ResourceContentOutput:
+class ResourceOutput(ABC):
     """Helper object for implementing a git_repo.ResourceVisitor that saves content.
 
     This effectively binds the resource name to the content for later
     inspection by name.
     """
 
-    def __init__(self) -> None:
-        """Initialize KustomizationContentOutput."""
-        self.content: dict[ResourceKey, list[str]] = {}
-
     def visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
         return git_repo.ResourceVisitor(func=self.call_async)
+
+    @abstractmethod
+    async def call_async(
+        self,
+        path: pathlib.Path,
+        doc: Kustomization | HelmRelease | HelmRepository,
+        cmd: Kustomize | None,
+    ) -> None:
+        """Visitor function invoked to record build output."""
+
+    def key_func(
+        self,
+        path: pathlib.Path,
+        resource: Kustomization | HelmRelease | HelmRepository,
+    ) -> ResourceKey:
+        return ResourceKey(
+            path=str(path), namespace=resource.namespace, name=resource.name
+        )
+
+
+class ContentOutput(ResourceOutput):
+    """Resource visitor that build string outputs."""
+
+    def __init__(self) -> None:
+        """Initialize KustomizationContentOutput."""
+        self.content: dict[ResourceKey, list[str]] = {}
 
     async def call_async(
         self,
@@ -57,14 +81,23 @@ class ResourceContentOutput:
                 lines.insert(0, "---")
             self.content[self.key_func(path, doc)] = lines
 
-    def key_func(
+
+class ObjectOutput(ResourceOutput):
+    """Resource visitor that build string outputs."""
+
+    def __init__(self) -> None:
+        """Initialize KustomizationContentOutput."""
+        self.content: dict[ResourceKey, list[dict[str, Any]]] = {}
+
+    async def call_async(
         self,
         path: pathlib.Path,
-        resource: Kustomization | HelmRelease | HelmRepository,
-    ) -> ResourceKey:
-        return ResourceKey(
-            path=str(path), namespace=resource.namespace, name=resource.name
-        )
+        doc: Kustomization | HelmRelease | HelmRepository,
+        cmd: Kustomize | None,
+    ) -> None:
+        """Visitor function invoked to build and record resource objects."""
+        if cmd:
+            self.content[self.key_func(path, doc)] = await cmd.objects()
 
 
 async def inflate_release(

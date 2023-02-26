@@ -17,7 +17,7 @@ import git
 from flux_local import git_repo
 
 from . import selector
-from .visitor import ResourceContentOutput, HelmVisitor
+from .visitor import ContentOutput, HelmVisitor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,8 +35,8 @@ def changed_files(repo: git.repo.Repo) -> set[str]:
 
 
 def perform_diff(
-    a: ResourceContentOutput,
-    b: ResourceContentOutput,
+    a: ContentOutput,
+    b: ContentOutput,
     n: int,
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
@@ -54,8 +54,8 @@ def perform_diff(
 
 
 def perform_yaml_diff(
-    a: ResourceContentOutput,
-    b: ResourceContentOutput,
+    a: ContentOutput,
+    b: ContentOutput,
     n: int,
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
@@ -170,11 +170,11 @@ class DiffKustomizationAction:
         query = selector.build_ks_selector(**kwargs)
         query.helm_release.enabled = False
 
-        content = ResourceContentOutput()
+        content = ContentOutput()
         query.kustomization.visitor = content.visitor()
         await git_repo.build_manifest(selector=query)
 
-        orig_content = ResourceContentOutput()
+        orig_content = ContentOutput()
         with create_diff_path(query.path, **kwargs) as path_selector:
             query.path = path_selector
             query.kustomization.visitor = orig_content.visitor()
@@ -242,8 +242,8 @@ class DiffHelmReleaseAction:
             print(selector.not_found("HelmRelease", query.helm_release))
             return
 
-        content = ResourceContentOutput()
-        orig_content = ResourceContentOutput()
+        content = ContentOutput()
+        orig_content = ContentOutput()
         with tempfile.TemporaryDirectory() as helm_cache_dir:
             await asyncio.gather(
                 helm_visitor.inflate(

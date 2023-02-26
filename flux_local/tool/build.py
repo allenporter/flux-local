@@ -7,7 +7,7 @@ import tempfile
 
 from flux_local import git_repo
 
-from .visitor import ResourceContentOutput, HelmVisitor
+from .visitor import ContentOutput, HelmVisitor
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class BuildAction:
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
 
-        content = ResourceContentOutput()
+        content = ContentOutput()
         query.kustomization.visitor = content.visitor()
         helm_visitor = HelmVisitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
