@@ -3,6 +3,7 @@
 import asyncio
 from argparse import ArgumentParser
 from argparse import _SubParsersAction as SubParsersAction
+from contextlib import contextmanager
 from dataclasses import asdict
 import difflib
 import logging
@@ -107,6 +108,31 @@ def add_diff_flags(args: ArgumentParser) -> None:
         default=3,
         help="output NUM (default 3) lines of unified context",
     )
+    args.add_argument(
+        "--path-orig",
+        help="Path to compare against, or creates a work tree if not specified",
+        type=pathlib.Path,
+        default=None,
+        nargs="?",
+    )
+
+
+@contextmanager
+def create_diff_path(
+    repo: git.repo.Repo,
+    **kwargs: Any,
+) -> Generator[pathlib.Path, None, None]:
+    """Create a context manager for the diff path.
+
+    This will create a new worktree by default, or use the path in the flags
+    which is useful when run from CI.
+    """
+    if path_orig := kwargs.get("path_orig"):
+        yield path_orig
+        return
+
+    with git_repo.create_worktree(repo) as worktree:
+        yield pathlib.Path(worktree)
 
 
 class DiffKustomizationAction:
@@ -149,9 +175,9 @@ class DiffKustomizationAction:
         await git_repo.build_manifest(selector=query)
 
         orig_content = ResourceContentOutput()
-        with git_repo.create_worktree(query.path.repo) as worktree:
+        with create_diff_path(query.path.repo, **kwargs) as diff_path:
             relative_path = query.path.relative_path
-            query.path = git_repo.PathSelector(pathlib.Path(worktree) / relative_path)
+            query.path = git_repo.PathSelector(diff_path / relative_path)
             query.kustomization.visitor = orig_content.visitor()
             await git_repo.build_manifest(selector=query)
 
@@ -207,9 +233,9 @@ class DiffHelmReleaseAction:
         await git_repo.build_manifest(selector=query)
 
         orig_helm_visitor = HelmVisitor()
-        with git_repo.create_worktree(query.path.repo) as worktree:
+        with create_diff_path(query.path.repo, **kwargs) as diff_path:
             relative_path = query.path.relative_path
-            query.path = git_repo.PathSelector(pathlib.Path(worktree) / relative_path)
+            query.path = git_repo.PathSelector(diff_path / relative_path)
             query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
             query.helm_release.visitor = orig_helm_visitor.release_visitor()
             await git_repo.build_manifest(selector=query)
