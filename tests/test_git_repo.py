@@ -14,6 +14,7 @@ from flux_local.git_repo import (
     PathSelector,
     make_clusters,
 )
+from flux_local.kustomize import Kustomize
 from flux_local.manifest import HelmRepository, HelmRelease, Kustomization
 
 TESTDATA = Path("tests/testdata/cluster")
@@ -122,10 +123,11 @@ async def test_kustomization_visitor() -> None:
 
     stream = io.StringIO()
 
-    async def write(x: Path, y: Any, z: str | None = None) -> None:
-        stream.write(z or "")
+    async def write(x: Path, y: Any, cmd: Kustomize | None) -> None:
+        if cmd:
+            stream.write(await cmd.run())
 
-    query.kustomization.visitor = ResourceVisitor(content=True, func=write)
+    query.kustomization.visitor = ResourceVisitor(func=write)
 
     manifest = await build_manifest(selector=query)
     assert len(manifest.clusters) == 1
@@ -153,11 +155,10 @@ async def test_helm_repo_visitor() -> None:
 
     objects: list[HelmRepository] = []
 
-    async def append(x: Path, y: Any, z: str | None = None) -> None:
+    async def append(x: Path, y: Any, z: Any) -> None:
         objects.append(y)
 
     query.helm_repo.visitor = ResourceVisitor(
-        content=True,
         func=append,
     )
 
@@ -188,11 +189,10 @@ async def test_helm_release_visitor() -> None:
 
     objects: list[HelmRelease] = []
 
-    async def append(x: Path, y: Any, z: str | None = None) -> None:
+    async def append(x: Path, y: Any, z: Any) -> None:
         objects.append(y)
 
     query.helm_release.visitor = ResourceVisitor(
-        content=True,
         func=append,
     )
 

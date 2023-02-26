@@ -143,18 +143,22 @@ class PathSelector:
 class ResourceVisitor:
     """Invoked when a resource is visited to the caller can intercept."""
 
-    content: bool
-    """If true, content will be produced to the stream for this object if supported."""
-
-    func: Callable[[Path, Any, str | None], Awaitable[None]]
+    func: Callable[
+        [
+            Path,
+            Kustomization | HelmRelease | HelmRepository,
+            kustomize.Kustomize | None,
+        ],
+        Awaitable[None],
+    ]
     """Function called with the resource and optional content.
 
     The function arguments are:
       - path: This is the cluster or kustomization path needed to disambiguate
         when there are multiple clusters in the repository.
       - doc: The resource object (e.g. Kustomization, HelmRelease, etc)
-      - content: The content if content bool above is true. Only supported for
-        Kustomizations.
+      - cmd: A Kustomize object that can produce the specified object. Only supported
+        for Kustomizations.
     """
 
 
@@ -418,12 +422,12 @@ async def build_kustomization(
         )
     )
     if kustomization_selector.visitor:
-        content: str | None = None
-        if kustomization_selector.visitor.content:
-            content = await cmd.run()
-        await kustomization_selector.visitor.func(
-            Path(kustomization.path), kustomization, content
-        )
+        if kustomization_selector.visitor:
+            await kustomization_selector.visitor.func(
+                Path(kustomization.path),
+                kustomization,
+                cmd,
+            )
 
     if not helm_release_selector.enabled and not helm_repo_selector.enabled:
         return ([], [])
