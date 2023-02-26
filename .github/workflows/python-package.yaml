@@ -44,6 +44,6 @@ jobs:
         env_vars: OS,PYTHON
         fail_ci_if_error: true
         verbose: true
-    - name: Run Diff Tests
+    - name: Test flux-local diff
       run: |
         pytest tests/tool/test_diff.py
