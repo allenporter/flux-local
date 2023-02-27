@@ -51,9 +51,9 @@ async def test_diff_ks() -> None:
 
     assert (
         result
-        == """--- tests/testdata/cluster/apps/prod - Kustomization=flux-system/apps ConfigMap=podinfo/podinfo-config
+        == """--- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps ConfigMap: podinfo/podinfo-config
 
-+++ tests/testdata/cluster/apps/prod - Kustomization=flux-system/apps ConfigMap=podinfo/podinfo-config
++++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps ConfigMap: podinfo/podinfo-config
 
 @@ -1,9 +0,0 @@
 

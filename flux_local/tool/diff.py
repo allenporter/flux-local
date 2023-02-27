@@ -78,6 +78,8 @@ def perform_yaml_diff(
             diff_text = difflib.unified_diff(
                 a=a_resources.get(resource_key, []),
                 b=b_resources.get(resource_key, []),
+                fromfile=f"{kustomization_key.label} {resource_key.label}",
+                tofile=f"{kustomization_key.label} {resource_key.label}",
                 n=n,
             )
             diff_content = "\n".join(diff_text)
@@ -85,10 +87,7 @@ def perform_yaml_diff(
                 continue
             obj = {
                 **asdict(resource_key, dict_factory=omit_none),
-                "diff_markdown": f"""{resource_key.kind} {resource_key.namespace}/{resource_key.name}
-```diff
-{diff_content}
-```""",  # noqa: E501
+                "diff": diff_content,
             }
             resource_diffs.append(obj)
         if resource_diffs:
