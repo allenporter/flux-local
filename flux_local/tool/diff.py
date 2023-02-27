@@ -13,49 +13,46 @@ from typing import cast, Generator, Any
 import yaml
 
 
-import git
 from flux_local import git_repo
 
 from . import selector
-from .visitor import ResourceContentOutput, HelmVisitor
+from .visitor import HelmVisitor, ObjectOutput
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def changed_files(repo: git.repo.Repo) -> set[str]:
-    """Return the set of changed files in the repo."""
-    index = repo.index
-    return set(
-        {diff.a_path for diff in index.diff("HEAD")}
-        | {diff.b_path for diff in index.diff("HEAD")}
-        | {diff.a_path for diff in index.diff(None)}
-        | {diff.b_path for diff in index.diff(None)}
-        | {*repo.untracked_files}
-    )
-
-
-def perform_diff(
-    a: ResourceContentOutput,
-    b: ResourceContentOutput,
+def perform_object_diff(
+    a: ObjectOutput,
+    b: ObjectOutput,
     n: int,
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
-    for key in set(a.content.keys()) | set(b.content.keys()):
-        _LOGGER.debug("Diffing results for %s (n=%d)", key, n)
-        diff_text = difflib.unified_diff(
-            a=a.content.get(key, []),
-            b=b.content.get(key, []),
-            fromfile=key.label,
-            tofile=key.label,
-            n=n,
+    for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+        _LOGGER.debug(
+            "Diffing results for Kustomization %s (n=%d)", kustomization_key, n
         )
-        for line in diff_text:
-            yield line
+        a_resources = a.content.get(kustomization_key, {})
+        b_resources = b.content.get(kustomization_key, {})
+        for resource_key in set(a_resources.keys()) | set(b_resources.keys()):
+            diff_text = difflib.unified_diff(
+                a=a_resources.get(resource_key, []),
+                b=b_resources.get(resource_key, []),
+                fromfile=f"{kustomization_key.label} {resource_key.label}",
+                tofile=f"{kustomization_key.label} {resource_key.label}",
+                n=n,
+            )
+            for line in diff_text:
+                yield line
+
+
+def omit_none(obj: Any) -> dict[str, Any]:
+    """Creates a dictionary with None values missing."""
+    return {k: v for k, v in obj if v is not None}
 
 
 def perform_yaml_diff(
-    a: ResourceContentOutput,
-    b: ResourceContentOutput,
+    a: ObjectOutput,
+    b: ObjectOutput,
     n: int,
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
@@ -72,24 +69,34 @@ def perform_yaml_diff(
     yaml.add_representer(str, str_presenter)
 
     diffs = []
-    for key in set(a.content.keys()) | set(b.content.keys()):
-        _LOGGER.debug("Diffing results for %s (n=%d)", key, n)
-        diff_text = difflib.unified_diff(
-            a=a.content.get(key, []),
-            b=b.content.get(key, []),
-            fromfile=key.label,
-            tofile=key.label,
-            n=n,
-        )
-        diff_content = "\n".join(diff_text)
-        if not diff_content:
-            continue
-        obj = {
-            **asdict(key),
-            "diff_text": diff_content,
-        }
-        diffs.append(obj)
-    yield yaml.dump(diffs, sort_keys=False, explicit_start=True, default_style=None)
+    for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+        _LOGGER.debug("Diffing results for %s (n=%d)", kustomization_key, n)
+        a_resources = a.content.get(kustomization_key, {})
+        b_resources = b.content.get(kustomization_key, {})
+        resource_diffs = []
+        for resource_key in set(a_resources.keys()) | set(b_resources.keys()):
+            diff_text = difflib.unified_diff(
+                a=a_resources.get(resource_key, []),
+                b=b_resources.get(resource_key, []),
+                n=n,
+            )
+            diff_content = "\n".join(diff_text)
+            if not diff_content:
+                continue
+            obj = {
+                **asdict(resource_key, dict_factory=omit_none),
+                "diff_text": diff_content,
+            }
+            resource_diffs.append(obj)
+        if resource_diffs:
+            diffs.append(
+                {
+                    **asdict(kustomization_key),
+                    "diffs": resource_diffs,
+                }
+            )
+    if diffs:
+        yield yaml.dump(diffs, sort_keys=False, explicit_start=True, default_style=None)
 
 
 def add_diff_flags(args: ArgumentParser) -> None:
@@ -97,7 +104,7 @@ def add_diff_flags(args: ArgumentParser) -> None:
     args.add_argument(
         "--output",
         "-o",
-        choices=["diff", "yaml"],
+        choices=["diff", "yaml", "object"],
         default="diff",
         help="Output format of the command",
     )
@@ -170,11 +177,11 @@ class DiffKustomizationAction:
         query = selector.build_ks_selector(**kwargs)
         query.helm_release.enabled = False
 
-        content = ResourceContentOutput()
+        content = ObjectOutput()
         query.kustomization.visitor = content.visitor()
         await git_repo.build_manifest(selector=query)
 
-        orig_content = ResourceContentOutput()
+        orig_content = ObjectOutput()
         with create_diff_path(query.path, **kwargs) as path_selector:
             query.path = path_selector
             query.kustomization.visitor = orig_content.visitor()
@@ -188,7 +195,7 @@ class DiffKustomizationAction:
         if output == "yaml":
             result = perform_yaml_diff(orig_content, content, unified)
         else:
-            result = perform_diff(orig_content, content, unified)
+            result = perform_object_diff(orig_content, content, unified)
         for line in result:
             print(line)
 
@@ -242,8 +249,8 @@ class DiffHelmReleaseAction:
             print(selector.not_found("HelmRelease", query.helm_release))
             return
 
-        content = ResourceContentOutput()
-        orig_content = ResourceContentOutput()
+        content = ObjectOutput()
+        orig_content = ObjectOutput()
         with tempfile.TemporaryDirectory() as helm_cache_dir:
             await asyncio.gather(
                 helm_visitor.inflate(
@@ -260,8 +267,12 @@ class DiffHelmReleaseAction:
                 ),
             )
 
-        for line in perform_diff(orig_content, content, unified):
-            print(line)
+        if output == "yaml":
+            for line in perform_yaml_diff(orig_content, content, unified):
+                print(line)
+        else:
+            for line in perform_object_diff(orig_content, content, unified):
+                print(line)
 
 
 class DiffAction:

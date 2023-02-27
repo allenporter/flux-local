@@ -112,7 +112,7 @@ class Helm:
         Typically the repository must be updated before doing any chart templating.
         """
         _LOGGER.debug("Updating %d repositories", len(self._repos))
-        content = yaml.dump(RepositoryConfig(self._repos).config)
+        content = yaml.dump(RepositoryConfig(self._repos).config, sort_keys=False)
         async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
             await config_file.write(content)
         await command.run(command.Command([HELM_BIN, "repo", "update"] + self._flags))
@@ -155,7 +155,7 @@ class Helm:
         if values:
             values_path = self._tmp_dir / f"{release.release_name}-values.yaml"
             async with aiofiles.open(values_path, mode="w") as values_file:
-                await values_file.write(yaml.dump(values))
+                await values_file.write(yaml.dump(values, sort_keys=False))
             args.extend(["--values", str(values_path)])
         cmd = Kustomize([command.Command(args + self._flags)])
         skips = []

@@ -1,10 +1,12 @@
 """Visitors used by multiple commands."""
 
 import asyncio
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import logging
 import pathlib
 import tempfile
+import yaml
 
 from flux_local import git_repo
 from flux_local.kustomize import Kustomize
@@ -15,33 +17,83 @@ from flux_local.manifest import HelmRelease, Kustomization, HelmRepository
 _LOGGER = logging.getLogger(__name__)
 
 
+# Strip any annotations from kustomize that contribute to diff noise when
+# objects are re-ordered in the output
+STRIP_ANNOTATIONS = [
+    "config.kubernetes.io/index",
+    "internal.config.kubernetes.io/index",
+]
+
+
 @dataclass(frozen=True, order=True)
 class ResourceKey:
     """Key for a Kustomization object output."""
 
-    path: str
-    namespace: str | None = None
-    name: str | None = None
+    path: str | None
+    kind: str
+    namespace: str
+    name: str
 
     @property
     def label(self) -> str:
-        return f"{self.path} - {self.namespace}/{self.name}"
+        parts = []
+        if self.path:
+            parts.append(self.path)
+            parts.append(" - ")
+        parts.append(self.kind)
+        parts.append("=")
+        if self.namespace:
+            parts.append(self.namespace)
+            parts.append("/")
+        parts.append(self.name)
+        return "".join(parts)
 
 
-class ResourceContentOutput:
+class ResourceOutput(ABC):
     """Helper object for implementing a git_repo.ResourceVisitor that saves content.
 
     This effectively binds the resource name to the content for later
     inspection by name.
     """
 
-    def __init__(self) -> None:
-        """Initialize KustomizationContentOutput."""
-        self.content: dict[ResourceKey, list[str]] = {}
-
     def visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
         return git_repo.ResourceVisitor(func=self.call_async)
+
+    @abstractmethod
+    async def call_async(
+        self,
+        path: pathlib.Path,
+        doc: Kustomization | HelmRelease | HelmRepository,
+        cmd: Kustomize | None,
+    ) -> None:
+        """Visitor function invoked to record build output."""
+
+    def key_func(
+        self,
+        path: pathlib.Path,
+        resource: Kustomization | HelmRelease | HelmRepository,
+    ) -> ResourceKey:
+        if isinstance(resource, HelmRepository):
+            kind = "HelmRepostiory"
+        elif isinstance(resource, HelmRelease):
+            kind = "HelmRelease"
+        else:
+            kind = "Kustomization"
+        return ResourceKey(
+            path=str(path),
+            kind=kind,
+            namespace=resource.namespace or "",
+            name=resource.name or "",
+        )
+
+
+class ContentOutput(ResourceOutput):
+    """Resource visitor that build string outputs."""
+
+    def __init__(self) -> None:
+        """Initialize KustomizationContentOutput."""
+        self.content: dict[ResourceKey, list[str]] = {}
 
     async def call_async(
         self,
@@ -57,14 +109,51 @@ class ResourceContentOutput:
                 lines.insert(0, "---")
             self.content[self.key_func(path, doc)] = lines
 
-    def key_func(
+
+class ObjectOutput(ResourceOutput):
+    """Resource visitor that builds outputs for objects within the kustomization."""
+
+    def __init__(self) -> None:
+        """Initialize ObjectOutput."""
+        # Map of kustomizations to the map of built objects as lines of the yaml string
+        self.content: dict[ResourceKey, dict[ResourceKey, list[str]]] = {}
+
+    async def call_async(
         self,
         path: pathlib.Path,
-        resource: Kustomization | HelmRelease | HelmRepository,
-    ) -> ResourceKey:
-        return ResourceKey(
-            path=str(path), namespace=resource.namespace, name=resource.name
-        )
+        doc: Kustomization | HelmRelease | HelmRepository,
+        cmd: Kustomize | None,
+    ) -> None:
+        """Visitor function invoked to build and record resource objects."""
+        if cmd:
+            contents: dict[ResourceKey, list[str]] = {}
+            objects = await cmd.objects()
+            for resource in objects:
+                if not (kind := resource.get("kind")) or not (
+                    metadata := resource.get("metadata")
+                ):
+                    _LOGGER.warning(
+                        "Invalid document did not contain kind or metadata: %s",
+                        resource,
+                    )
+                    continue
+                if annotations := metadata.get("annotations"):
+                    for key in STRIP_ANNOTATIONS:
+                        if key in annotations:
+                            del annotations[key]
+                    if not annotations:
+                        del metadata["annotations"]
+                resource_key = ResourceKey(
+                    kind=kind,
+                    path=None,
+                    namespace=metadata.get("namespace", doc.namespace),
+                    name=metadata.get("name", ""),
+                )
+                content = yaml.dump(resource, sort_keys=False)
+                lines = content.split("\n")
+                lines.insert(0, "---")
+                contents[resource_key] = lines
+            self.content[self.key_func(path, doc)] = contents
 
 
 async def inflate_release(
