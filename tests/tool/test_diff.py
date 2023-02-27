@@ -51,15 +51,13 @@ async def test_diff_ks() -> None:
 
     assert (
         result
-        == """--- tests/testdata/cluster/apps/prod - flux-system/apps
+        == """--- tests/testdata/cluster/apps/prod - Kustomization=flux-system/apps ConfigMap=podinfo/podinfo-config
 
-+++ tests/testdata/cluster/apps/prod - flux-system/apps
++++ tests/testdata/cluster/apps/prod - Kustomization=flux-system/apps ConfigMap=podinfo/podinfo-config
 
-@@ -7,25 +7,14 @@
+@@ -1,9 +0,0 @@
 
-     config.kubernetes.io/index: '0'
-     internal.config.kubernetes.io/index: '0'
- ---
+----
 -apiVersion: v1
 -data:
 -  foo: bar
@@ -67,22 +65,6 @@ async def test_diff_ks() -> None:
 -metadata:
 -  name: podinfo-config
 -  namespace: podinfo
--  annotations:
--    config.kubernetes.io/index: '1'
--    internal.config.kubernetes.io/index: '1'
-----
- apiVersion: helm.toolkit.fluxcd.io/v2beta1
- kind: HelmRelease
- metadata:
-   name: podinfo
-   namespace: podinfo
-   annotations:
--    config.kubernetes.io/index: '2'
--    internal.config.kubernetes.io/index: '2'
-+    config.kubernetes.io/index: '1'
-+    internal.config.kubernetes.io/index: '1'
- spec:
-   chart:
-     spec:
-"""
+-
+"""  # noqa: E501
     )

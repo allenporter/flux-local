@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import logging
 import pathlib
 import tempfile
-from typing import Any
+import yaml
 
 from flux_local import git_repo
 from flux_local.kustomize import Kustomize
@@ -17,17 +17,36 @@ from flux_local.manifest import HelmRelease, Kustomization, HelmRepository
 _LOGGER = logging.getLogger(__name__)
 
 
+# Strip any annotations from kustomize that contribute to diff noise when
+# objects are re-ordered in the output
+STRIP_ANNOTATIONS = [
+    "config.kubernetes.io/index",
+    "internal.config.kubernetes.io/index",
+]
+
+
 @dataclass(frozen=True, order=True)
 class ResourceKey:
     """Key for a Kustomization object output."""
 
-    path: str
-    namespace: str | None = None
-    name: str | None = None
+    path: str | None
+    kind: str
+    namespace: str
+    name: str
 
     @property
     def label(self) -> str:
-        return f"{self.path} - {self.namespace}/{self.name}"
+        parts = []
+        if self.path:
+            parts.append(self.path)
+            parts.append(" - ")
+        parts.append(self.kind)
+        parts.append("=")
+        if self.namespace:
+            parts.append(self.namespace)
+            parts.append("/")
+        parts.append(self.name)
+        return "".join(parts)
 
 
 class ResourceOutput(ABC):
@@ -55,8 +74,17 @@ class ResourceOutput(ABC):
         path: pathlib.Path,
         resource: Kustomization | HelmRelease | HelmRepository,
     ) -> ResourceKey:
+        if isinstance(resource, HelmRepository):
+            kind = "HelmRepostiory"
+        elif isinstance(resource, HelmRelease):
+            kind = "HelmRelease"
+        else:
+            kind = "Kustomization"
         return ResourceKey(
-            path=str(path), namespace=resource.namespace, name=resource.name
+            path=str(path),
+            kind=kind,
+            namespace=resource.namespace or "",
+            name=resource.name or "",
         )
 
 
@@ -83,11 +111,12 @@ class ContentOutput(ResourceOutput):
 
 
 class ObjectOutput(ResourceOutput):
-    """Resource visitor that build string outputs."""
+    """Resource visitor that builds outputs for objects within the kustomization."""
 
     def __init__(self) -> None:
-        """Initialize KustomizationContentOutput."""
-        self.content: dict[ResourceKey, list[dict[str, Any]]] = {}
+        """Initialize ObjectOutput."""
+        # Map of kustomizations to the map of built objects as lines of the yaml string
+        self.content: dict[ResourceKey, dict[ResourceKey, list[str]]] = {}
 
     async def call_async(
         self,
@@ -97,7 +126,34 @@ class ObjectOutput(ResourceOutput):
     ) -> None:
         """Visitor function invoked to build and record resource objects."""
         if cmd:
-            self.content[self.key_func(path, doc)] = await cmd.objects()
+            contents: dict[ResourceKey, list[str]] = {}
+            objects = await cmd.objects()
+            for resource in objects:
+                if not (kind := resource.get("kind")) or not (
+                    metadata := resource.get("metadata")
+                ):
+                    _LOGGER.warning(
+                        "Invalid document did not contain kind or metadata: %s",
+                        resource,
+                    )
+                    continue
+                if annotations := metadata.get("annotations"):
+                    for key in STRIP_ANNOTATIONS:
+                        if key in annotations:
+                            del annotations[key]
+                    if not annotations:
+                        del metadata["annotations"]
+                resource_key = ResourceKey(
+                    kind=kind,
+                    path=None,
+                    namespace=metadata.get("namespace", doc.namespace),
+                    name=metadata.get("name", ""),
+                )
+                content = yaml.dump(resource, sort_keys=False)
+                lines = content.split("\n")
+                lines.insert(0, "---")
+                contents[resource_key] = lines
+            self.content[self.key_func(path, doc)] = contents
 
 
 async def inflate_release(
