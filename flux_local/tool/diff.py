@@ -85,7 +85,10 @@ def perform_yaml_diff(
                 continue
             obj = {
                 **asdict(resource_key, dict_factory=omit_none),
-                "diff_text": diff_content,
+                "diff_markdown": f"""{resource_key.kind} {resource_key.namespace}/{resource_key.name}
+```diff
+{diff_content}
+```""",  # noqa: E501
             }
             resource_diffs.append(obj)
         if resource_diffs:
