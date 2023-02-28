@@ -39,9 +39,9 @@ class ResourceKey:
         parts = []
         if self.path:
             parts.append(self.path)
-            parts.append(" - ")
+            parts.append(" ")
         parts.append(self.kind)
-        parts.append("=")
+        parts.append(": ")
         if self.namespace:
             parts.append(self.namespace)
             parts.append("/")
