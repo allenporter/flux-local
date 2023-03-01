@@ -16,7 +16,7 @@ pytest-cov==4.0.0
 pytest-golden==0.2.2
 python-slugify==8.0.1
 PyYAML==6.0
-ruff==0.0.247
+ruff==0.0.253
 types-aiofiles==22.1.0.9
 types-PyYAML==6.0.12.8
 typing-extensions==4.5.0
