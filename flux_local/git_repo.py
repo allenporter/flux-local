@@ -146,6 +146,7 @@ class ResourceVisitor:
     func: Callable[
         [
             Path,
+            Path,
             Kustomization | HelmRelease | HelmRepository,
             kustomize.Kustomize | None,
         ],
@@ -154,7 +155,7 @@ class ResourceVisitor:
     """Function called with the resource and optional content.
 
     The function arguments are:
-      - path: This is the cluster or kustomization path needed to disambiguate
+      - path: This is the cluster and kustomization paths needed to disambiguate
         when there are multiple clusters in the repository.
       - doc: The resource object (e.g. Kustomization, HelmRelease, etc)
       - cmd: A Kustomize object that can produce the specified object. Only supported
@@ -389,6 +390,7 @@ async def get_kustomizations(path: Path) -> list[dict[str, Any]]:
 
 async def build_kustomization(
     kustomization: Kustomization,
+    cluster_path: Path,
     root: Path,
     stash_prefix: Path,
     kustomization_selector: MetadataSelector,
@@ -424,6 +426,7 @@ async def build_kustomization(
     if kustomization_selector.visitor:
         if kustomization_selector.visitor:
             await kustomization_selector.visitor.func(
+                cluster_path,
                 Path(kustomization.path),
                 kustomization,
                 cmd,
@@ -498,6 +501,7 @@ async def build_manifest(
             helm_tasks.append(
                 build_kustomization(
                     kustomization,
+                    Path(cluster.path),
                     selector.path.root,
                     cluster_stash,
                     selector.kustomization,
@@ -523,16 +527,24 @@ async def build_manifest(
         # Visit Helm resources
         for cluster in clusters:
             if selector.helm_repo.visitor:
-                for helm_repo in cluster.helm_repos:
-                    await selector.helm_repo.visitor.func(
-                        Path(cluster.path), helm_repo, None
-                    )
+                for kustomization in cluster.kustomizations:
+                    for helm_repo in kustomization.helm_repos:
+                        await selector.helm_repo.visitor.func(
+                            Path(cluster.path),
+                            Path(kustomization.path),
+                            helm_repo,
+                            None,
+                        )
 
             if selector.helm_release.visitor:
-                for helm_release in cluster.helm_releases:
-                    await selector.helm_release.visitor.func(
-                        Path(cluster.path), helm_release, None
-                    )
+                for kustomization in cluster.kustomizations:
+                    for helm_release in kustomization.helm_releases:
+                        await selector.helm_release.visitor.func(
+                            Path(cluster.path),
+                            Path(kustomization.path),
+                            helm_release,
+                            None,
+                        )
 
     return Manifest(clusters=clusters)
 

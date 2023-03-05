@@ -29,7 +29,8 @@ STRIP_ANNOTATIONS = [
 class ResourceKey:
     """Key for a Kustomization object output."""
 
-    path: str | None
+    cluster_path: str
+    kustomization_path: str
     kind: str
     namespace: str
     name: str
@@ -37,9 +38,20 @@ class ResourceKey:
     @property
     def label(self) -> str:
         parts = []
-        if self.path:
-            parts.append(self.path)
+        # Either path is a unique identifier within the git repo so prefer the
+        # most specific path first.
+        if self.kustomization_path:
+            parts.append(self.kustomization_path)
             parts.append(" ")
+        elif self.cluster_path:
+            parts.append(self.cluster_path)
+            parts.append(" ")
+        parts.append(self.compact_label)
+        return "".join(parts)
+
+    @property
+    def compact_label(self) -> str:
+        parts = []
         parts.append(self.kind)
         parts.append(": ")
         if self.namespace:
@@ -63,7 +75,8 @@ class ResourceOutput(ABC):
     @abstractmethod
     async def call_async(
         self,
-        path: pathlib.Path,
+        cluster_path: pathlib.Path,
+        kustomization_path: pathlib.Path,
         doc: Kustomization | HelmRelease | HelmRepository,
         cmd: Kustomize | None,
     ) -> None:
@@ -71,7 +84,8 @@ class ResourceOutput(ABC):
 
     def key_func(
         self,
-        path: pathlib.Path,
+        cluster_path: pathlib.Path,
+        kustomization_path: pathlib.Path,
         resource: Kustomization | HelmRelease | HelmRepository,
     ) -> ResourceKey:
         if isinstance(resource, HelmRepository):
@@ -81,7 +95,8 @@ class ResourceOutput(ABC):
         else:
             kind = "Kustomization"
         return ResourceKey(
-            path=str(path),
+            cluster_path=str(cluster_path),
+            kustomization_path=str(kustomization_path),
             kind=kind,
             namespace=resource.namespace or "",
             name=resource.name or "",
@@ -97,7 +112,8 @@ class ContentOutput(ResourceOutput):
 
     async def call_async(
         self,
-        path: pathlib.Path,
+        cluster_path: pathlib.Path,
+        kustomization_path: pathlib.Path,
         doc: Kustomization | HelmRelease | HelmRepository,
         cmd: Kustomize | None,
     ) -> None:
@@ -107,7 +123,7 @@ class ContentOutput(ResourceOutput):
             lines = content.split("\n")
             if lines[0] != "---":
                 lines.insert(0, "---")
-            self.content[self.key_func(path, doc)] = lines
+            self.content[self.key_func(cluster_path, kustomization_path, doc)] = lines
 
 
 class ObjectOutput(ResourceOutput):
@@ -120,7 +136,8 @@ class ObjectOutput(ResourceOutput):
 
     async def call_async(
         self,
-        path: pathlib.Path,
+        cluster_path: pathlib.Path,
+        kustomization_path: pathlib.Path,
         doc: Kustomization | HelmRelease | HelmRepository,
         cmd: Kustomize | None,
     ) -> None:
@@ -145,7 +162,8 @@ class ObjectOutput(ResourceOutput):
                         del metadata["annotations"]
                 resource_key = ResourceKey(
                     kind=kind,
-                    path=None,
+                    cluster_path=str(cluster_path),
+                    kustomization_path=str(kustomization_path),
                     namespace=metadata.get("namespace", doc.namespace),
                     name=metadata.get("name", ""),
                 )
@@ -153,7 +171,9 @@ class ObjectOutput(ResourceOutput):
                 lines = content.split("\n")
                 lines.insert(0, "---")
                 contents[resource_key] = lines
-            self.content[self.key_func(path, doc)] = contents
+            self.content[
+                self.key_func(cluster_path, kustomization_path, doc)
+            ] = contents
 
 
 async def inflate_release(
@@ -165,7 +185,8 @@ async def inflate_release(
     skip_secrets: bool,
 ) -> None:
     cmd = await helm.template(release, skip_crds=skip_crds, skip_secrets=skip_secrets)
-    await visitor.func(cluster_path, release, cmd)
+    # We can ignore the Kustomiation path since we're essentially grouping by cluster
+    await visitor.func(cluster_path, pathlib.Path(""), release, cmd)
 
 
 class HelmVisitor:
@@ -192,13 +213,16 @@ class HelmVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
 
         async def add_repo(
-            path: pathlib.Path,
+            cluster_path: pathlib.Path,
+            kustomization_path: pathlib.Path,
             doc: Kustomization | HelmRelease | HelmRepository,
             cmd: Kustomize | None,
         ) -> None:
             if not isinstance(doc, HelmRepository):
                 raise ValueError(f"Expected HelmRepository: {doc}")
-            self.repos[str(path)] = self.repos.get(str(path), []) + [doc]
+            self.repos[str(cluster_path)] = self.repos.get(str(cluster_path), []) + [
+                doc
+            ]
 
         return git_repo.ResourceVisitor(func=add_repo)
 
@@ -206,13 +230,16 @@ class HelmVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
 
         async def add_release(
-            path: pathlib.Path,
+            cluster_path: pathlib.Path,
+            kustomization_path: pathlib.Path,
             doc: Kustomization | HelmRelease | HelmRepository,
             cmd: Kustomize | None,
         ) -> None:
             if not isinstance(doc, HelmRelease):
                 raise ValueError(f"Expected HelmRelease: {doc}")
-            self.releases[str(path)] = self.releases.get(str(path), []) + [doc]
+            self.releases[str(cluster_path)] = self.releases.get(
+                str(cluster_path), []
+            ) + [doc]
 
         return git_repo.ResourceVisitor(func=add_release)
 
@@ -247,9 +274,12 @@ class HelmVisitor:
         skip_secrets: bool,
     ) -> None:
         _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
+        active_repos = self.active_repos(str(cluster_path))
+        if not active_repos:
+            return
         with tempfile.TemporaryDirectory() as tmp_dir:
             helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
-            helm.add_repos(self.active_repos(str(cluster_path)))
+            helm.add_repos(active_repos)
             await helm.update()
             tasks = [
                 inflate_release(

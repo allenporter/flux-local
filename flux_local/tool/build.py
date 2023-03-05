@@ -40,11 +40,18 @@ class BuildAction:
         query.helm_release.visitor = helm_visitor.release_visitor()
         await git_repo.build_manifest(selector=query)
 
+        # We use a separate output object so that the contents of the HelmRelease
+        # always come after the HelmRelease itself. This means all the helm releases
+        # are built at the end. It might be more natural to sort by Kustomization
+        # or have the contents of the release immediately following it if we could
+        # make the ResourceKeys sort that way, but the helm visitor loses the
+        # Kustomziation information at the moment.
+        helm_content = ContentOutput()
         if enable_helm:
             with tempfile.TemporaryDirectory() as helm_cache_dir:
                 await helm_visitor.inflate(
                     pathlib.Path(helm_cache_dir),
-                    content.visitor(),
+                    helm_content.visitor(),
                     skip_crds,
                     skip_secrets,
                 )
@@ -53,4 +60,10 @@ class BuildAction:
         keys.sort()
         for key in keys:
             for line in content.content[key]:
+                print(line)
+
+        keys = list(helm_content.content)
+        keys.sort()
+        for key in keys:
+            for line in helm_content.content[key]:
                 print(line)
