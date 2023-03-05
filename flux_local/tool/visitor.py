@@ -274,13 +274,13 @@ class HelmVisitor:
         skip_secrets: bool,
     ) -> None:
         _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
-        active_repos = self.active_repos(str(cluster_path))
-        if not active_repos:
+        if not self.releases:
             return
         with tempfile.TemporaryDirectory() as tmp_dir:
             helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
-            helm.add_repos(active_repos)
-            await helm.update()
+            if active_repos := self.active_repos(str(cluster_path)):
+                helm.add_repos(active_repos)
+                await helm.update()
             tasks = [
                 inflate_release(
                     cluster_path, helm, release, visitor, skip_crds, skip_secrets
