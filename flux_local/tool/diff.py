@@ -16,7 +16,7 @@ import yaml
 from flux_local import git_repo
 
 from . import selector
-from .visitor import HelmVisitor, ObjectOutput
+from .visitor import HelmVisitor, ObjectOutput, ResourceKey
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ def perform_object_diff(
             diff_text = difflib.unified_diff(
                 a=a_resources.get(resource_key, []),
                 b=b_resources.get(resource_key, []),
-                fromfile=f"{kustomization_key.label} {resource_key.label}",
-                tofile=f"{kustomization_key.label} {resource_key.label}",
+                fromfile=f"{kustomization_key.label} {resource_key.compact_label}",
+                tofile=f"{kustomization_key.label} {resource_key.compact_label}",
                 n=n,
             )
             for line in diff_text:
@@ -78,8 +78,8 @@ def perform_yaml_diff(
             diff_text = difflib.unified_diff(
                 a=a_resources.get(resource_key, []),
                 b=b_resources.get(resource_key, []),
-                fromfile=f"{kustomization_key.label} {resource_key.label}",
-                tofile=f"{kustomization_key.label} {resource_key.label}",
+                fromfile=f"{kustomization_key.label} {resource_key.compact_label}",
+                tofile=f"{kustomization_key.label} {resource_key.compact_label}",
                 n=n,
             )
             diff_content = "\n".join(diff_text)
@@ -99,6 +99,24 @@ def perform_yaml_diff(
             )
     if diffs:
         yield yaml.dump(diffs, sort_keys=False, explicit_start=True, default_style=None)
+
+
+def get_helm_release_diff_keys(
+    a: ObjectOutput, b: ObjectOutput
+) -> dict[str, list[ResourceKey]]:
+    """Return HelmRelease resource keys with diffs, by cluster."""
+    result: dict[str, list[ResourceKey]] = {}
+    for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+        cluster_path = kustomization_key.cluster_path
+        _LOGGER.debug("Diffing results for Kustomization %s", kustomization_key)
+        a_resources = a.content.get(kustomization_key, {})
+        b_resources = b.content.get(kustomization_key, {})
+        for resource_key in set(a_resources.keys()) | set(b_resources.keys()):
+            if resource_key.kind != "HelmRelease":
+                continue
+            if a_resources.get(resource_key) != b_resources.get(resource_key):
+                result[cluster_path] = result.get(cluster_path, []) + [resource_key]
+    return result
 
 
 def add_diff_flags(args: ArgumentParser) -> None:
@@ -235,14 +253,18 @@ class DiffHelmReleaseAction:
     ) -> None:
         """Async Action implementation."""
         query = selector.build_hr_selector(**kwargs)
+        content = ObjectOutput()
         helm_visitor = HelmVisitor()
+        query.kustomization.visitor = content.visitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
         await git_repo.build_manifest(selector=query)
 
+        orig_content = ObjectOutput()
         orig_helm_visitor = HelmVisitor()
         with create_diff_path(query.path, **kwargs) as path_selector:
             query.path = path_selector
+            query.kustomization.visitor = orig_content.visitor()
             query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
             query.helm_release.visitor = orig_helm_visitor.release_visitor()
             await git_repo.build_manifest(selector=query)
@@ -251,29 +273,61 @@ class DiffHelmReleaseAction:
             print(selector.not_found("HelmRelease", query.helm_release))
             return
 
-        content = ObjectOutput()
-        orig_content = ObjectOutput()
+        # Find HelmRelease objects with diffs and prune all other HelmReleases from
+        # the helm visitors. We assume that the only way for a HelmRelease output
+        # to have a diff is if the HelmRelease in the kustomization has a diff.
+        # This avoid building unnecessary resources and churn from things like
+        # random secret generation.
+        diff_resource_keys = get_helm_release_diff_keys(orig_content, content)
+        cluster_paths = {
+            kustomization_key.cluster_path
+            for kustomization_key in set(orig_content.content.keys())
+            | set(content.content.keys())
+        }
+        for cluster_path in cluster_paths:
+            diff_keys = diff_resource_keys.get(cluster_path, [])
+            diff_names = {
+                f"{resource_key.namespace}/{resource_key.name}"
+                for resource_key in diff_keys
+            }
+            if cluster_path in helm_visitor.releases:
+                releases = [
+                    release
+                    for release in helm_visitor.releases[cluster_path]
+                    if f"{release.namespace}/{release.name}" in diff_names
+                ]
+                helm_visitor.releases[cluster_path] = releases
+            if cluster_path in orig_helm_visitor.releases:
+                releases = [
+                    release
+                    for release in orig_helm_visitor.releases[cluster_path]
+                    if f"{release.namespace}/{release.name}" in diff_names
+                ]
+                orig_helm_visitor.releases[cluster_path] = releases
+
+        helm_content = ObjectOutput()
+        orig_helm_content = ObjectOutput()
         with tempfile.TemporaryDirectory() as helm_cache_dir:
             await asyncio.gather(
                 helm_visitor.inflate(
                     pathlib.Path(helm_cache_dir),
-                    content.visitor(),
+                    helm_content.visitor(),
                     query.helm_release.skip_crds,
                     skip_secrets=query.helm_release.skip_secrets,
                 ),
                 orig_helm_visitor.inflate(
                     pathlib.Path(helm_cache_dir),
-                    orig_content.visitor(),
+                    orig_helm_content.visitor(),
                     query.helm_release.skip_crds,
                     skip_secrets=query.helm_release.skip_secrets,
                 ),
             )
 
         if output == "yaml":
-            for line in perform_yaml_diff(orig_content, content, unified):
+            for line in perform_yaml_diff(orig_helm_content, helm_content, unified):
                 print(line)
         else:
-            for line in perform_object_diff(orig_content, content, unified):
+            for line in perform_object_diff(orig_helm_content, helm_content, unified):
                 print(line)
 
 

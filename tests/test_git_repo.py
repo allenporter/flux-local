@@ -15,7 +15,7 @@ from flux_local.git_repo import (
     make_clusters,
 )
 from flux_local.kustomize import Kustomize
-from flux_local.manifest import HelmRepository, HelmRelease, Kustomization
+from flux_local.manifest import Kustomization
 
 TESTDATA = Path("tests/testdata/cluster")
 
@@ -122,8 +122,10 @@ async def test_kustomization_visitor() -> None:
     query.path.path = TESTDATA
 
     stream = io.StringIO()
+    visits: list[tuple[str, str, str, str]] = []
 
-    async def write(x: Path, y: Any, cmd: Kustomize | None) -> None:
+    async def write(w: Path, x: Path, y: Any, cmd: Kustomize | None) -> None:
+        visits.append((str(w), str(x), y.namespace, y.name))
         if cmd:
             stream.write(await cmd.run())
 
@@ -141,6 +143,34 @@ async def test_kustomization_visitor() -> None:
     assert kustomization.namespace == "flux-system"
     assert kustomization.path == "./tests/testdata/cluster/apps/prod"
 
+    visits.sort()
+    assert visits == [
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/apps/prod",
+            "flux-system",
+            "apps",
+        ),
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/clusters/prod",
+            "flux-system",
+            "flux-system",
+        ),
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/infrastructure/configs",
+            "flux-system",
+            "infra-configs",
+        ),
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/infrastructure/controllers",
+            "flux-system",
+            "infra-controllers",
+        ),
+    ]
+
     content = stream.getvalue()
     assert content
     assert "kind: HelmRelease" in content
@@ -153,10 +183,10 @@ async def test_helm_repo_visitor() -> None:
     query = ResourceSelector()
     query.path.path = TESTDATA
 
-    objects: list[HelmRepository] = []
+    visits: list[tuple[str, str, str, str]] = []
 
-    async def append(x: Path, y: Any, z: Any) -> None:
-        objects.append(y)
+    async def append(w: Path, x: Path, y: Any, z: Any) -> None:
+        visits.append((str(w), str(x), y.namespace, y.name))
 
     query.helm_repo.visitor = ResourceVisitor(
         func=append,
@@ -172,13 +202,21 @@ async def test_helm_repo_visitor() -> None:
     assert len(cluster.helm_repos) == 2
     assert len(cluster.helm_releases) == 2
 
-    assert len(objects) == 2
-    obj = objects[0]
-    assert obj.name == "bitnami"
-    assert obj.namespace == "flux-system"
-    obj = objects[1]
-    assert obj.name == "podinfo"
-    assert obj.namespace == "flux-system"
+    visits.sort()
+    assert visits == [
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/infrastructure/configs",
+            "flux-system",
+            "bitnami",
+        ),
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/infrastructure/configs",
+            "flux-system",
+            "podinfo",
+        ),
+    ]
 
 
 async def test_helm_release_visitor() -> None:
@@ -187,10 +225,10 @@ async def test_helm_release_visitor() -> None:
     query = ResourceSelector()
     query.path.path = TESTDATA
 
-    objects: list[HelmRelease] = []
+    visits: list[tuple[str, str, str, str]] = []
 
-    async def append(x: Path, y: Any, z: Any) -> None:
-        objects.append(y)
+    async def append(w: Path, x: Path, y: Any, z: Any) -> None:
+        visits.append((str(w), str(x), y.namespace, y.name))
 
     query.helm_release.visitor = ResourceVisitor(
         func=append,
@@ -206,13 +244,21 @@ async def test_helm_release_visitor() -> None:
     assert len(cluster.helm_repos) == 2
     assert len(cluster.helm_releases) == 2
 
-    assert len(objects) == 2
-    obj = objects[0]
-    assert obj.name == "podinfo"
-    assert obj.namespace == "podinfo"
-    obj = objects[1]
-    assert obj.name == "metallb"
-    assert obj.namespace == "metallb"
+    visits.sort()
+    assert visits == [
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/apps/prod",
+            "podinfo",
+            "podinfo",
+        ),
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/infrastructure/controllers",
+            "metallb",
+            "metallb",
+        ),
+    ]
 
 
 @pytest.mark.parametrize(
