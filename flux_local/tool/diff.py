@@ -57,17 +57,6 @@ def perform_yaml_diff(
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
 
-    def str_presenter(dumper: yaml.Dumper, data: Any) -> Any:
-        """Represent multi-line yaml strings as you'd expect.
-
-        See https://github.com/yaml/pyyaml/issues/240
-        """
-        return dumper.represent_scalar(
-            "tag:yaml.org,2002:str", data, style="|" if data.count("\n") > 0 else None
-        )
-
-    yaml.add_representer(str, str_presenter)
-
     diffs = []
     for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
         _LOGGER.debug("Diffing results for %s (n=%d)", kustomization_key, n)
