@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from collections.abc import Sequence
 
+from .exceptions import CommandException
+
 _LOGGER = logging.getLogger(__name__)
 
 _CONCURRENCY = 20
@@ -17,10 +19,6 @@ _SEM = asyncio.Semaphore(_CONCURRENCY)
 
 # No public API
 __all__: list[str] = []
-
-
-class CommandException(Exception):
-    """Error while running a command."""
 
 
 class Task(ABC):
@@ -40,6 +38,8 @@ class Command(Task):
 
     cwd: Path | None = None
     """Current working directory."""
+
+    exc: type[CommandException] = CommandException
 
     @property
     def string(self) -> str:
@@ -62,14 +62,13 @@ class Command(Task):
         )
         out, err = await proc.communicate(stdin)
         if proc.returncode:
+            errors = [f"Command '{self}' failed with return code {proc.returncode}"]
             if out:
-                _LOGGER.error(out.decode("utf-8"))
+                errors.append(out.decode("utf-8"))
             if err:
-                _LOGGER.error(err.decode("utf-8"))
-            raise CommandException(
-                f"Subprocess '{self}' failed with return code {proc.returncode}: "
-                + out.decode("utf-8")
-            )
+                errors.append(err.decode("utf-8"))
+            _LOGGER.error("\n".join(errors))
+            raise self.exc("\n".join(errors))
         return out
 
 

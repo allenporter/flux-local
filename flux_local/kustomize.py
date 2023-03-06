@@ -44,7 +44,12 @@ from typing import Any, AsyncGenerator
 import yaml
 
 from . import manifest
-from .command import Command, run_piped, Task, CommandException
+from .command import Command, run_piped, Task
+from .exceptions import (
+    InputException,
+    KustomizeException,
+    KyvernoException,
+)
 
 __all__ = [
     "build",
@@ -75,7 +80,7 @@ class Kustomize:
         out = [KUSTOMIZE_BIN, "cfg", "grep", expr]
         if invert:
             out.append("--invert-match")
-        return Kustomize(self._cmds + [Command(out)])
+        return Kustomize(self._cmds + [Command(out, exc=KustomizeException)])
 
     def grep_helm_release(
         self, helm_release: manifest.HelmRelease | None = None, invert: bool = False
@@ -83,7 +88,7 @@ class Kustomize:
         """Filter the resources based on the specified HelmRelease."""
         if helm_release:
             if invert:
-                raise ValueError(
+                raise InputException(
                     "Must specify either helm_release or invert but not both"
                 )
             return (
@@ -93,7 +98,7 @@ class Kustomize:
             )
         if invert:
             return self.grep(f"kind=^{HELM_RELEASE_KIND}$", invert=True)
-        raise ValueError("Must specify either helm_release or invert")
+        raise InputException("Must specify either helm_release or invert")
 
     async def run(self) -> str:
         """Run the kustomize command and return the output as a string."""
@@ -131,7 +136,8 @@ class Kustomize:
                     str(policy_path),
                     "--resource",
                     "-",
-                ]
+                ],
+                exc=KyvernoException,
             ),
         ]
         await run_piped(cmds)
@@ -157,10 +163,10 @@ class Build(Task):
     async def run(self, stdin: bytes | None = None) -> bytes:
         """Run the task."""
         if stdin is not None:
-            raise ValueError("Invalid stdin cannot be passed to build command")
+            raise InputException("Invalid stdin cannot be passed to build command")
 
         if not await isdir(self._path):
-            raise CommandException(f"Specified path is not a directory: {self._path}")
+            raise InputException(f"Specified path is not a directory: {self._path}")
         if not await can_kustomize_dir(self._path):
             # Attempt to effectively generate a kustomization.yaml on the fly
             # mirroring the behavior of flux
@@ -172,7 +178,7 @@ class Build(Task):
             cwd = self._path
         else:
             args.append(str(self._path))
-        task = Command(args, cwd=cwd)
+        task = Command(args, cwd=cwd, exc=KustomizeException)
         return await task.run()
 
 
@@ -236,4 +242,4 @@ def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
         cwd = path
     else:
         args.append(str(path))
-    return Kustomize([Command(args, cwd=cwd)])
+    return Kustomize([Command(args, cwd=cwd, exc=KustomizeException)])

@@ -3,8 +3,9 @@
 """
 
 __all__ = [
-    "manifest",
-    "helm",
-    "kustomize",
     "git_repo",
+    "manifest",
+    "kustomize",
+    "helm",
+    "exceptions",
 ]
