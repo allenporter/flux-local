@@ -34,26 +34,40 @@ class GetKustomizationAction:
             ),
         )
         selector.add_ks_selector_flags(args)
+        args.add_argument(
+            "--output",
+            "-o",
+            choices=["wide"],
+            default=None,
+            help="Output format of the command",
+        )
         args.set_defaults(cls=cls)
         return args
 
     async def run(  # type: ignore[no-untyped-def]
         self,
+        output: str | None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
         query = selector.build_ks_selector(**kwargs)
+        if output != "wide":
+            query.helm_release.enabled = False
+            query.helm_repo.enabled = False
         manifest = await git_repo.build_manifest(selector=query)
 
         results: list[dict[str, str]] = []
-        cols = ["name", "path", "helmrepos", "releases"]
+        cols = ["name", "path"]
+        if output == "wide":
+            cols.extend(["helmrepos", "releases"])
         if len(manifest.clusters) > 1:
             cols.insert(0, "cluster")
         for cluster in manifest.clusters:
             for ks in cluster.kustomizations:
                 value = ks.dict(include=set(cols))
-                value["helmrepos"] = len(ks.helm_repos)
-                value["releases"] = len(ks.helm_releases)
+                if output == "wide":
+                    value["helmrepos"] = len(ks.helm_repos)
+                    value["releases"] = len(ks.helm_releases)
                 value["cluster"] = cluster.path
                 results.append(value)
 
