@@ -6,6 +6,7 @@ import logging
 import pathlib
 import sys
 import traceback
+from typing import Any
 
 import yaml
 
@@ -17,6 +18,18 @@ _LOGGER = logging.getLogger(__name__)
 
 def main() -> None:
     """Flux-local command line tool main entry point."""
+
+    def str_presenter(dumper: yaml.Dumper, data: Any) -> Any:
+        """Represent multi-line yaml strings as you'd expect.
+
+        See https://github.com/yaml/pyyaml/issues/240
+        """
+        return dumper.represent_scalar(
+            "tag:yaml.org,2002:str", data, style="|" if data.count("\n") > 0 else None
+        )
+
+    yaml.add_representer(str, str_presenter)
+
     # https://github.com/yaml/pyyaml/issues/89
     yaml.Loader.yaml_implicit_resolvers.pop("=")
 
