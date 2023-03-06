@@ -28,7 +28,7 @@ use the flux command on a real cluster.
 
 This example lists all Kustomizations in the cluster:
 ```bash
-$ flux-local get ks
+$ flux-local get ks -o wide
 NAME                 PATH                                                   HELMREPOS    RELEASES
 apps                 ./tests/testdata/cluster/apps/prod                     0            0
 infra-controllers    ./tests/testdata/cluster/infrastructure/controllers    0            0
