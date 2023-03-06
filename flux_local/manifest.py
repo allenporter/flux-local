@@ -12,6 +12,8 @@ import aiofiles
 import yaml
 from pydantic import BaseModel, Field
 
+from .exceptions import InputException
+
 __all__ = [
     "read_manifest",
     "write_manifest",
@@ -37,9 +39,9 @@ SECRET_KIND = "Secret"
 def _check_version(doc: dict[str, Any], version: str) -> None:
     """Assert that the resource has the specified version."""
     if not (api_version := doc.get("apiVersion")):
-        raise ValueError(f"Invalid object missing apiVersion: {doc}")
+        raise InputException(f"Invalid object missing apiVersion: {doc}")
     if not api_version.startswith(version):
-        raise ValueError(f"Invalid object expected '{version}': {doc}")
+        raise InputException(f"Invalid object expected '{version}': {doc}")
 
 
 class BaseManifest(BaseModel):
@@ -87,18 +89,20 @@ class HelmChart(BaseManifest):
         """Parse a HelmChart from a HelmRelease resource object."""
         _check_version(doc, HELM_RELEASE_DOMAIN)
         if not (spec := doc.get("spec")):
-            raise ValueError(f"Invalid {cls} missing spec: {doc}")
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (chart := spec.get("chart")):
-            raise ValueError(f"Invalid {cls} missing spec.chart: {doc}")
+            raise InputException(f"Invalid {cls} missing spec.chart: {doc}")
         if not (chart_spec := chart.get("spec")):
-            raise ValueError(f"Invalid {cls} missing spec.chart.spec: {doc}")
+            raise InputException(f"Invalid {cls} missing spec.chart.spec: {doc}")
         if not (chart := chart_spec.get("chart")):
-            raise ValueError(f"Invalid {cls} missing spec.chart.spec.chart: {doc}")
+            raise InputException(f"Invalid {cls} missing spec.chart.spec.chart: {doc}")
         version = chart_spec.get("version")
         if not (source_ref := chart_spec.get("sourceRef")):
-            raise ValueError(f"Invalid {cls} missing spec.chart.spec.sourceRef: {doc}")
+            raise InputException(
+                f"Invalid {cls} missing spec.chart.spec.sourceRef: {doc}"
+            )
         if "namespace" not in source_ref or "name" not in source_ref:
-            raise ValueError(f"Invalid {cls} missing sourceRef fields: {doc}")
+            raise InputException(f"Invalid {cls} missing sourceRef fields: {doc}")
         return cls(
             name=chart,
             version=version,
@@ -134,11 +138,11 @@ class HelmRelease(BaseManifest):
         """Parse a HelmRelease from a kubernetes resource object."""
         _check_version(doc, HELM_RELEASE_DOMAIN)
         if not (metadata := doc.get("metadata")):
-            raise ValueError(f"Invalid {cls} missing metadata: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
-            raise ValueError(f"Invalid {cls} missing metadata.name: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
         if not (namespace := metadata.get("namespace")):
-            raise ValueError(f"Invalid {cls} missing metadata.namespace: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
         chart = HelmChart.parse_doc(doc)
         return cls(
             name=name,
@@ -175,15 +179,15 @@ class HelmRepository(BaseManifest):
         """Parse a HelmRepository from a kubernetes resource."""
         _check_version(doc, HELM_REPO_DOMAIN)
         if not (metadata := doc.get("metadata")):
-            raise ValueError(f"Invalid {cls} missing metadata: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
-            raise ValueError(f"Invalid {cls} missing metadata.name: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
         if not (namespace := metadata.get("namespace")):
-            raise ValueError(f"Invalid {cls} missing metadata.namespace: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
         if not (spec := doc.get("spec")):
-            raise ValueError(f"Invalid {cls} missing spec: {doc}")
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (url := spec.get("url")):
-            raise ValueError(f"Invalid {cls} missing spec.url: {doc}")
+            raise InputException(f"Invalid {cls} missing spec.url: {doc}")
         return cls(name=name, namespace=namespace, url=url)
 
     @property
@@ -223,15 +227,15 @@ class Kustomization(BaseManifest):
         """Parse a partial Kustomization from a kubernetes resource."""
         _check_version(doc, CLUSTER_KUSTOMIZE_DOMAIN)
         if not (metadata := doc.get("metadata")):
-            raise ValueError(f"Invalid {cls} missing metadata: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
-            raise ValueError(f"Invalid {cls} missing metadata.name: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
         if not (namespace := metadata.get("namespace")):
-            raise ValueError(f"Invalid {cls} missing metadata.namespace: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
         if not (spec := doc.get("spec")):
-            raise ValueError(f"Invalid {cls} missing spec: {doc}")
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (path := spec.get("path")):
-            raise ValueError(f"Invalid {cls} missing spec.path: {doc}")
+            raise InputException(f"Invalid {cls} missing spec.path: {doc}")
         source_path = metadata.get("annotations", {}).get("config.kubernetes.io/path")
         return Kustomization(
             name=name, namespace=namespace, path=path, source_path=source_path
@@ -274,15 +278,15 @@ class Cluster(BaseManifest):
         """Parse a partial Kustomization from a kubernetes resource."""
         _check_version(doc, CLUSTER_KUSTOMIZE_DOMAIN)
         if not (metadata := doc.get("metadata")):
-            raise ValueError(f"Invalid {cls} missing metadata: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
-            raise ValueError(f"Invalid {cls} missing metadata.name: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
         if not (namespace := metadata.get("namespace")):
-            raise ValueError(f"Invalid {cls} missing metadata.namespace: {doc}")
+            raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
         if not (spec := doc.get("spec")):
-            raise ValueError(f"Invalid {cls} missing spec: {doc}")
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (path := spec.get("path")):
-            raise ValueError(f"Invalid {cls} missing spec.path: {doc}")
+            raise InputException(f"Invalid {cls} missing spec.path: {doc}")
         return Cluster(name=name, namespace=namespace, path=path)
 
     @property

@@ -56,6 +56,7 @@ from .manifest import (
     Manifest,
     SECRET_KIND,
 )
+from .exceptions import InputException
 
 __all__ = [
     "build_manifest",
@@ -77,9 +78,12 @@ DEFAULT_NAMESPACE = "flux-system"
 @cache
 def git_repo(path: Path | None = None) -> git.repo.Repo:
     """Return the local git repo path."""
-    if path is None:
-        return git.repo.Repo(os.getcwd(), search_parent_directories=True)
-    return git.repo.Repo(str(path), search_parent_directories=True)
+    try:
+        if path is None:
+            return git.repo.Repo(os.getcwd(), search_parent_directories=True)
+        return git.repo.Repo(str(path), search_parent_directories=True)
+    except git.GitError as err:
+        raise InputException(f"Unable to find input path {path}: {err}") from err
 
 
 @cache
@@ -323,7 +327,9 @@ def make_clusters(kustomizations: list[Kustomization]) -> list[Cluster]:
     parent_paths = set([Path(ks.path) for ks in kustomizations])
     for ks in kustomizations:
         if not ks.source_path:
-            raise ValueError("Kustomization did not have source path; Old kustomize?")
+            raise InputException(
+                "Kustomization did not have source path; Old kustomize?"
+            )
         path = Path(ks.path)
         source = Path(ks.source_path)
         graph.add_node(path, ks=ks)

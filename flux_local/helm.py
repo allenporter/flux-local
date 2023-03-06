@@ -45,6 +45,7 @@ import yaml
 from . import command
 from .kustomize import Kustomize
 from .manifest import HelmRelease, HelmRepository, CRD_KIND, SECRET_KIND
+from .exceptions import HelmException
 
 __all__ = [
     "Helm",
@@ -115,7 +116,11 @@ class Helm:
         content = yaml.dump(RepositoryConfig(self._repos).config, sort_keys=False)
         async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
             await config_file.write(content)
-        await command.run(command.Command([HELM_BIN, "repo", "update"] + self._flags))
+        await command.run(
+            command.Command(
+                [HELM_BIN, "repo", "update"] + self._flags, exc=HelmException
+            )
+        )
 
     async def template(
         self,
@@ -157,7 +162,7 @@ class Helm:
             async with aiofiles.open(values_path, mode="w") as values_file:
                 await values_file.write(yaml.dump(values, sort_keys=False))
             args.extend(["--values", str(values_path)])
-        cmd = Kustomize([command.Command(args + self._flags)])
+        cmd = Kustomize([command.Command(args + self._flags, exc=HelmException)])
         skips = []
         if skip_crds:
             skips.append(CRD_KIND)

@@ -40,7 +40,7 @@ class ResourceKey:
         parts = []
         # Either path is a unique identifier within the git repo so prefer the
         # most specific path first.
-        if self.kustomization_path:
+        if self.kustomization_path and self.kustomization_path != ".":
             parts.append(self.kustomization_path)
             parts.append(" ")
         elif self.cluster_path:

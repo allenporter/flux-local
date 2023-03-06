@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from . import build, diff, get, test
-from flux_local import command
+from flux_local.exceptions import FluxException
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,10 +84,10 @@ def main() -> None:
     action = args.cls()
     try:
         asyncio.run(action.run(**vars(args)))
-    except command.CommandException as err:
+    except FluxException as err:
         if args.log_level == "DEBUG":
             traceback.print_exc()
-        print("Command failed: ", err)
+        print("flux-local error: ", err)
         sys.exit(1)
 
 
