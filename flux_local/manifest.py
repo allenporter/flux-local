@@ -23,7 +23,7 @@ __all__ = [
     "HelmRepository",
     "HelmRelease",
     "HelmChart",
-    "ManifestException",
+    "ClusterPolicy",
 ]
 
 # Match a prefix of apiVersion to ensure we have the right type of object.
@@ -32,6 +32,7 @@ CLUSTER_KUSTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
 KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
+CLUSTER_POLICY_DOMAIN = "kyverno.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
 
@@ -49,13 +50,15 @@ class BaseManifest(BaseModel):
 
     _COMPACT_EXCLUDE_FIELDS: dict[str, Any] = {}
 
-    def compact_dict(self) -> dict[str, Any]:
+    def compact_dict(self, exclude: dict[str, Any] | None = None) -> dict[str, Any]:
         """Return a compact dictionary representation of the object.
 
         This is similar to `dict()` but with a specific implementation for serializing
         with variable fields removed.
         """
-        return self.dict(exclude=self._COMPACT_EXCLUDE_FIELDS)  # type: ignore[arg-type]
+        if exclude is None:
+            exclude = self._COMPACT_EXCLUDE_FIELDS
+        return self.dict(exclude=exclude)  # type: ignore[arg-type]
 
     @classmethod
     def parse_yaml(cls, content: str) -> "BaseManifest":
@@ -63,9 +66,9 @@ class BaseManifest(BaseModel):
         doc = next(yaml.load_all(content, Loader=yaml.Loader), None)
         return cls.parse_obj(doc)
 
-    def yaml(self) -> str:
+    def yaml(self, exclude: dict[str, Any] | None = None) -> str:
         """Return a YAML string representation of compact_dict."""
-        data = self.compact_dict()
+        data = self.compact_dict(exclude)
         return cast(str, yaml.dump(data, sort_keys=False, explicit_start=True))
 
 
@@ -196,6 +199,36 @@ class HelmRepository(BaseManifest):
         return f"{self.namespace}-{self.name}"
 
 
+class ClusterPolicy(BaseManifest):
+    """A kyverno policy object."""
+
+    name: str
+    """The name of the kustomization."""
+
+    namespace: str | None = None
+    """The namespace of the kustomization."""
+
+    spec: dict[str, Any]
+    """The contents of the policy."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "ClusterPolicy":
+        """Parse a cluster policy object from a kubernetes resource."""
+        _check_version(doc, CLUSTER_POLICY_DOMAIN)
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        namespace = metadata.get("namespace")
+        if not (spec := doc.get("spec")):
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
+        return ClusterPolicy(name=name, namespace=namespace, spec=spec)
+
+    _COMPACT_EXCLUDE_FIELDS = {
+        "spec": True,
+    }
+
+
 class Kustomization(BaseManifest):
     """A Kustomization is a set of declared cluster artifacts.
 
@@ -218,6 +251,9 @@ class Kustomization(BaseManifest):
 
     helm_releases: list[HelmRelease] = Field(default_factory=list)
     """The set of HelmRelease represented in this kustomization."""
+
+    cluster_policies: list[ClusterPolicy] = Field(default_factory=list)
+    """The set of ClusterPolicies represented in this kustomization."""
 
     source_path: str | None = None
     """Optional source path for this Kustomization, relative to the build path."""
@@ -249,6 +285,9 @@ class Kustomization(BaseManifest):
     _COMPACT_EXCLUDE_FIELDS = {
         "helm_releases": {
             "__all__": HelmRelease._COMPACT_EXCLUDE_FIELDS,
+        },
+        "cluster_policies": {
+            "__all__": ClusterPolicy._COMPACT_EXCLUDE_FIELDS,
         },
         "source_path": True,
     }
@@ -312,6 +351,15 @@ class Cluster(BaseManifest):
             for release in kustomization.helm_releases
         ]
 
+    @property
+    def cluster_policieis(self) -> list[ClusterPolicy]:
+        """Return the list of ClusterPolicy objects from all Kustomizations."""
+        return [
+            policy
+            for kustomization in self.kustomizations
+            for policy in kustomization.cluster_policies
+        ]
+
     _COMPACT_EXCLUDE_FIELDS = {
         "kustomizations": {
             "__all__": Kustomization._COMPACT_EXCLUDE_FIELDS,
@@ -330,10 +378,6 @@ class Manifest(BaseManifest):
             "__all__": Cluster._COMPACT_EXCLUDE_FIELDS,
         }
     }
-
-
-class ManifestException(Exception):
-    """Error raised while working with the Manifest."""
 
 
 async def read_manifest(manifest_path: Path) -> Manifest:

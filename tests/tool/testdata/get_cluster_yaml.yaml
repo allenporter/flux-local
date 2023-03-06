@@ -23,11 +23,13 @@ stdout: |
           name: podinfo
           repo_name: podinfo
           repo_namespace: flux-system
+      cluster_policies: []
     - name: flux-system
       namespace: flux-system
       path: ./tests/testdata/cluster/clusters/prod
       helm_repos: []
       helm_releases: []
+      cluster_policies: []
     - name: infra-configs
       namespace: flux-system
       path: ./tests/testdata/cluster/infrastructure/configs
@@ -39,6 +41,9 @@ stdout: |
         namespace: flux-system
         url: https://stefanprodan.github.io/podinfo
       helm_releases: []
+      cluster_policies:
+      - name: test-allow-policy
+        namespace: null
     - name: infra-controllers
       namespace: flux-system
       path: ./tests/testdata/cluster/infrastructure/controllers
@@ -50,3 +55,4 @@ stdout: |
           name: metallb
           repo_name: bitnami
           repo_namespace: flux-system
+      cluster_policies: []

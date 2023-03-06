@@ -149,8 +149,19 @@ class Kustomize:
         chaining with multiple branches.
         """
         content = await self.run()
-        tmp_file.write_text(content)
-        return Kustomize([Command(["cat", str(tmp_file)])])
+        return Kustomize([Stash(content.encode("utf-8"))])
+
+
+class Stash(Task):
+    """A task that memoizes output from a previous command."""
+
+    def __init__(self, out: bytes) -> None:
+        """Initialize Stash."""
+        self._out = out
+
+    async def run(self, stdin: bytes | None = None) -> bytes:
+        """Run the task."""
+        return self._out
 
 
 class Build(Task):
