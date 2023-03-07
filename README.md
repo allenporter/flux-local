@@ -187,10 +187,12 @@ collected 18 items
 ============================================= 18 passed in 11.81s ============================================
 ```
 
-You may also validate `HelmRelease` objects can be templated properly with the `--enable-helm` flag. This
-will run `kustomize build` then run `helm template` on all the `HelmRelease` objects found:
+You may also validate `HelmRelease` objects can be templated properly with the `--enable-helm`
+flag. This will run `kustomize build` then run `helm template` on all the `HelmRelease` objects
+found. Additionally the `--enable-kyverno` flag will apply any found `ClusterPolicy` objects to
+all objects in the cluster and verify they pass:
 ```
-$ flux-local test --enable-helm
+$ flux-local test --enable-helm --enable-kyverno
 ============================================= test session starts =============================================
 collected 81 items
 

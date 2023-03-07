@@ -74,6 +74,7 @@ class HelmReleaseTest(pytest.Item):
             await helm.update()
             cmd = await helm.template(self.helm_release, skip_crds=True)
             await cmd.objects()
+            await cmd.validate_policies(self.cluster.cluster_policies)
 
     def active_repos(self) -> list[HelmRepository]:
         """Return HelpRepositories referenced by a HelmRelease."""
@@ -116,7 +117,9 @@ class KustomizationTest(pytest.Item):
 
     async def async_runtest(self) -> None:
         """Run the Kustomizations test."""
-        await kustomize.build(Path(self.kustomization.path)).objects()
+        cmd = await kustomize.build(Path(self.kustomization.path)).stash()
+        await cmd.objects()
+        await cmd.validate_policies(self.cluster.cluster_policies)
 
 
 class KustomizationCollector(pytest.Collector):
@@ -269,6 +272,12 @@ class TestAction:
             action=BooleanOptionalAction,
             help="Enable use of HelmRelease inflation",
         )
+        args.add_argument(
+            "--enable-kyverno",
+            type=bool,
+            action=BooleanOptionalAction,
+            help="Enable testing of resources against Kyverno policies",
+        )
         # Flags consistent with pytest for pass through
         args.add_argument(
             "test_path",
@@ -300,6 +309,7 @@ class TestAction:
     async def run(  # type: ignore[no-untyped-def]
         self,
         enable_helm: bool,
+        enable_kyverno: bool,
         test_path: Path,
         verbosity: int,
         **kwargs,  # pylint: disable=unused-argument
@@ -311,6 +321,7 @@ class TestAction:
         query.kustomization.skip_crds = True
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
+        query.cluster_policy.enabled = enable_kyverno
 
         nest_asyncio.apply()
         pytest_args = [

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from flux_local import command, kustomize
+from flux_local import kustomize, exceptions
 
 TESTDATA_DIR = Path("tests/testdata")
 
@@ -69,9 +69,9 @@ async def test_objects(path: Path) -> None:
     "path",
     [TESTDATA_DIR / "repo", (TESTDATA_DIR / "repo").absolute()],
 )
-async def test_stash(path: Path, tmp_path: Path) -> None:
+async def test_stash(path: Path) -> None:
     """Test loading yaml documents."""
-    cmd = await kustomize.build(path).stash(tmp_path / "stash")
+    cmd = await kustomize.build(path).stash()
     result = await cmd.grep("kind=ConfigMap").objects()
     assert len(result) == 1
     assert result[0].get("kind") == "ConfigMap"
@@ -102,7 +102,7 @@ async def test_validate_fail(path: Path) -> None:
     """Test applying policies to validate resources."""
     cmd = kustomize.build(path)
     with pytest.raises(
-        command.CommandException, match="require-test-annotation: validation error"
+        exceptions.CommandException, match="require-test-annotation: validation error"
     ):
         await cmd.validate(TESTDATA_DIR / "policies/fail.yaml")
 
