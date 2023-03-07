@@ -208,8 +208,8 @@ class ClusterPolicy(BaseManifest):
     namespace: str | None = None
     """The namespace of the kustomization."""
 
-    spec: dict[str, Any]
-    """The contents of the policy."""
+    doc: dict[str, Any] | None = None
+    """The raw ClusterPolicy document."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "ClusterPolicy":
@@ -220,12 +220,12 @@ class ClusterPolicy(BaseManifest):
         if not (name := metadata.get("name")):
             raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
         namespace = metadata.get("namespace")
-        if not (spec := doc.get("spec")):
+        if not doc.get("spec"):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
-        return ClusterPolicy(name=name, namespace=namespace, spec=spec)
+        return ClusterPolicy(name=name, namespace=namespace, doc=doc)
 
     _COMPACT_EXCLUDE_FIELDS = {
-        "spec": True,
+        "doc": True,
     }
 
 
@@ -352,7 +352,7 @@ class Cluster(BaseManifest):
         ]
 
     @property
-    def cluster_policieis(self) -> list[ClusterPolicy]:
+    def cluster_policies(self) -> list[ClusterPolicy]:
         """Return the list of ClusterPolicy objects from all Kustomizations."""
         return [
             policy

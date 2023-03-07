@@ -38,7 +38,9 @@ import aiofiles
 from aiofiles.os import listdir  # type: ignore[attr-defined]
 from aiofiles.ospath import isdir, exists
 import asyncio
+import logging
 from pathlib import Path
+import tempfile
 from typing import Any, AsyncGenerator
 
 import yaml
@@ -50,6 +52,8 @@ from .exceptions import (
     KustomizeException,
     KyvernoException,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 __all__ = [
     "build",
@@ -121,6 +125,22 @@ class Kustomize:
         skip_re = "|".join(kinds)
         return self.grep(f"kind=^({skip_re})$", invert=True)
 
+    async def validate_policies(self, policies: list[manifest.ClusterPolicy]) -> None:
+        """Apply kyverno policies to objects built so far."""
+        if not policies:
+            return
+        _LOGGER.debug("Validating policies (len=%d)", len(policies))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            policyfile = Path(tmpdir) / "policies.yaml"
+            policyfile.write_text(
+                yaml.dump_all(
+                    [policy.doc for policy in policies],
+                    sort_keys=False,
+                    explicit_start=True,
+                )
+            )
+            await self.validate(policyfile)
+
     async def validate(self, policy_path: Path) -> None:
         """Apply kyverno policies from the directory to any objects built so far.
 
@@ -142,8 +162,8 @@ class Kustomize:
         ]
         await run_piped(cmds)
 
-    async def stash(self, tmp_file: Path) -> "Kustomize":
-        """Output the contents built so far to disk for efficient reuse.
+    async def stash(self) -> "Kustomize":
+        """Memoize the contents built so far for efficient reuse.
 
         This is useful to serialize a chain of commands but allow further
         chaining with multiple branches.

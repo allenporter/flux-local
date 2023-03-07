@@ -1,0 +1,5 @@
+args:
+- test
+- --enable-helm
+- --enable-kyverno
+- tests/testdata/

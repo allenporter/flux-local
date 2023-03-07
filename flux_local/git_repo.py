@@ -38,7 +38,6 @@ import tempfile
 from collections.abc import Callable, Awaitable, Iterable
 from functools import cache
 from pathlib import Path
-from slugify import slugify
 import queue
 from typing import Any, Generator
 
@@ -405,7 +404,6 @@ async def build_kustomization(
     kustomization: Kustomization,
     cluster_path: Path,
     root: Path,
-    stash_prefix: Path,
     kustomization_selector: MetadataSelector,
     helm_release_selector: MetadataSelector,
     helm_repo_selector: MetadataSelector,
@@ -427,17 +425,8 @@ async def build_kustomization(
     if kustomization_selector.skip_secrets:
         skips.append(SECRET_KIND)
     cmd = cmd.skip_resources(skips)
-    cmd = await cmd.stash(
-        Path(
-            "-".join(
-                [
-                    str(stash_prefix),
-                    slugify(kustomization.path),
-                    slugify(kustomization.name),
-                ]
-            )
-        )
-    )
+    cmd = await cmd.stash()
+
     if kustomization_selector.visitor:
         if kustomization_selector.visitor:
             await kustomization_selector.visitor.func(
@@ -519,21 +508,15 @@ async def build_manifest(
             ]
             clusters.append(cluster)
 
-    async def update_kustomization(cluster: Cluster, stash_dir: str) -> None:
-        cluster_stash = Path(stash_dir) / slugify(cluster.path)
+    async def update_kustomization(cluster: Cluster) -> None:
         build_tasks = []
         for kustomization in cluster.kustomizations:
-            _LOGGER.debug(
-                "Processing kustomization: %s (stash=%s)",
-                kustomization.path,
-                cluster_stash,
-            )
+            _LOGGER.debug("Processing kustomization: %s", kustomization.path)
             build_tasks.append(
                 build_kustomization(
                     kustomization,
                     Path(cluster.path),
                     selector.path.root,
-                    cluster_stash,
                     selector.kustomization,
                     selector.helm_release,
                     selector.helm_repo,
@@ -549,34 +532,43 @@ async def build_manifest(
             kustomization.helm_releases = list(helm_releases)
             kustomization.cluster_policies = list(cluster_policies)
 
-    with tempfile.TemporaryDirectory() as stash_dir:
-        kustomization_tasks = []
-        # Expand and visit Kustomizations
-        for cluster in clusters:
-            kustomization_tasks.append(update_kustomization(cluster, stash_dir))
-        await asyncio.gather(*kustomization_tasks)
+    kustomization_tasks = []
+    # Expand and visit Kustomizations
+    for cluster in clusters:
+        kustomization_tasks.append(update_kustomization(cluster))
+    await asyncio.gather(*kustomization_tasks)
 
-        # Visit Helm resources
-        for cluster in clusters:
-            if selector.helm_repo.visitor:
-                for kustomization in cluster.kustomizations:
-                    for helm_repo in kustomization.helm_repos:
-                        await selector.helm_repo.visitor.func(
-                            Path(cluster.path),
-                            Path(kustomization.path),
-                            helm_repo,
-                            None,
-                        )
+    # Visit Helm resources
+    for cluster in clusters:
+        if selector.helm_repo.visitor:
+            for kustomization in cluster.kustomizations:
+                for helm_repo in kustomization.helm_repos:
+                    await selector.helm_repo.visitor.func(
+                        Path(cluster.path),
+                        Path(kustomization.path),
+                        helm_repo,
+                        None,
+                    )
 
-            if selector.helm_release.visitor:
-                for kustomization in cluster.kustomizations:
-                    for helm_release in kustomization.helm_releases:
-                        await selector.helm_release.visitor.func(
-                            Path(cluster.path),
-                            Path(kustomization.path),
-                            helm_release,
-                            None,
-                        )
+        if selector.helm_release.visitor:
+            for kustomization in cluster.kustomizations:
+                for helm_release in kustomization.helm_releases:
+                    await selector.helm_release.visitor.func(
+                        Path(cluster.path),
+                        Path(kustomization.path),
+                        helm_release,
+                        None,
+                    )
+
+        if selector.cluster_policy.visitor:
+            for kustomization in cluster.kustomizations:
+                for cluster_policy in kustomization.cluster_policies:
+                    await selector.cluster_policy.visitor.func(
+                        Path(cluster.path),
+                        Path(kustomization.path),
+                        cluster_policy,
+                        None,
+                    )
 
     return Manifest(clusters=clusters)
 
