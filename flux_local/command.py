@@ -8,6 +8,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from collections.abc import Sequence
+import os
 
 from .exceptions import CommandException
 
@@ -40,9 +41,13 @@ class Command(Task):
     """Current working directory."""
 
     exc: type[CommandException] = CommandException
+    """Exception to throw in case of an error."""
 
     retcodes: list[int] | None = None
     """Non-zero error codes that are allowed to indicate success (e.g. for diff)."""
+
+    env: dict[str, str] | None = None
+    """Environment variables for the subprocess."""
 
     @property
     def string(self) -> str:
@@ -56,12 +61,17 @@ class Command(Task):
     async def run(self, stdin: bytes | None = None) -> bytes:
         """Run the command, returning stdout."""
         _LOGGER.debug("Running command: %s", self)
+        env = {
+            **os.environ,
+            **(self.env if self.env else {}),
+        }
         proc = await asyncio.create_subprocess_shell(
             self.string,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=self.cwd,
+            env=env,
         )
         out, err = await proc.communicate(stdin)
         if proc.returncode:
