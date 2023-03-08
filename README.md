@@ -125,7 +125,7 @@ $ flux-local diff ks apps
 Additionally `flux-local` can inflate a `HelmRelease` locally and show diffs in the output
 objects. This is similar to `flux diff` but for HelmReleases:
 
-```bash
+```diff
 $ flux-local diff hr -n podinfo podinfo
 ---
 
@@ -148,7 +148,7 @@ $ flux-local diff hr -n podinfo podinfo
 
 You may also use an external diff program such as [dyff](https://github.com/homeport/dyff) which
 is more compact for diffing yaml resources:
-```
+```diff
 $ git status
 On branch dev
 Your branch is up to date with 'origin/dev'.
