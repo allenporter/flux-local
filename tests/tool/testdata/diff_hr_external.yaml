@@ -1,0 +1,11 @@
+env:
+  DIFF: diff
+args:
+- diff
+- hr
+- podinfo
+- -n
+- podinfo
+- --path
+- tests/testdata/cluster/
+stdout: ''
