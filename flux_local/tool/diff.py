@@ -1,6 +1,7 @@
 """Flux-local diff action."""
 
 import asyncio
+import os
 from argparse import ArgumentParser
 from argparse import _SubParsersAction as SubParsersAction
 from contextlib import contextmanager
@@ -8,12 +9,13 @@ from dataclasses import asdict
 import difflib
 import logging
 import pathlib
+import shlex
 import tempfile
-from typing import cast, Generator, Any
+from typing import cast, Generator, Any, AsyncGenerator
 import yaml
 
 
-from flux_local import git_repo
+from flux_local import git_repo, command
 
 from . import selector
 from .visitor import HelmVisitor, ObjectOutput, ResourceKey
@@ -43,6 +45,48 @@ def perform_object_diff(
             )
             for line in diff_text:
                 yield line
+
+
+async def perform_external_diff(
+    cmd: list[str],
+    a: ObjectOutput,
+    b: ObjectOutput,
+) -> AsyncGenerator[str, None]:
+    """Generate diffs between the two output objects."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+            _LOGGER.debug(
+                "Diffing results for Kustomization %s",
+                kustomization_key,
+            )
+            a_resources = a.content.get(kustomization_key, {})
+            b_resources = b.content.get(kustomization_key, {})
+            keys = set(a_resources.keys()) | set(b_resources.keys())
+
+            a_file = pathlib.Path(tmpdir) / "a.yaml"
+            a_file.write_text(
+                "\n".join(
+                    [
+                        "\n".join(a_resources.get(resource_key, []))
+                        for resource_key in keys
+                    ]
+                )
+            )
+            b_file = pathlib.Path(tmpdir) / "b.yaml"
+            b_file.write_text(
+                "\n".join(
+                    [
+                        "\n".join(b_resources.get(resource_key, []))
+                        for resource_key in keys
+                    ]
+                )
+            )
+
+            out = await command.Command(
+                cmd + [str(a_file), str(b_file)], retcodes=[0, 1]
+            ).run()
+            if out:
+                yield out.decode("utf-8")
 
 
 def omit_none(obj: Any) -> dict[str, Any]:
@@ -203,10 +247,15 @@ class DiffKustomizationAction:
         _LOGGER.debug("Diffing content")
         if output == "yaml":
             result = perform_yaml_diff(orig_content, content, unified)
+        elif external_diff := os.environ.get("DIFF"):
+            async for line in perform_external_diff(
+                shlex.split(external_diff), orig_content, content
+            ):
+                print(line)
         else:
             result = perform_object_diff(orig_content, content, unified)
-        for line in result:
-            print(line)
+            for line in result:
+                print(line)
 
 
 class DiffHelmReleaseAction:
@@ -314,6 +363,11 @@ class DiffHelmReleaseAction:
 
         if output == "yaml":
             for line in perform_yaml_diff(orig_helm_content, helm_content, unified):
+                print(line)
+        elif external_diff := os.environ.get("DIFF"):
+            async for line in perform_external_diff(
+                shlex.split(external_diff), orig_helm_content, helm_content
+            ):
                 print(line)
         else:
             for line in perform_object_diff(orig_helm_content, helm_content, unified):

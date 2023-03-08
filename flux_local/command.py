@@ -41,6 +41,9 @@ class Command(Task):
 
     exc: type[CommandException] = CommandException
 
+    retcodes: list[int] | None = None
+    """Non-zero error codes that are allowed to indicate success (e.g. for diff)."""
+
     @property
     def string(self) -> str:
         """Render the command as a single string."""
@@ -62,6 +65,8 @@ class Command(Task):
         )
         out, err = await proc.communicate(stdin)
         if proc.returncode:
+            if self.retcodes and proc.returncode in self.retcodes:
+                return out
             errors = [f"Command '{self}' failed with return code {proc.returncode}"]
             if out:
                 errors.append(out.decode("utf-8"))

@@ -146,6 +146,38 @@ $ flux-local diff hr -n podinfo podinfo
 ...
 ```
 
+You may also use an external diff program such as [dyff](https://github.com/homeport/dyff) which
+is more compact for diffing yaml resources:
+```
+$ git status
+On branch dev
+Your branch is up to date with 'origin/dev'.
+
+Changes not staged for commit:
+	modified:   home/dev/hajimari-values.yaml
+
+$ export DIFF="dyff between --omit-header --color on"
+# flux-local diff ks home --path clusters/dev/
+
+spec.chart.spec.version  (HelmRelease/hajimari/hajimari)
+  ± value change
+    - 2.0.2
+    + 2.0.1
+
+$ flux-local diff hr hajimari -n hajimari --path clusters/dev/
+
+metadata.labels.helm.sh/chart  (ClusterRoleBinding/default/hajimari)
+  ± value change
+    - hajimari-2.0.2
+    + hajimari-2.0.1
+
+metadata.labels.helm.sh/chart  (PersistentVolumeClaim/default/hajimari-data)
+  ± value change
+    - hajimari-2.0.2
+    + hajimari-2.0.1
+```
+
+
 ### flux-local test
 
 You can verify that the resources in the cluster are formatted properly before commit or as part
