@@ -44,6 +44,7 @@ from typing import Any, Generator
 import git
 
 from . import kustomize
+from .exceptions import FluxException
 from .manifest import (
     CRD_KIND,
     CLUSTER_KUSTOMIZE_DOMAIN,
@@ -289,7 +290,18 @@ async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomiza
     while not path_queue.empty():
         path = path_queue.get()
         _LOGGER.debug("Visiting path (%s) %s", root, path)
-        docs = await get_flux_kustomizations(root, path)
+        try:
+            docs = await get_flux_kustomizations(root, path)
+        except FluxException as err:
+            if visited:
+                raise FluxException(
+                    f"Error building Fluxtomization in '{root}' path '{path}': {err}"
+                    f"Is a Kustomization pointing to a path that does not exist?"
+                )
+            raise FluxException(
+                f"Error building Fluxtomization in '{root}' path '{path}': {err}"
+                f"Try specifying another path within the git repo?"
+            )
 
         # Source path is relative to the search path. Update to have the
         # full prefix relative to the root.
@@ -425,7 +437,14 @@ async def build_kustomization(
     if kustomization_selector.skip_secrets:
         skips.append(SECRET_KIND)
     cmd = cmd.skip_resources(skips)
-    cmd = await cmd.stash()
+    try:
+        cmd = await cmd.stash()
+    except FluxException as err:
+        raise FluxException(
+            f"Error while building Kustomization "
+            f"'{kustomization.namespace}/{kustomization.name}' "
+            f"(path={kustomization.source_path}): {err}"
+        ) from err
 
     if kustomization_selector.visitor:
         if kustomization_selector.visitor:
