@@ -347,7 +347,6 @@ class TestAction:
             help="Optional path with flux Kustomization resources or full test node",
             type=str,
             default=None,
-            nargs="?",
         )
         verbosity_group = args.add_mutually_exclusive_group()
         verbosity_group.add_argument(
@@ -419,7 +418,7 @@ class TestAction:
                 ManifestPlugin(
                     query,
                     TestConfig(kube_version=kube_version, api_versions=api_versions),
-                    test_filter=[str(test_path)],
+                    test_filter=[str(test_path)] if test_path else [],
                 )
             ],
         )
