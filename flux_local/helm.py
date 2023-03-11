@@ -129,6 +129,8 @@ class Helm:
         skip_crds: bool = True,
         skip_tests: bool = True,
         skip_secrets: bool = False,
+        kube_version: str | None = None,
+        api_versions: str | None = None,
     ) -> Kustomize:
         """Return command line arguments to template the specified chart.
 
@@ -155,6 +157,10 @@ class Helm:
                     release.chart.version,
                 ]
             )
+        if kube_version:
+            args.extend(["--kube-version", kube_version])
+        if api_versions:
+            args.extend(["--api-versions", api_versions])
         if release.values and not values:
             values = release.values
         if values:
