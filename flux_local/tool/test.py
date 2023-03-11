@@ -382,7 +382,7 @@ class TestAction:
         self,
         enable_helm: bool,
         enable_kyverno: bool,
-        test_path: str,
+        test_path: str | None,
         verbosity: int,
         kube_version: str | None,
         api_versions: str | None,
@@ -393,6 +393,10 @@ class TestAction:
         if test_path:
             parts = test_path.split("::")
             query.path.path = Path(parts[0])
+
+            # If a real file path, then clear so it is not a test nodeid filter
+            if test_path.startswith(".") or test_path.startswith("/"):
+                test_path = None
         query.kustomization.skip_crds = True
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
