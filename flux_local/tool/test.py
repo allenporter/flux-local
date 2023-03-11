@@ -3,6 +3,7 @@
 from argparse import ArgumentParser, BooleanOptionalAction
 from argparse import _SubParsersAction as SubParsersAction
 import asyncio
+from dataclasses import dataclass
 import logging
 import pathlib
 import tempfile
@@ -27,12 +28,21 @@ from . import selector
 _LOGGER = logging.getLogger(__name__)
 
 
+@dataclass
+class TestConfig:
+    """Test configuration, which are parameters to types of the tests."""
+
+    kube_version: str | None = None
+    api_versions: str | None = None
+
+
 class HelmReleaseTest(pytest.Item):
     """Test case for a Kustomization."""
 
     cluster: Cluster
     kustomization: Kustomization
     helm_release: HelmRelease
+    test_config: TestConfig
 
     @classmethod
     def from_parent(  # type: ignore[override]
@@ -42,6 +52,7 @@ class HelmReleaseTest(pytest.Item):
         cluster: Cluster,
         kustomization: Kustomization,
         helm_release: HelmRelease,
+        test_config: TestConfig,
         **kw: Any,
     ) -> "HelmReleaseTest":
         """The public constructor."""
@@ -54,6 +65,7 @@ class HelmReleaseTest(pytest.Item):
         item.cluster = cluster
         item.kustomization = kustomization
         item.helm_release = helm_release
+        item.test_config = test_config
         return item
 
     def runtest(self) -> None:
@@ -72,7 +84,12 @@ class HelmReleaseTest(pytest.Item):
             helm = Helm(pathlib.Path(tmp_dir), pathlib.Path(helm_cache_dir))
             helm.add_repos(self.active_repos())
             await helm.update()
-            cmd = await helm.template(self.helm_release, skip_crds=True)
+            cmd = await helm.template(
+                self.helm_release,
+                skip_crds=True,
+                kube_version=self.test_config.kube_version,
+                api_versions=self.test_config.api_versions,
+            )
             await cmd.objects()
             await cmd.validate_policies(self.cluster.cluster_policies)
 
@@ -92,6 +109,7 @@ class KustomizationTest(pytest.Item):
 
     cluster: Cluster
     kustomization: Kustomization
+    test_config: TestConfig
 
     @classmethod
     def from_parent(  # type: ignore[override]
@@ -100,6 +118,7 @@ class KustomizationTest(pytest.Item):
         *,
         cluster: Cluster,
         kustomization: Kustomization,
+        test_config: TestConfig,
         **kw: Any,
     ) -> "KustomizationTest":
         """The public constructor."""
@@ -108,6 +127,7 @@ class KustomizationTest(pytest.Item):
         )
         item.cluster = cluster
         item.kustomization = kustomization
+        item.test_config = test_config
         return item
 
     def runtest(self) -> None:
@@ -127,6 +147,7 @@ class KustomizationCollector(pytest.Collector):
 
     cluster: Cluster
     kustomization: Kustomization
+    test_config: TestConfig
 
     @classmethod
     def from_parent(  # type: ignore[override]
@@ -135,6 +156,7 @@ class KustomizationCollector(pytest.Collector):
         *,
         cluster: Cluster,
         kustomization: Kustomization,
+        test_config: TestConfig,
         **kw: Any,
     ) -> "KustomizationCollector":
         """The public constructor."""
@@ -143,6 +165,7 @@ class KustomizationCollector(pytest.Collector):
         )
         item.cluster = cluster
         item.kustomization = kustomization
+        item.test_config = test_config
         return item
 
     def collect(self) -> Generator[pytest.Item | pytest.Collector, None, None]:
@@ -151,6 +174,7 @@ class KustomizationCollector(pytest.Collector):
             parent=self,
             cluster=self.cluster,
             kustomization=self.kustomization,
+            test_config=self.test_config,
         )
         for helm_release in self.kustomization.helm_releases:
             yield HelmReleaseTest.from_parent(
@@ -158,6 +182,7 @@ class KustomizationCollector(pytest.Collector):
                 cluster=self.cluster,
                 kustomization=self.kustomization,
                 helm_release=helm_release,
+                test_config=self.test_config,
             )
 
 
@@ -165,19 +190,21 @@ class ClusterCollector(pytest.Collector):
     """Test collector for a Cluster."""
 
     cluster: Cluster
+    test_config: TestConfig
 
     @classmethod
     def from_parent(  # type: ignore[override]
-        cls, parent: Any, *, cluster: Cluster, **kw: Any
+        cls, parent: Any, *, cluster: Cluster, test_config: TestConfig, **kw: Any
     ) -> "ClusterCollector":
         """The public constructor."""
         item: ClusterCollector = super().from_parent(
             parent=parent,
             name=cluster.name,
             path=Path(cluster.path),
-            nodeid=cluster.path,
+            nodeid=str(Path(cluster.path)),
         )
         item.cluster = cluster
+        item.test_config = test_config
         return item
 
     def collect(self) -> Generator[pytest.Item | pytest.Collector, None, None]:
@@ -187,6 +214,7 @@ class ClusterCollector(pytest.Collector):
                 parent=self,
                 cluster=self.cluster,
                 kustomization=kustomization,
+                test_config=self.test_config,
             )
 
 
@@ -194,6 +222,7 @@ class ManifestCollector(pytest.Collector):
     """Test collector for a Kustomization."""
 
     manifest: Manifest
+    test_config: TestConfig
 
     @classmethod
     def from_parent(  # type: ignore[override]
@@ -201,6 +230,7 @@ class ManifestCollector(pytest.Collector):
         parent: Any,
         *,
         manifest: Manifest,
+        test_config: TestConfig,
         **kw: Any,
     ) -> "ManifestCollector":
         """The public constructor."""
@@ -208,6 +238,7 @@ class ManifestCollector(pytest.Collector):
             parent=parent, name="manifest", **kw
         )
         item.manifest = manifest
+        item.test_config = test_config
         return item
 
     def collect(self) -> Generator[pytest.Item | pytest.Collector, None, None]:
@@ -216,6 +247,7 @@ class ManifestCollector(pytest.Collector):
             yield ClusterCollector.from_parent(
                 parent=self,
                 cluster=cluster,
+                test_config=self.test_config,
             )
 
 
@@ -226,9 +258,16 @@ class ManifestPlugin:
     is loaded separately to avoid collection.
     """
 
-    def __init__(self, selector: git_repo.ResourceSelector) -> None:
+    def __init__(
+        self,
+        selector: git_repo.ResourceSelector,
+        test_config: TestConfig,
+        test_filter: list[str],
+    ) -> None:
         self.selector = selector
         self.manifest: Manifest | None = None
+        self.test_config = test_config
+        self.test_filter = test_filter
 
     def pytest_sessionstart(self, session: pytest.Session) -> None:
         nest_asyncio.apply()
@@ -236,19 +275,43 @@ class ManifestPlugin:
 
     async def async_pytest_sessionstart(self, session: pytest.Session) -> None:
         """Run the Kustomizations test."""
+        _LOGGER.debug("async_pytest_sessionstart")
         manifest = await git_repo.build_manifest(selector=self.selector)
         self.manifest = manifest
+        _LOGGER.debug("async_pytest_sessionstart ended")
 
     def pytest_collection(self, session: pytest.Session) -> None:
         _LOGGER.debug("pytest_collection:%s", session)
         if not self.manifest:
             raise ValueError("ManifestPlugin not initialized properly")
         manifest_collector = ManifestCollector.from_parent(
-            parent=session, manifest=self.manifest
+            parent=session,
+            manifest=self.manifest,
+            test_config=self.test_config,
         )
         # Ignore the default files found by pytest and instead create
         # tests based on the manifest contents.
         session.collect = manifest_collector.collect  # type: ignore[assignment]
+        _LOGGER.debug("pytest_collection end:%s", session)
+
+    def pytest_collection_modifyitems(
+        self,
+        session: pytest.Session,
+        config: pytest.Config,
+        items: list[pytest.Item],
+    ) -> None:
+        _LOGGER.debug("pytest_collection_modifyitems collected: %s", len(items))
+        if self.test_filter:
+            _LOGGER.debug("Filtering tests: %s", self.test_filter)
+            filtered_items = []
+            for item in items:
+                for nodeid in self.test_filter:
+                    if item.nodeid.startswith(nodeid):
+                        filtered_items.append(item)
+                        continue
+            items.clear()
+            items.extend(filtered_items)
+            _LOGGER.debug("Remaining tests after collection filter: %s", len(items))
 
 
 class TestAction:
@@ -281,10 +344,9 @@ class TestAction:
         # Flags consistent with pytest for pass through
         args.add_argument(
             "test_path",
-            help="Optional path with flux Kustomization resources (multi-cluster ok)",
-            type=pathlib.Path,
+            help="Optional path with flux Kustomization resources or full test node",
+            type=str,
             default=None,
-            nargs="?",
         )
         verbosity_group = args.add_mutually_exclusive_group()
         verbosity_group.add_argument(
@@ -302,6 +364,15 @@ class TestAction:
             dest="verbosity",
             help="Set verbosity. Default is 0",
         )
+        args.add_argument(
+            "--kube-version",
+            help="Kubernetes version used for Capabilities.KubeVersion",
+        )
+        args.add_argument(
+            "--api-versions",
+            "-a",
+            help="Kubernetes api versions used for helm Capabilities.APIVersions",
+        )
         args.set_defaults(cls=cls, verbosity=0)
         selector.add_cluster_selector_flags(args)
         return args
@@ -310,14 +381,21 @@ class TestAction:
         self,
         enable_helm: bool,
         enable_kyverno: bool,
-        test_path: Path,
+        test_path: str | None,
         verbosity: int,
+        kube_version: str | None,
+        api_versions: str | None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
         query = selector.build_cluster_selector(**kwargs)
         if test_path:
-            query.path.path = test_path
+            parts = test_path.split("::")
+            query.path.path = Path(parts[0])
+
+            # If a real file path, then clear so it is not a test nodeid filter
+            if test_path.startswith(".") or test_path.startswith("/"):
+                test_path = None
         query.kustomization.skip_crds = True
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
@@ -336,7 +414,13 @@ class TestAction:
         _LOGGER.debug("pytest.main: %s", pytest_args)
         retcode = pytest.main(
             pytest_args,
-            plugins=[ManifestPlugin(query)],
+            plugins=[
+                ManifestPlugin(
+                    query,
+                    TestConfig(kube_version=kube_version, api_versions=api_versions),
+                    test_filter=[str(test_path)] if test_path else [],
+                )
+            ],
         )
         if retcode:
             sys.exit(retcode)
