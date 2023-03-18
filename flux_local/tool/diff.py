@@ -247,6 +247,8 @@ class DiffKustomizationAction:
         _LOGGER.debug("Diffing content")
         if output == "yaml":
             result = perform_yaml_diff(orig_content, content, unified)
+            for line in result:
+                print(line)
         elif external_diff := os.environ.get("DIFF"):
             async for line in perform_external_diff(
                 shlex.split(external_diff), orig_content, content
