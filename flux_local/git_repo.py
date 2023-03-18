@@ -137,7 +137,7 @@ class PathSelector:
         """
         if not self.process_path.is_absolute():
             return self.process_path
-        return self.process_path.relative_to(self.root)
+        return self.process_path.resolve().relative_to(self.root.resolve())
 
     @property
     def process_path(self) -> Path:
