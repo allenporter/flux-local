@@ -6,7 +6,7 @@ GitPython==3.1.31
 mypy==1.1.1
 nest_asyncio==1.5.6
 networkx==3.0
-pdoc==13.0.0
+pdoc==13.0.1
 pip==23.0.1
 pre-commit==3.2.0
 pydantic==1.10.6
