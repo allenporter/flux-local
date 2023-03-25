@@ -86,8 +86,8 @@ def main() -> None:
         asyncio.run(action.run(**vars(args)))
     except FluxException as err:
         if args.log_level == "DEBUG":
-            traceback.print_exc()
-        print("flux-local error: ", err)
+            traceback.print_exc(file=sys.stderr)
+        print("flux-local error: ", err, file=sys.stderr)
         sys.exit(1)
 
 
