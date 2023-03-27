@@ -22,4 +22,4 @@ types-PyYAML==6.0.12.8
 typing-extensions==4.5.0
 types-python-slugify==8.0.0.1
 wheel==0.40.0
-yamllint==1.29.0
+yamllint==1.30.0
