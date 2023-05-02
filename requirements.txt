@@ -1,7 +1,7 @@
 -e .
 aiofiles==23.1.0
 black==23.3.0
-coverage==7.2.4
+coverage==7.2.5
 GitPython==3.1.31
 mypy==1.2.0
 nest_asyncio==1.5.6
