@@ -17,4 +17,5 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m
-  url: https://stefanprodan.github.io/podinfo
+  type: oci
+  url: oci://ghcr.io/stefanprodan/charts

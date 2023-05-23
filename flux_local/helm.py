@@ -113,7 +113,10 @@ class Helm:
         Typically the repository must be updated before doing any chart templating.
         """
         _LOGGER.debug("Updating %d repositories", len(self._repos))
-        content = yaml.dump(RepositoryConfig(self._repos).config, sort_keys=False)
+        repos = [repo for repo in self._repos if repo.repo_type != "oci"]
+        if not repos:
+            return
+        content = yaml.dump(RepositoryConfig(repos).config, sort_keys=False)
         async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
             await config_file.write(content)
         await command.run(
@@ -138,11 +141,25 @@ class Helm:
         also specify values directory if not present in cluster manifest
         e.g. it came from a truncated yaml.
         """
+        repo = next(
+            iter([repo for repo in self._repos if repo.repo_name == release.repo_name]),
+            None,
+        )
+        if not repo:
+            _LOGGER.debug("Repos: %s", self._repos)
+            raise HelmException(
+                f"Unable to find HelmRepository for {release.chart.chart_name} for "
+                f"HelmRelease {release.name}"
+            )
+        chart = release.chart.chart_name
+        if repo.repo_type == "oci":
+            chart = f"{repo.url}/{release.chart.name}"
+
         args: list[str] = [
             HELM_BIN,
             "template",
             release.name,
-            release.chart.chart_name,
+            chart,
             "--namespace",
             release.namespace,
         ]

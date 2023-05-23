@@ -159,6 +159,11 @@ class HelmRelease(BaseManifest):
         """Identifier for the HelmRelease."""
         return f"{self.namespace}-{self.name}"
 
+    @property
+    def repo_name(self) -> str:
+        """Identifier for the HelmRepository identified in the HelmChart."""
+        return f"{self.chart.repo_namespace}-{self.chart.repo_name}"
+
     _COMPACT_EXCLUDE_FIELDS = {
         "values": True,
         "chart": HelmChart._COMPACT_EXCLUDE_FIELDS,
@@ -177,6 +182,9 @@ class HelmRepository(BaseManifest):
     url: str
     """The URL to the repository of helm charts."""
 
+    repo_type: str | None = None
+    """The type of the HelmRepository."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "HelmRepository":
         """Parse a HelmRepository from a kubernetes resource."""
@@ -191,7 +199,7 @@ class HelmRepository(BaseManifest):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (url := spec.get("url")):
             raise InputException(f"Invalid {cls} missing spec.url: {doc}")
-        return cls(name=name, namespace=namespace, url=url)
+        return cls(name=name, namespace=namespace, url=url, repo_type=spec.get("type"))
 
     @property
     def repo_name(self) -> str:
