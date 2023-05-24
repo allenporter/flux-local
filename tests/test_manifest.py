@@ -60,14 +60,23 @@ def test_compact_helm_release() -> None:
 def test_parse_helm_repository() -> None:
     """Test parsing a helm repository doc."""
 
-    docs = yaml.load_all(
-        (TESTDATA_DIR / "configs/helm-repositories.yaml").read_text(),
-        Loader=yaml.CLoader,
+    docs = list(
+        yaml.load_all(
+            (TESTDATA_DIR / "configs/helm-repositories.yaml").read_text(),
+            Loader=yaml.CLoader,
+        )
     )
-    repo = HelmRepository.parse_doc(next(iter(docs)))
+    assert len(docs) == 2
+    repo = HelmRepository.parse_doc(docs[0])
     assert repo.name == "bitnami"
     assert repo.namespace == "flux-system"
     assert repo.url == "https://charts.bitnami.com/bitnami"
+    assert repo.repo_type == "default"
+    repo = HelmRepository.parse_doc(docs[1])
+    assert repo.name == "podinfo"
+    assert repo.namespace == "flux-system"
+    assert repo.url == "oci://ghcr.io/stefanprodan/charts"
+    assert repo.repo_type == "oci"
 
 
 async def test_write_manifest_file() -> None:
