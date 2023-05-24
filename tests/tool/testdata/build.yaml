@@ -200,7 +200,8 @@ stdout: |+
       internal.config.kubernetes.io/index: '2'
   spec:
     interval: 5m
-    url: https://stefanprodan.github.io/podinfo
+    type: oci
+    url: oci://ghcr.io/stefanprodan/charts
 
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1

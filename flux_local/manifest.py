@@ -36,6 +36,9 @@ CLUSTER_POLICY_DOMAIN = "kyverno.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
 
+REPO_TYPE_DEFAULT = "default"
+REPO_TYPE_OCI = "oci"
+
 
 def _check_version(doc: dict[str, Any], version: str) -> None:
     """Assert that the resource has the specified version."""
@@ -199,7 +202,12 @@ class HelmRepository(BaseManifest):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (url := spec.get("url")):
             raise InputException(f"Invalid {cls} missing spec.url: {doc}")
-        return cls(name=name, namespace=namespace, url=url, repo_type=spec.get("type"))
+        return cls(
+            name=name,
+            namespace=namespace,
+            url=url,
+            repo_type=spec.get("type", REPO_TYPE_DEFAULT),
+        )
 
     @property
     def repo_name(self) -> str:

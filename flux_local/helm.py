@@ -44,7 +44,7 @@ import yaml
 
 from . import command
 from .kustomize import Kustomize
-from .manifest import HelmRelease, HelmRepository, CRD_KIND, SECRET_KIND
+from .manifest import HelmRelease, HelmRepository, CRD_KIND, SECRET_KIND, REPO_TYPE_OCI
 from .exceptions import HelmException
 
 __all__ = [
@@ -55,6 +55,13 @@ _LOGGER = logging.getLogger(__name__)
 
 
 HELM_BIN = "helm"
+
+
+def _chart_name(repo: HelmRepository, release: HelmRelease) -> str:
+    """Return the helm chart name used for the helm template command."""
+    if repo.repo_type == REPO_TYPE_OCI:
+        return f"{repo.url}/{release.chart.name}"
+    return release.chart.chart_name
 
 
 class RepositoryConfig:
@@ -113,7 +120,7 @@ class Helm:
         Typically the repository must be updated before doing any chart templating.
         """
         _LOGGER.debug("Updating %d repositories", len(self._repos))
-        repos = [repo for repo in self._repos if repo.repo_type != "oci"]
+        repos = [repo for repo in self._repos if repo.repo_type != REPO_TYPE_OCI]
         if not repos:
             return
         content = yaml.dump(RepositoryConfig(repos).config, sort_keys=False)
@@ -146,20 +153,15 @@ class Helm:
             None,
         )
         if not repo:
-            _LOGGER.debug("Repos: %s", self._repos)
             raise HelmException(
                 f"Unable to find HelmRepository for {release.chart.chart_name} for "
                 f"HelmRelease {release.name}"
             )
-        chart = release.chart.chart_name
-        if repo.repo_type == "oci":
-            chart = f"{repo.url}/{release.chart.name}"
-
         args: list[str] = [
             HELM_BIN,
             "template",
             release.name,
-            chart,
+            _chart_name(repo, release),
             "--namespace",
             release.namespace,
         ]

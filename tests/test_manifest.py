@@ -71,7 +71,7 @@ def test_parse_helm_repository() -> None:
     assert repo.name == "bitnami"
     assert repo.namespace == "flux-system"
     assert repo.url == "https://charts.bitnami.com/bitnami"
-    assert not repo.repo_type
+    assert repo.repo_type == "default"
     repo = HelmRepository.parse_doc(docs[1])
     assert repo.name == "podinfo"
     assert repo.namespace == "flux-system"
