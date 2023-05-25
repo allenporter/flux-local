@@ -9,7 +9,7 @@ networkx==3.1
 pdoc==13.1.1
 pip==23.1.2
 pre-commit==3.3.2
-pydantic==1.10.7
+pydantic==1.10.8
 pytest==7.3.1
 pytest-asyncio==0.21.0
 pytest-cov==4.0.0
