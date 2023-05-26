@@ -21,6 +21,9 @@ inputs:
   python-version:
     description: Python version used for running flux-local
     default: '3.10'
+  debug:
+    description: When true, uses the DEBUG log level
+    default: false
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
@@ -51,7 +54,10 @@ runs:
       run: |
         delimiter="$(openssl rand -hex 8)"
         echo "diff<<${delimiter}" >> $GITHUB_OUTPUT
-        flux-local diff ${{ inputs.resource }} \
+        flux-local \
+            --log-level ${{ inputs.debug != 'true' && 'INFO' || 'DEBUG' }} \
+            diff \
+            ${{ inputs.resource }} \
             --unified ${{ inputs.diff-lines }} \
             --path ${GITHUB_WORKSPACE}/pr/${{ inputs.path }} \
             --path-orig ${GITHUB_WORKSPACE}/live/${{ inputs.path }} \
