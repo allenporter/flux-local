@@ -5,6 +5,9 @@ inputs:
   path:
     description: Path to the root of the flux cluster GitRepository and Kustomization
     required: true
+  live-branch:
+    description: The name of the live branch to diff against, typically 'main' or 'master'.
+    default: main
   resource:
     description: Type of resource to diff, either 'kustomization' or 'helmrelease'
     required: true
@@ -44,7 +47,7 @@ runs:
     - name: Checkout live branch
       uses: actions/checkout@v3
       with:
-        ref: ${{ env.conf_live_branch }}
+        ref: ${{ inputs.live-branch }}
         path: live
     - name: flux-local diff
       id: flux_diff
