@@ -1,0 +1,63 @@
+---
+name: flux-local diff
+description: Build the cluster and diff the PR against the existing cluster
+inputs:
+  path:
+    description: Path to the root of the flux cluster GitRepository and Kustomization
+    required: true
+  resource:
+    description: Type of resource to diff, either 'kustomization' or 'helmrelease'
+    required: true
+    default: kustomization
+  diff-lines:
+    description: Number of diff lines to show
+    default: 6
+  skip-secrets:
+    description: When true, does not attempt to diff secrets
+    default: true
+  skip-crds:
+    description: When true, does not attempt to diff crds
+    default: true
+  python-version:
+    description: Python version used for running flux-local
+    default: '3.10'
+outputs:
+  diff:
+    description: Output of the diff command or empty if there is no diff
+    value: ${{ steps.flux_diff.outputs.diff }}
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install flux-local
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ${{ github.action_path }}/../../
+      shell: bash
+    - name: Checkout PR branch
+      uses: actions/checkout@v3
+      with:
+        path: pr
+    - name: Checkout live branch
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ env.conf_live_branch }}
+        path: live
+    - name: flux-local diff
+      id: flux_diff
+      run: |
+        delimiter="$(openssl rand -hex 8)"
+        echo "diff<<${delimiter}" >> $GITHUB_OUTPUT
+        flux-local diff ${{ inputs.resource }} \
+            --unified ${{ inputs.diff-lines }} \
+            --path ${GITHUB_WORKSPACE}/pr/${{ inputs.path }} \
+            --path-orig ${GITHUB_WORKSPACE}/live/${{ inputs.path }} \
+            --${{ inputs.skip-crds != 'true' && 'no-' || '' }}skip-crds \
+            --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
+            --all-namespaces \
+            >> $GITHUB_OUTPUT
+        echo "${delimiter}" >> $GITHUB_OUTPUT
+      shell: bash
