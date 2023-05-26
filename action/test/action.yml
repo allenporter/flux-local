@@ -44,8 +44,8 @@ runs:
     - name: Test cluster (flux-local)
       run: |
         flux-local test \
-          --${{ inputs.enable-helm != 'true' && 'no' || '' }}enable-helm \
-          --${{ inputs.enable-kyverno != 'true' && 'no' || '' }}enable-kyverno \
+          --${{ inputs.enable-helm != 'true' && 'no-' || '' }}enable-helm \
+          --${{ inputs.enable-kyverno != 'true' && 'no-' || '' }}enable-kyverno \
           --api-versions "${{ inputs.api-versions }}" \
           --path ${{ inputs.path }}
       shell: bash
