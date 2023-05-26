@@ -1,0 +1,39 @@
+---
+name: flux-local test
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  diffs:
+    name: Compute diffs
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cluster_path:
+        - tests/testdata/cluster
+        resource:
+        - helmrelease
+        - kustomization
+    steps:
+    - uses: allenporter/flux-local-action/diff@v2
+      id: diff
+      with:
+        path: ${{ matrix.cluster_path }}
+        resource: ${{ matrix.resource }}
+    - name: PR Comments
+      uses: mshick/add-pr-comment@v2
+      if: ${{ steps.diff.outputs.diff != '' }}
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        message-id: ${{ matrix.cluster_path }}/${{ matrix.resource }}
+        message-failure: Unable to post kustomization diff
+        message: |
+          `````diff
+          ${{ steps.diff.outputs.diff }}
+          `````
