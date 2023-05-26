@@ -7,7 +7,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m
-  url: oci://ghcr.io/xunholy/manifests/k8s-gitops
+  url: oci://ghcr.io/allenporter/manifests/flux-local
   ref:
     tag: main
   verify:

@@ -6,7 +6,8 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m0s
-  path: ./tenants/overlays/cluster3
+  # TODO: Make work relative to OCIRepository
+  path: ./tests/testdata/cluster3/tenants/overlays/cluster3
   prune: true
   wait: false
   sourceRef:

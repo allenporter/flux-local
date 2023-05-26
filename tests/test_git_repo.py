@@ -11,6 +11,7 @@ from flux_local.git_repo import (
     ResourceSelector,
     ResourceVisitor,
     kustomization_traversal,
+    Source,
     PathSelector,
     make_clusters,
 )
@@ -423,3 +424,19 @@ async def test_kustomization_traversal_multi_cluster() -> None:
         "./clusters/prod",
         "./crds",
     ]
+
+
+def test_source() -> None:
+    """Test parsing a source from a string."""
+    source = Source.from_str("cluster=./k8s")
+    assert source.name == "cluster"
+    assert source.namespace == "flux-system"
+    assert str(source.root) == "./k8s"
+
+
+def test_source_with_namespace() -> None:
+    """Test parsing a source from a string."""
+    source = Source.from_str("flux-system2/cluster=./k8s")
+    assert source.name == "cluster"
+    assert source.namespace == "flux-system2"
+    assert str(source.root) == "./k8s"

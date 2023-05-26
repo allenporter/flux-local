@@ -78,6 +78,43 @@ OCI_REPO_KIND = "OCIRepository"
 DEFAULT_NAMESPACE = "flux-system"
 
 
+@dataclass
+class Source:
+    """A source is a named mapping from a k8s object name to a path in the git repo.
+
+    This is needed to map the location within a reop if it's not the root. For example,
+    you may have a `GitRepository` that is relative to `/` and all if of the
+    `Kustomization`s inside may reference paths within it e.g. `/k8s/namespaces/`. But
+    you may also have an `OCIRepository` that was built relative to `/k8s/` where the
+    `Kustomization`s inside may reference the path relative to that like `/namespaces/`.
+    """
+
+    name: str
+    """The name of the repository source."""
+
+    root: Path
+    """The path name within the repo root."""
+
+    namespace: str
+    """The namespace of the repository source."""
+
+    @property
+    def source_name(self) -> str:
+        """Return the full name of the source."""
+        return f"{self.namespace}/{self.name}"
+
+    @classmethod
+    def from_str(self, value: str) -> "Source":
+        """Parse a Source from key=value string."""
+        if "=" not in value:
+            raise ValueError("Expected source name=root")
+        namespace = "flux-system"
+        name, root = value.split("=")
+        if "/" in name:
+            namespace, name = name.split("/")
+        return Source(name=name, root=Path(root), namespace=namespace)
+
+
 @cache
 def git_repo(path: Path | None = None) -> git.repo.Repo:
     """Return the local git repo path."""
@@ -120,8 +157,8 @@ class PathSelector:
     path: Path | None = None
     """The path within a repo."""
 
-    repo_root: Path | None = None
-    """The root of the git repository for building relative paths."""
+    sources: list[Source] | None = None
+    """A list of repository sources for building relative paths."""
 
     @property
     def repo(self) -> git.repo.Repo:
@@ -131,10 +168,7 @@ class PathSelector:
     @property
     def root(self) -> Path:
         """Return the local git repo root."""
-        root = repo_root(self.repo)
-        if self.repo_root:
-            return root / self.repo_root
-        return root
+        return repo_root(self.repo)
 
     @property
     def relative_path(self) -> Path:
@@ -537,7 +571,11 @@ async def build_manifest(
     async def update_kustomization(cluster: Cluster) -> None:
         build_tasks = []
         for kustomization in cluster.kustomizations:
-            _LOGGER.debug("Processing kustomization: %s", kustomization.path)
+            _LOGGER.debug(
+                "Processing kustomization '%s': %s",
+                kustomization.name,
+                kustomization.path,
+            )
             build_tasks.append(
                 build_kustomization(
                     kustomization,

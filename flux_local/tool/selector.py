@@ -2,13 +2,41 @@
 
 import logging
 import pathlib
-from argparse import ArgumentParser, BooleanOptionalAction
+from argparse import (
+    ArgumentParser,
+    BooleanOptionalAction,
+    Action,
+    ArgumentError,
+    Namespace,
+)
+from typing import Any
 
 from flux_local import git_repo
 
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAMESPACE = "flux-system"
+
+
+class SourceAppendAction(Action):
+    """Append a key=value pair to the argument list."""
+
+    def __call__(
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        values: Any,
+        option_string: str | None = None,
+    ) -> None:
+        if not isinstance(values, list) or len(values) != 1:
+            raise ValueError(f"Expected single list value from '{values}'")
+        try:
+            source = git_repo.Source.from_str(values[0])
+        except ValueError:
+            raise ArgumentError(self, f"Expected key=value format from '{values[0]}'")
+        result = getattr(namespace, self.dest) or []
+        result.append(source)
+        setattr(namespace, self.dest, result)
 
 
 def add_selector_flags(args: ArgumentParser) -> None:
@@ -21,11 +49,10 @@ def add_selector_flags(args: ArgumentParser) -> None:
         nargs="?",
     )
     args.add_argument(
-        "--repo-root",
-        help="Optional path that is the root of the git repository for relative paths",
-        type=pathlib.Path,
-        default=None,
-        nargs="?",
+        "--sources",
+        help="Optional map of repository source to relative path e.g. cluster=./k8s/",
+        action=SourceAppendAction,
+        nargs="+",
     )
     args.add_argument(
         "--all-namespaces",
@@ -76,7 +103,7 @@ def build_ks_selector(  # type: ignore[no-untyped-def]
     """Build a selector object form the specified flags."""
     selector = git_repo.ResourceSelector()
     selector.path = git_repo.PathSelector(
-        kwargs.get("path"), repo_root=kwargs.get("repo_root")
+        kwargs.get("path"), sources=kwargs.get("sources")
     )
     selector.kustomization.name = kwargs["kustomization"]
     selector.kustomization.namespace = kwargs["namespace"]
@@ -107,7 +134,7 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     _LOGGER.debug("Building HelmRelease selector from args: %s", kwargs)
     selector = git_repo.ResourceSelector()
     selector.path = git_repo.PathSelector(
-        kwargs.get("path"), repo_root=kwargs.get("repo_root")
+        kwargs.get("path"), sources=kwargs.get("sources")
     )
     selector.helm_release.name = kwargs.get("helmrelease")
     selector.helm_release.namespace = kwargs["namespace"]
@@ -131,7 +158,7 @@ def build_cluster_selector(  # type: ignore[no-untyped-def]
     _LOGGER.debug("Building flux cluster Kustomization selector from args: %s", kwargs)
     selector = git_repo.ResourceSelector()
     selector.path = git_repo.PathSelector(
-        kwargs.get("path"), repo_root=kwargs.get("repo_root")
+        kwargs.get("path"), sources=kwargs.get("sources")
     )
     selector.cluster.namespace = kwargs.get("namespace")
     if kwargs.get("all_namespaces"):
