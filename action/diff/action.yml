@@ -21,6 +21,9 @@ inputs:
   python-version:
     description: Python version used for running flux-local
     default: '3.10'
+  debug:
+    description: When true, uses the DEBUG log level
+    default: false
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
@@ -58,6 +61,7 @@ runs:
             --${{ inputs.skip-crds != 'true' && 'no-' || '' }}skip-crds \
             --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
             --all-namespaces \
+            --log-level ${{ inputs.debug != 'true' && 'INFO' || 'DEBUG' }} \
             >> $GITHUB_OUTPUT
         echo "${delimiter}" >> $GITHUB_OUTPUT
       shell: bash
