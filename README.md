@@ -270,6 +270,7 @@ This is an example that diffs a `HelmRelease`:
 - uses: allenporter/flux-local/action/diff@2.0.0
   id: diff
   with:
+    live-branch: main
     path: clusters/prod
     resource: helmrelease
 - name: PR Comments
@@ -304,6 +305,7 @@ jobs:
       - uses: allenporter/flux-local/action/diff@2.0.0
         id: diff
         with:
+          live-branch: main
           path: ${{ matrix.cluster_path }}
           resource: ${{ matrix.resource }}
       - name: PR Comments
