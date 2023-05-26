@@ -1,5 +1,5 @@
 ---
-name: flux-local test
+name: flux-local diff
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
         - helmrelease
         - kustomization
     steps:
-    - uses: allenporter/flux-local-action/diff@v2
+    - uses: ./action/diff
       id: diff
       with:
         path: ${{ matrix.cluster_path }}
