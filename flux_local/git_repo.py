@@ -74,6 +74,7 @@ HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
 CLUSTER_POLICY_KIND = "ClusterPolicy"
 GIT_REPO_KIND = "GitRepository"
+OCI_REPO_KIND = "OCIRepository"
 DEFAULT_NAMESPACE = "flux-system"
 
 
@@ -261,7 +262,7 @@ async def get_flux_kustomizations(
     for a GitRepository is pointed at this cluster, following normal conventions.
     """
     cmd = kustomize.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}", root / relative_path).grep(
-        f"spec.sourceRef.kind={GIT_REPO_KIND}"
+        f"spec.sourceRef.kind={GIT_REPO_KIND}|{OCI_REPO_KIND}"
     )
     docs = await cmd.objects()
     return [
