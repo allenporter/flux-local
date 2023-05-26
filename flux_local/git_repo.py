@@ -120,6 +120,9 @@ class PathSelector:
     path: Path | None = None
     """The path within a repo."""
 
+    repo_root: Path | None = None
+    """The root of the git repository for building relative paths."""
+
     @property
     def repo(self) -> git.repo.Repo:
         """Return the local git repo."""
@@ -128,7 +131,10 @@ class PathSelector:
     @property
     def root(self) -> Path:
         """Return the local git repo root."""
-        return repo_root(self.repo)
+        root = repo_root(self.repo)
+        if self.repo_root:
+            return root / self.repo_root
+        return root
 
     @property
     def relative_path(self) -> Path:

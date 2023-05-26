@@ -21,6 +21,13 @@ def add_selector_flags(args: ArgumentParser) -> None:
         nargs="?",
     )
     args.add_argument(
+        "--repo-root",
+        help="Optional path that is the root of the git repository for relative paths",
+        type=pathlib.Path,
+        default=None,
+        nargs="?",
+    )
+    args.add_argument(
         "--all-namespaces",
         "-A",
         type=bool,
@@ -68,7 +75,9 @@ def build_ks_selector(  # type: ignore[no-untyped-def]
 ) -> git_repo.ResourceSelector:
     """Build a selector object form the specified flags."""
     selector = git_repo.ResourceSelector()
-    selector.path = git_repo.PathSelector(kwargs.get("path"))
+    selector.path = git_repo.PathSelector(
+        kwargs.get("path"), repo_root=kwargs.get("repo_root")
+    )
     selector.kustomization.name = kwargs["kustomization"]
     selector.kustomization.namespace = kwargs["namespace"]
     if kwargs["all_namespaces"]:
@@ -97,7 +106,9 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     """Build a selector object form the specified flags."""
     _LOGGER.debug("Building HelmRelease selector from args: %s", kwargs)
     selector = git_repo.ResourceSelector()
-    selector.path = git_repo.PathSelector(kwargs.get("path"))
+    selector.path = git_repo.PathSelector(
+        kwargs.get("path"), repo_root=kwargs.get("repo_root")
+    )
     selector.helm_release.name = kwargs.get("helmrelease")
     selector.helm_release.namespace = kwargs["namespace"]
     if kwargs["all_namespaces"]:
@@ -119,7 +130,9 @@ def build_cluster_selector(  # type: ignore[no-untyped-def]
     """Build a selector object form the specified flags."""
     _LOGGER.debug("Building flux cluster Kustomization selector from args: %s", kwargs)
     selector = git_repo.ResourceSelector()
-    selector.path = git_repo.PathSelector(kwargs.get("path"))
+    selector.path = git_repo.PathSelector(
+        kwargs.get("path"), repo_root=kwargs.get("repo_root")
+    )
     selector.cluster.namespace = kwargs.get("namespace")
     if kwargs.get("all_namespaces"):
         selector.cluster.namespace = None

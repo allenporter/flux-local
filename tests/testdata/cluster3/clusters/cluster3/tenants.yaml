@@ -6,7 +6,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m0s
-  path: ./tenants/overlays/cluster-1
+  path: ./tenants/overlays/cluster3
   prune: true
   wait: false
   sourceRef:
