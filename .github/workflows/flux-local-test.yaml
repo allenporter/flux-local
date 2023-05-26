@@ -15,5 +15,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: allenporter/flux-local/action/test@main
-      enable-helm: true
-      enable-kyverno: false
+      with:
+        enable-helm: true
+        enable-kyverno: false
