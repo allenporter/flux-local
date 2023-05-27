@@ -1,6 +1,7 @@
 """Flux-local diff action."""
 
 import asyncio
+import functools
 import os
 from argparse import ArgumentParser
 from argparse import _SubParsersAction as SubParsersAction
@@ -21,6 +22,9 @@ from . import selector
 from .visitor import HelmVisitor, ObjectOutput, ResourceKey
 
 _LOGGER = logging.getLogger(__name__)
+
+# Type for command line flags of comma separated list
+_CSV = functools.partial(str.split, sep=",")
 
 
 def perform_object_diff(
@@ -178,8 +182,7 @@ def add_diff_flags(args: ArgumentParser) -> None:
     args.add_argument(
         "--strip-attrs",
         help="Labels or annotations to strip from the diff",
-        default=[],
-        nargs="+",
+        type=_CSV,
     )
 
 
@@ -230,7 +233,7 @@ class DiffKustomizationAction:
         self,
         output: str,
         unified: int,
-        strip_attrs: list[str],
+        strip_attrs: list[str] | None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -296,7 +299,7 @@ class DiffHelmReleaseAction:
         self,
         output: str,
         unified: int,
-        strip_attrs: list[str],
+        strip_attrs: list[str] | None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
