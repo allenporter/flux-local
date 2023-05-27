@@ -1,0 +1,11 @@
+args:
+- diff
+- hr
+- podinfo
+- -n
+- podinfo
+- --path
+- tests/testdata/cluster/
+- --limit-bytes
+- "20000"
+stdout: ''

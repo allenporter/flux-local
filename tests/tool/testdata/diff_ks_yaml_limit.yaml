@@ -1,0 +1,10 @@
+args:
+- diff
+- ks
+- apps
+- --path
+- tests/testdata/cluster/
+- -o
+- yaml
+- --limit-bytes
+- "20000"
