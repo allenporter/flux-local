@@ -30,6 +30,9 @@ inputs:
   debug:
     description: When true, uses the DEBUG log level
     default: false
+  limit-bytes:
+    description: Maximum number of bytes per individual diff (0=unlimited)
+    default: 20000
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
@@ -70,6 +73,7 @@ runs:
             --strip-attrs "${{ inputs.strip-attrs }}" \
             --${{ inputs.skip-crds != 'true' && 'no-' || '' }}skip-crds \
             --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
+            --limit-bytes ${{ input.limit-bytes }} \
             --all-namespaces \
             >> $GITHUB_OUTPUT
         echo "${delimiter}" >> $GITHUB_OUTPUT

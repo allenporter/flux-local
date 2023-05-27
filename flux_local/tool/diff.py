@@ -26,11 +26,11 @@ _LOGGER = logging.getLogger(__name__)
 # Type for command line flags of comma separated list
 _CSV = functools.partial(str.split, sep=",")
 
+_TRUNCATE = "[Diff truncated by flux-local]"
+
 
 def perform_object_diff(
-    a: ObjectOutput,
-    b: ObjectOutput,
-    n: int,
+    a: ObjectOutput, b: ObjectOutput, n: int, limit_bytes: int
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
     for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
@@ -47,7 +47,12 @@ def perform_object_diff(
                 tofile=f"{kustomization_key.label} {resource_key.compact_label}",
                 n=n,
             )
+            size = 0
             for line in diff_text:
+                size += len(line)
+                if limit_bytes and size > limit_bytes:
+                    yield _TRUNCATE
+                    break
                 yield line
 
 
@@ -55,6 +60,7 @@ async def perform_external_diff(
     cmd: list[str],
     a: ObjectOutput,
     b: ObjectOutput,
+    limit_bytes: int,
 ) -> AsyncGenerator[str, None]:
     """Generate diffs between the two output objects."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -90,7 +96,10 @@ async def perform_external_diff(
                 cmd + [str(a_file), str(b_file)], retcodes=[0, 1]
             ).run()
             if out:
-                yield out.decode("utf-8")
+                result = out.decode("utf-8")
+                if limit_bytes and len(result) > limit_bytes:
+                    result = result[:limit_bytes] + "\n" + _TRUNCATE
+                yield result
 
 
 def omit_none(obj: Any) -> dict[str, Any]:
@@ -102,6 +111,7 @@ def perform_yaml_diff(
     a: ObjectOutput,
     b: ObjectOutput,
     n: int,
+    limit_bytes: int,
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
 
@@ -122,6 +132,8 @@ def perform_yaml_diff(
             diff_content = "\n".join(diff_text)
             if not diff_content:
                 continue
+            if limit_bytes and len(diff_content) > limit_bytes:
+                diff_content = diff_content[:limit_bytes] + "\n" + _TRUNCATE
             obj = {
                 **asdict(resource_key, dict_factory=omit_none),
                 "diff": diff_content,
@@ -184,6 +196,12 @@ def add_diff_flags(args: ArgumentParser) -> None:
         help="Labels or annotations to strip from the diff",
         type=_CSV,
     )
+    args.add_argument(
+        "--limit-bytes",
+        help="Maximum bytes for each diff output (0=unlimited)",
+        type=int,
+        default=0,
+    )
 
 
 @contextmanager
@@ -234,6 +252,7 @@ class DiffKustomizationAction:
         output: str,
         unified: int,
         strip_attrs: list[str] | None,
+        limit_bytes: int,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -256,16 +275,16 @@ class DiffKustomizationAction:
 
         _LOGGER.debug("Diffing content")
         if output == "yaml":
-            result = perform_yaml_diff(orig_content, content, unified)
+            result = perform_yaml_diff(orig_content, content, unified, limit_bytes)
             for line in result:
                 print(line)
         elif external_diff := os.environ.get("DIFF"):
             async for line in perform_external_diff(
-                shlex.split(external_diff), orig_content, content
+                shlex.split(external_diff), orig_content, content, limit_bytes
             ):
                 print(line)
         else:
-            result = perform_object_diff(orig_content, content, unified)
+            result = perform_object_diff(orig_content, content, unified, limit_bytes)
             for line in result:
                 print(line)
 
@@ -300,6 +319,7 @@ class DiffHelmReleaseAction:
         output: str,
         unified: int,
         strip_attrs: list[str] | None,
+        limit_bytes: int,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -375,15 +395,19 @@ class DiffHelmReleaseAction:
             )
 
         if output == "yaml":
-            for line in perform_yaml_diff(orig_helm_content, helm_content, unified):
+            for line in perform_yaml_diff(
+                orig_helm_content, helm_content, unified, limit_bytes
+            ):
                 print(line)
         elif external_diff := os.environ.get("DIFF"):
             async for line in perform_external_diff(
-                shlex.split(external_diff), orig_helm_content, helm_content
+                shlex.split(external_diff), orig_helm_content, helm_content, limit_bytes
             ):
                 print(line)
         else:
-            for line in perform_object_diff(orig_helm_content, helm_content, unified):
+            for line in perform_object_diff(
+                orig_helm_content, helm_content, unified, limit_bytes
+            ):
                 print(line)
 
 
