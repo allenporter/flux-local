@@ -24,6 +24,9 @@ inputs:
   python-version:
     description: Python version used for running flux-local
     default: '3.10'
+  strip-attrs:
+    description: Labels and annotations that should be stripped to reduce diff noise
+    default: helm.sh/chart,checksum/config
   debug:
     description: When true, uses the DEBUG log level
     default: false
@@ -64,6 +67,7 @@ runs:
             --unified ${{ inputs.diff-lines }} \
             --path ${GITHUB_WORKSPACE}/pr/${{ inputs.path }} \
             --path-orig ${GITHUB_WORKSPACE}/live/${{ inputs.path }} \
+            --strip-attrs "${{ inputs.strip-attrs }}" \
             --${{ inputs.skip-crds != 'true' && 'no-' || '' }}skip-crds \
             --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
             --all-namespaces \
