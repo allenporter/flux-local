@@ -7,6 +7,7 @@ import logging
 import pathlib
 import tempfile
 import yaml
+from typing import Any
 
 from flux_local import git_repo
 from flux_local.kustomize import Kustomize
@@ -128,15 +129,30 @@ class ContentOutput(ResourceOutput):
             self.content[self.key_func(cluster_path, kustomization_path, doc)] = lines
 
 
+def strip_attrs(metadata: dict[str, Any], strip_attributes: list[str]) -> None:
+    """Update the resource object, stripping any requested labels to simplify diff."""
+
+    for attr_key in ("annotations", "labels"):
+        if not (val := metadata.get(attr_key)):
+            continue
+        for key in strip_attributes:
+            if key in val:
+                del val[key]
+            if not val:
+                del metadata[attr_key]
+                break
+
+
 class ObjectOutput(ResourceOutput):
     """Resource visitor that builds outputs for objects within the kustomization."""
 
-    def __init__(self, strip_attributes: list[str]) -> None:
+    def __init__(self, strip_attributes: list[str] | None) -> None:
         """Initialize ObjectOutput."""
         # Map of kustomizations to the map of built objects as lines of the yaml string
         self.content: dict[ResourceKey, dict[ResourceKey, list[str]]] = {}
         self.strip_attributes = STRIP_ATTRIBUTES
-        self.strip_attributes.extend(strip_attributes)
+        if strip_attributes:
+            self.strip_attributes.extend(strip_attributes)
 
     async def call_async(
         self,
@@ -158,13 +174,15 @@ class ObjectOutput(ResourceOutput):
                         resource,
                     )
                     continue
-                for attr_key in ("annotations", "labels"):
-                    if val := metadata.get(attr_key):
-                        for key in self.strip_attributes:
-                            if key in val:
-                                del val[key]
-                        if not val:
-                            del metadata[attr_key]
+                # Remove common noisy labels
+                strip_attrs(metadata, self.strip_attributes)
+                # Remove common noisy labels in commonly used templates
+                if (
+                    (spec := resource.get("spec"))
+                    and (templ := spec.get("template"))
+                    and (meta := templ.get("metadata"))
+                ):
+                    strip_attrs(meta, self.strip_attributes)
                 resource_key = ResourceKey(
                     kind=kind,
                     cluster_path=str(cluster_path),
