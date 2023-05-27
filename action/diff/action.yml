@@ -26,7 +26,7 @@ inputs:
     default: '3.10'
   strip-attrs:
     description: Labels and annotations that should be stripped to reduce diff noise
-    default: helm.sh/chart,checksum/config
+    default: helm.sh/chart,checksum/config,app.kubernetes.io/version,chart
   debug:
     description: When true, uses the DEBUG log level
     default: false
