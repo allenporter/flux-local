@@ -7,8 +7,8 @@ metadata:
 spec:
   interval: 10m
   timeout: 30m
-  # TODO: Make work relative to OCIRepository
-  path: ./tests/testdata/cluster3/namespaces/overlays/cluster3
+  # Path is relative to the OCIRepository
+  path: ./namespaces/overlays/cluster3
   prune: true
   wait: false
   sourceRef:

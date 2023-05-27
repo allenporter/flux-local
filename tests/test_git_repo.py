@@ -431,7 +431,7 @@ def test_source() -> None:
     source = Source.from_str("cluster=./k8s")
     assert source.name == "cluster"
     assert source.namespace == "flux-system"
-    assert str(source.root) == "./k8s"
+    assert str(source.root) == "k8s"
 
 
 def test_source_with_namespace() -> None:
@@ -439,4 +439,4 @@ def test_source_with_namespace() -> None:
     source = Source.from_str("flux-system2/cluster=./k8s")
     assert source.name == "cluster"
     assert source.namespace == "flux-system2"
-    assert str(source.root) == "./k8s"
+    assert str(source.root) == "k8s"
