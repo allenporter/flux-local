@@ -32,7 +32,7 @@ inputs:
     default: false
   limit-bytes:
     description: Maximum number of bytes per individual diff (0=unlimited)
-    default: 20000
+    default: 10000
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
