@@ -175,6 +175,12 @@ def add_diff_flags(args: ArgumentParser) -> None:
         default=None,
         nargs="?",
     )
+    args.add_argument(
+        "--strip-attrs",
+        help="Labels or annotations to strip from the diff",
+        default=[],
+        nargs="+",
+    )
 
 
 @contextmanager
@@ -224,17 +230,18 @@ class DiffKustomizationAction:
         self,
         output: str,
         unified: int,
+        strip_attrs: list[str],
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
         query = selector.build_ks_selector(**kwargs)
         query.helm_release.enabled = False
 
-        content = ObjectOutput()
+        content = ObjectOutput(strip_attrs)
         query.kustomization.visitor = content.visitor()
         await git_repo.build_manifest(selector=query)
 
-        orig_content = ObjectOutput()
+        orig_content = ObjectOutput(strip_attrs)
         with create_diff_path(query.path, **kwargs) as path_selector:
             query.path = path_selector
             query.kustomization.visitor = orig_content.visitor()
@@ -289,18 +296,19 @@ class DiffHelmReleaseAction:
         self,
         output: str,
         unified: int,
+        strip_attrs: list[str],
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
         query = selector.build_hr_selector(**kwargs)
-        content = ObjectOutput()
+        content = ObjectOutput(strip_attrs)
         helm_visitor = HelmVisitor()
         query.kustomization.visitor = content.visitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
         await git_repo.build_manifest(selector=query)
 
-        orig_content = ObjectOutput()
+        orig_content = ObjectOutput(strip_attrs)
         orig_helm_visitor = HelmVisitor()
         with create_diff_path(query.path, **kwargs) as path_selector:
             query.path = path_selector
@@ -345,8 +353,8 @@ class DiffHelmReleaseAction:
                 ]
                 orig_helm_visitor.releases[cluster_path] = releases
 
-        helm_content = ObjectOutput()
-        orig_helm_content = ObjectOutput()
+        helm_content = ObjectOutput(strip_attrs)
+        orig_helm_content = ObjectOutput(strip_attrs)
         with tempfile.TemporaryDirectory() as helm_cache_dir:
             await asyncio.gather(
                 helm_visitor.inflate(

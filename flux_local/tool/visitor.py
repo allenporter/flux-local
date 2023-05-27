@@ -11,7 +11,12 @@ import yaml
 from flux_local import git_repo
 from flux_local.kustomize import Kustomize
 from flux_local.helm import Helm
-from flux_local.manifest import HelmRelease, Kustomization, HelmRepository
+from flux_local.manifest import (
+    HelmRelease,
+    Kustomization,
+    HelmRepository,
+    ClusterPolicy,
+)
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,10 +24,13 @@ _LOGGER = logging.getLogger(__name__)
 
 # Strip any annotations from kustomize that contribute to diff noise when
 # objects are re-ordered in the output
-STRIP_ANNOTATIONS = [
+STRIP_ATTRIBUTES = [
     "config.kubernetes.io/index",
     "internal.config.kubernetes.io/index",
 ]
+
+
+ResourceType = Kustomization | HelmRelease | HelmRepository | ClusterPolicy
 
 
 @dataclass(frozen=True, order=True)
@@ -77,7 +85,7 @@ class ResourceOutput(ABC):
         self,
         cluster_path: pathlib.Path,
         kustomization_path: pathlib.Path,
-        doc: Kustomization | HelmRelease | HelmRepository,
+        doc: ResourceType,
         cmd: Kustomize | None,
     ) -> None:
         """Visitor function invoked to record build output."""
@@ -86,18 +94,12 @@ class ResourceOutput(ABC):
         self,
         cluster_path: pathlib.Path,
         kustomization_path: pathlib.Path,
-        resource: Kustomization | HelmRelease | HelmRepository,
+        resource: ResourceType,
     ) -> ResourceKey:
-        if isinstance(resource, HelmRepository):
-            kind = "HelmRepostiory"
-        elif isinstance(resource, HelmRelease):
-            kind = "HelmRelease"
-        else:
-            kind = "Kustomization"
         return ResourceKey(
             cluster_path=str(cluster_path),
             kustomization_path=str(kustomization_path),
-            kind=kind,
+            kind=resource.__class__.__name__,
             namespace=resource.namespace or "",
             name=resource.name or "",
         )
@@ -114,7 +116,7 @@ class ContentOutput(ResourceOutput):
         self,
         cluster_path: pathlib.Path,
         kustomization_path: pathlib.Path,
-        doc: Kustomization | HelmRelease | HelmRepository,
+        doc: ResourceType,
         cmd: Kustomize | None,
     ) -> None:
         """Visitor function invoked to record build output."""
@@ -129,16 +131,18 @@ class ContentOutput(ResourceOutput):
 class ObjectOutput(ResourceOutput):
     """Resource visitor that builds outputs for objects within the kustomization."""
 
-    def __init__(self) -> None:
+    def __init__(self, strip_attributes: list[str]) -> None:
         """Initialize ObjectOutput."""
         # Map of kustomizations to the map of built objects as lines of the yaml string
         self.content: dict[ResourceKey, dict[ResourceKey, list[str]]] = {}
+        self.strip_attributes = STRIP_ATTRIBUTES
+        self.strip_attributes.extend(strip_attributes)
 
     async def call_async(
         self,
         cluster_path: pathlib.Path,
         kustomization_path: pathlib.Path,
-        doc: Kustomization | HelmRelease | HelmRepository,
+        doc: ResourceType,
         cmd: Kustomize | None,
     ) -> None:
         """Visitor function invoked to build and record resource objects."""
@@ -154,12 +158,13 @@ class ObjectOutput(ResourceOutput):
                         resource,
                     )
                     continue
-                if annotations := metadata.get("annotations"):
-                    for key in STRIP_ANNOTATIONS:
-                        if key in annotations:
-                            del annotations[key]
-                    if not annotations:
-                        del metadata["annotations"]
+                for attr_key in ("annotations", "labels"):
+                    if val := metadata.get(attr_key):
+                        for key in self.strip_attributes:
+                            if key in val:
+                                del val[key]
+                        if not val:
+                            del metadata[attr_key]
                 resource_key = ResourceKey(
                     kind=kind,
                     cluster_path=str(cluster_path),
@@ -215,7 +220,7 @@ class HelmVisitor:
         async def add_repo(
             cluster_path: pathlib.Path,
             kustomization_path: pathlib.Path,
-            doc: Kustomization | HelmRelease | HelmRepository,
+            doc: ResourceType,
             cmd: Kustomize | None,
         ) -> None:
             if not isinstance(doc, HelmRepository):
@@ -232,7 +237,7 @@ class HelmVisitor:
         async def add_release(
             cluster_path: pathlib.Path,
             kustomization_path: pathlib.Path,
-            doc: Kustomization | HelmRelease | HelmRepository,
+            doc: ResourceType,
             cmd: Kustomize | None,
         ) -> None:
             if not isinstance(doc, HelmRelease):
