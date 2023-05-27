@@ -73,7 +73,7 @@ runs:
             --strip-attrs "${{ inputs.strip-attrs }}" \
             --${{ inputs.skip-crds != 'true' && 'no-' || '' }}skip-crds \
             --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
-            --limit-bytes ${{ input.limit-bytes }} \
+            --limit-bytes ${{ inputs.limit-bytes }} \
             --all-namespaces \
             >> $GITHUB_OUTPUT
         echo "${delimiter}" >> $GITHUB_OUTPUT
