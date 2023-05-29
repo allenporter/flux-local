@@ -74,7 +74,59 @@ HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
 CLUSTER_POLICY_KIND = "ClusterPolicy"
 GIT_REPO_KIND = "GitRepository"
+OCI_REPO_KIND = "OCIRepository"
 DEFAULT_NAMESPACE = "flux-system"
+
+
+@dataclass
+class Source:
+    """A source is a named mapping from a k8s object name to a path in the git repo.
+
+    This is needed to map the location within a reop if it's not the root. For example,
+    you may have a `GitRepository` that is relative to `/` and all if of the
+    `Kustomization`s inside may reference paths within it e.g. `/k8s/namespaces/`. But
+    you may also have an `OCIRepository` that was built relative to `/k8s/` where the
+    `Kustomization`s inside may reference the path relative to that like `/namespaces/`.
+    """
+
+    name: str
+    """The name of the repository source."""
+
+    root: Path
+    """The path name within the repo root."""
+
+    namespace: str
+    """The namespace of the repository source."""
+
+    @property
+    def source_name(self) -> str:
+        """Return the full name of the source."""
+        return f"{self.namespace}/{self.name}"
+
+    @classmethod
+    def from_str(self, value: str) -> "Source":
+        """Parse a Source from key=value string."""
+        if "=" not in value:
+            raise ValueError("Expected source name=root")
+        namespace = "flux-system"
+        name, root = value.split("=")
+        if "/" in name:
+            namespace, name = name.split("/")
+        return Source(name=name, root=Path(root), namespace=namespace)
+
+
+def has_source_name(name: str) -> Callable[[Source], bool]:
+    """Return a source root if the source exists."""
+
+    def predicate(source: Source) -> bool:
+        return source.name == name
+
+    return predicate
+
+
+def source_root(source: Source) -> Path:
+    """Return the sources root path."""
+    return source.root
 
 
 @cache
@@ -118,6 +170,9 @@ class PathSelector:
 
     path: Path | None = None
     """The path within a repo."""
+
+    sources: list[Source] | None = None
+    """A list of repository sources for building relative paths."""
 
     @property
     def repo(self) -> git.repo.Repo:
@@ -261,7 +316,7 @@ async def get_flux_kustomizations(
     for a GitRepository is pointed at this cluster, following normal conventions.
     """
     cmd = kustomize.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}", root / relative_path).grep(
-        f"spec.sourceRef.kind={GIT_REPO_KIND}"
+        f"spec.sourceRef.kind={GIT_REPO_KIND}|{OCI_REPO_KIND}"
     )
     docs = await cmd.objects()
     return [
@@ -322,7 +377,27 @@ async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomiza
 
         _LOGGER.debug("Found %s Kustomizations", len(docs))
         for doc in docs:
-            found_path = Path(doc.path)
+            found_path: Path | None = None
+            _LOGGER.debug(
+                "Kustomization '%s' has sourceRef.kind '%s' of '%s'",
+                doc.name,
+                doc.source_kind,
+                doc.source_name,
+            )
+            if not doc.source_kind or doc.source_kind == GIT_REPO_KIND:
+                found_path = Path(doc.path)
+            elif doc.source_kind == OCI_REPO_KIND:
+                for source in path_selector.sources or ():
+                    if source.name == doc.source_name:
+                        found_path = source.root / doc.path
+                        break
+            elif not doc.source_kind or doc.source_kind == GIT_REPO_KIND:
+                found_path = Path(doc.path)
+
+            if not found_path:
+                _LOGGER.debug("Skipping kustomization %s; not known source", doc.name)
+                continue
+
             if not find_path_parent(found_path, visited) and found_path not in visited:
                 path_queue.put(found_path)
             else:
@@ -331,13 +406,17 @@ async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomiza
     return kustomizations
 
 
-def make_clusters(kustomizations: list[Kustomization]) -> list[Cluster]:
+def make_clusters(
+    kustomizations: list[Kustomization], sources: list[Source] | None = None
+) -> list[Cluster]:
     """Convert the flat list of Kustomizations into a Cluster.
 
     This will reverse engineer which Kustomizations are root nodes for the cluster
     based on the parent paths. Root Kustomizations are made the cluster and everything
     else is made a child.
     """
+    if not sources:
+        sources = []
 
     # Build a directed graph from a kustomization path to the path
     # of the kustomization that created it.
@@ -348,12 +427,29 @@ def make_clusters(kustomizations: list[Kustomization]) -> list[Cluster]:
             raise InputException(
                 "Kustomization did not have source path; Old kustomize?"
             )
+
+        # OCIRepositories may be build pointed at a subset of the cluster which can
+        # only be determined based on input command line flags
+        if ks.source_kind == OCI_REPO_KIND:
+            if root := next(
+                map(
+                    source_root, filter(has_source_name(ks.source_name or ""), sources)
+                ),
+                None,
+            ):
+                ks.path = str(root / ks.path)
+                _LOGGER.debug("Updated Source for OCIRepository {ks.name}: {ks.path}")
+            else:
+                _LOGGER.debug("Excluding OCIRepository without source {ks.name}")
+                continue
+
         path = Path(ks.path)
-        source = Path(ks.source_path)
         graph.add_node(path, ks=ks)
+
         # Find the parent Kustomization that produced this based on the
         # matching the kustomize source parent paths with a Kustomization
         # target path.
+        source = Path(ks.source_path)
         if (
             parent_path := find_path_parent(source, parent_paths)
         ) and parent_path != path:
@@ -361,6 +457,7 @@ def make_clusters(kustomizations: list[Kustomization]) -> list[Cluster]:
             graph.add_edge(parent_path, path)
         else:
             _LOGGER.debug("No parent for %s (%s)", path, source)
+            _LOGGER.debug("XXX: %s", parent_paths)
 
     # Clusters are subgraphs within the graph that are connected, with the root
     # node being the cluster itself. All children Kustomizations are flattended.
@@ -397,7 +494,12 @@ async def get_clusters(
     """Load Cluster objects from the specified path."""
 
     kustomizations = await kustomization_traversal(path_selector)
-    clusters = list(filter(cluster_selector.predicate, make_clusters(kustomizations)))
+    clusters = list(
+        filter(
+            cluster_selector.predicate,
+            make_clusters(kustomizations, path_selector.sources or []),
+        )
+    )
     for cluster in clusters:
         cluster.kustomizations = list(
             filter(kustomization_selector.predicate, cluster.kustomizations)
@@ -530,7 +632,11 @@ async def build_manifest(
     async def update_kustomization(cluster: Cluster) -> None:
         build_tasks = []
         for kustomization in cluster.kustomizations:
-            _LOGGER.debug("Processing kustomization: %s", kustomization.path)
+            _LOGGER.debug(
+                "Processing kustomization '%s': %s",
+                kustomization.name,
+                kustomization.path,
+            )
             build_tasks.append(
                 build_kustomization(
                     kustomization,
