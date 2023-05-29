@@ -457,7 +457,6 @@ def make_clusters(
             graph.add_edge(parent_path, path)
         else:
             _LOGGER.debug("No parent for %s (%s)", path, source)
-            _LOGGER.debug("XXX: %s", parent_paths)
 
     # Clusters are subgraphs within the graph that are connected, with the root
     # node being the cluster itself. All children Kustomizations are flattended.
