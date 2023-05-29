@@ -72,7 +72,7 @@ class BaseManifest(BaseModel):
     def yaml(self, exclude: dict[str, Any] | None = None) -> str:
         """Return a YAML string representation of compact_dict."""
         data = self.compact_dict(exclude)
-        return cast(str, yaml.dump(data, sort_keys=False, explicit_start=True))
+        return yaml.dump(data, sort_keys=False, explicit_start=True)
 
 
 class HelmChart(BaseManifest):
@@ -274,6 +274,12 @@ class Kustomization(BaseManifest):
     source_path: str | None = None
     """Optional source path for this Kustomization, relative to the build path."""
 
+    source_kind: str | None = None
+    """The sourceRef kind that provides this Kustomization e.g. GitRepository etc."""
+
+    source_name: str | None = None
+    """The name of the sourceRef that provides this Kustomization."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":
         """Parse a partial Kustomization from a kubernetes resource."""
@@ -289,8 +295,14 @@ class Kustomization(BaseManifest):
         if not (path := spec.get("path")):
             raise InputException(f"Invalid {cls} missing spec.path: {doc}")
         source_path = metadata.get("annotations", {}).get("config.kubernetes.io/path")
+        source_ref = spec.get("sourceRef", {})
         return Kustomization(
-            name=name, namespace=namespace, path=path, source_path=source_path
+            name=name,
+            namespace=namespace,
+            path=path,
+            source_path=source_path,
+            source_kind=source_ref.get("kind"),
+            source_name=source_ref.get("name"),
         )
 
     @property
@@ -306,6 +318,8 @@ class Kustomization(BaseManifest):
             "__all__": ClusterPolicy._COMPACT_EXCLUDE_FIELDS,
         },
         "source_path": True,
+        "source_name": True,
+        "source_kind": True,
     }
 
 

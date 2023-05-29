@@ -1,0 +1,6 @@
+args:
+- test
+- --enable-helm
+- --sources
+- cluster=tests/testdata/cluster3
+- tests/testdata/cluster3

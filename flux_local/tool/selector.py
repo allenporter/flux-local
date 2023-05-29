@@ -28,8 +28,7 @@ class SourceAppendAction(Action):
         values: Any,
         option_string: str | None = None,
     ) -> None:
-        if not isinstance(values, list) or len(values) != 1:
-            raise ValueError(f"Expected single list value from '{values}'")
+        values = values.split(",")
         try:
             source = git_repo.Source.from_str(values[0])
         except ValueError:
@@ -52,7 +51,6 @@ def add_selector_flags(args: ArgumentParser) -> None:
         "--sources",
         help="Optional map of repository source to relative path e.g. cluster=./k8s/",
         action=SourceAppendAction,
-        nargs="+",
     )
     args.add_argument(
         "--all-namespaces",
