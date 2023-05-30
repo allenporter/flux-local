@@ -56,7 +56,7 @@ async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None
     """Test helm template command."""
     await helm.update()
 
-    assert len(helm_releases) == 1
+    assert len(helm_releases) == 2
     release = helm_releases[0]
     obj = await helm.template(HelmRelease.parse_doc(release))
     docs = await obj.grep("kind=ServiceAccount").objects()

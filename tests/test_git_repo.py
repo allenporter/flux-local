@@ -31,8 +31,8 @@ async def test_build_manifest() -> None:
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
     assert len(cluster.kustomizations) == 4
-    assert len(cluster.helm_repos) == 2
-    assert len(cluster.helm_releases) == 2
+    assert len(cluster.helm_repos) == 3
+    assert len(cluster.helm_releases) == 3
 
 
 async def test_build_manifest_ks_path() -> None:
@@ -94,7 +94,7 @@ async def test_helm_release_selector_disabled() -> None:
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
     assert len(cluster.kustomizations) == 4
-    assert len(cluster.helm_repos) == 2
+    assert len(cluster.helm_repos) == 3
     assert len(cluster.helm_releases) == 0
 
 
@@ -113,7 +113,7 @@ async def test_helm_repo_selector_disabled() -> None:
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
     assert len(cluster.kustomizations) == 4
     assert len(cluster.helm_repos) == 0
-    assert len(cluster.helm_releases) == 2
+    assert len(cluster.helm_releases) == 3
 
 
 async def test_kustomization_visitor() -> None:
@@ -200,8 +200,8 @@ async def test_helm_repo_visitor() -> None:
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
     assert len(cluster.kustomizations) == 4
-    assert len(cluster.helm_repos) == 2
-    assert len(cluster.helm_releases) == 2
+    assert len(cluster.helm_repos) == 3
+    assert len(cluster.helm_releases) == 3
 
     visits.sort()
     assert visits == [
@@ -216,6 +216,12 @@ async def test_helm_repo_visitor() -> None:
             "tests/testdata/cluster/infrastructure/configs",
             "flux-system",
             "podinfo",
+        ),
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/infrastructure/configs",
+            "flux-system",
+            "weave-charts",
         ),
     ]
 
@@ -242,8 +248,8 @@ async def test_helm_release_visitor() -> None:
     assert cluster.namespace == "flux-system"
     assert cluster.path == "./tests/testdata/cluster/clusters/prod"
     assert len(cluster.kustomizations) == 4
-    assert len(cluster.helm_repos) == 2
-    assert len(cluster.helm_releases) == 2
+    assert len(cluster.helm_repos) == 3
+    assert len(cluster.helm_releases) == 3
 
     visits.sort()
     assert visits == [
@@ -252,6 +258,12 @@ async def test_helm_release_visitor() -> None:
             "tests/testdata/cluster/apps/prod",
             "podinfo",
             "podinfo",
+        ),
+        (
+            "tests/testdata/cluster/clusters/prod",
+            "tests/testdata/cluster/infrastructure/controllers",
+            "flux-system",
+            "weave-gitops",
         ),
         (
             "tests/testdata/cluster/clusters/prod",
