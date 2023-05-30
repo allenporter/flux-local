@@ -7,6 +7,7 @@ import tempfile
 
 from flux_local import git_repo
 
+from . import selector
 from .visitor import ContentOutput, HelmVisitor
 
 
@@ -38,7 +39,9 @@ class BuildAction:
         helm_visitor = HelmVisitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
-        await git_repo.build_manifest(selector=query)
+        await git_repo.build_manifest(
+            selector=query, options=selector.options(**kwargs)
+        )
 
         # We use a separate output object so that the contents of the HelmRelease
         # always come after the HelmRelease itself. This means all the helm releases

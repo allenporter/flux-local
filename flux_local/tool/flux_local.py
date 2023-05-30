@@ -70,6 +70,12 @@ def main() -> None:
         action=argparse.BooleanOptionalAction,
         help="Omit secrets from the output to reduce random output.",
     )
+    build_args.add_argument(
+        "--kustomize-build-flags",
+        type=str,
+        default="",
+        help="If present, additional flags to pass to `kustomize build`",
+    )
     build_args.set_defaults(cls=build.BuildAction)
 
     get.GetAction.register(subparsers)

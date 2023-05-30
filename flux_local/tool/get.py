@@ -54,7 +54,9 @@ class GetKustomizationAction:
         if output != "wide":
             query.helm_release.enabled = False
             query.helm_repo.enabled = False
-        manifest = await git_repo.build_manifest(selector=query)
+        manifest = await git_repo.build_manifest(
+            selector=query, options=selector.options(**kwargs)
+        )
 
         results: list[dict[str, str]] = []
         cols = ["name", "path"]
@@ -105,7 +107,9 @@ class GetHelmReleaseAction:
     ) -> None:
         """Async Action implementation."""
         query = selector.build_hr_selector(**kwargs)
-        manifest = await git_repo.build_manifest(selector=query)
+        manifest = await git_repo.build_manifest(
+            selector=query, options=selector.options(**kwargs)
+        )
 
         cols = ["name", "revision", "chart", "source"]
         if query.helm_release.namespace is None:
@@ -162,7 +166,9 @@ class GetClusterAction:
         """Async Action implementation."""
         query = selector.build_cluster_selector(**kwargs)
         query.helm_release.enabled = output == "yaml"
-        manifest = await git_repo.build_manifest(selector=query)
+        manifest = await git_repo.build_manifest(
+            selector=query, options=selector.options(**kwargs)
+        )
         if output == "yaml":
             YamlFormatter().print([manifest.compact_dict()])
             return

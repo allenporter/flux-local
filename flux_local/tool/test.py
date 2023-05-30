@@ -261,10 +261,12 @@ class ManifestPlugin:
     def __init__(
         self,
         selector: git_repo.ResourceSelector,
+        options: git_repo.Options,
         test_config: TestConfig,
         test_filter: list[str],
     ) -> None:
         self.selector = selector
+        self.options = options
         self.manifest: Manifest | None = None
         self.test_config = test_config
         self.test_filter = test_filter
@@ -276,7 +278,10 @@ class ManifestPlugin:
     async def async_pytest_sessionstart(self, session: pytest.Session) -> None:
         """Run the Kustomizations test."""
         _LOGGER.debug("async_pytest_sessionstart")
-        manifest = await git_repo.build_manifest(selector=self.selector)
+        manifest = await git_repo.build_manifest(
+            selector=self.selector,
+            options=self.options,
+        )
         self.manifest = manifest
         _LOGGER.debug("async_pytest_sessionstart ended")
 
@@ -291,7 +296,7 @@ class ManifestPlugin:
         )
         # Ignore the default files found by pytest and instead create
         # tests based on the manifest contents.
-        session.collect = manifest_collector.collect  # type: ignore[assignment]
+        session.collect = manifest_collector.collect  # type: ignore[method-assign]
         _LOGGER.debug("pytest_collection end:%s", session)
 
     def pytest_collection_modifyitems(
@@ -418,6 +423,7 @@ class TestAction:
             plugins=[
                 ManifestPlugin(
                     query,
+                    selector.options(**kwargs),
                     TestConfig(kube_version=kube_version, api_versions=api_versions),
                     test_filter=[str(test_path)] if test_path else [],
                 )

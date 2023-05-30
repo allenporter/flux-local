@@ -1,7 +1,5 @@
 """Library for common selectors."""
 
-import logging
-import pathlib
 from argparse import (
     ArgumentParser,
     BooleanOptionalAction,
@@ -9,6 +7,9 @@ from argparse import (
     ArgumentError,
     Namespace,
 )
+import logging
+import pathlib
+import shlex
 from typing import Any
 
 from flux_local import git_repo
@@ -81,6 +82,12 @@ def add_selector_flags(args: ArgumentParser) -> None:
         action=BooleanOptionalAction,
         help="When true do not include Secrets to reduce output size and randomness",
     )
+    args.add_argument(
+        "--kustomize-build-flags",
+        type=str,
+        default="",
+        help="If present, additional flags to pass to `kustomize build`",
+    )
 
 
 def add_ks_selector_flags(args: ArgumentParser) -> None:
@@ -93,6 +100,15 @@ def add_ks_selector_flags(args: ArgumentParser) -> None:
         nargs="?",
     )
     add_selector_flags(args)
+
+
+def options(  # type: ignore[no-untyped-def]
+    kustomize_build_flags: str | None, **kwargs
+) -> git_repo.Options:
+    """Create an Options object based on flags."""
+    options = git_repo.Options()
+    options.kustomize_flags = shlex.split(kustomize_build_flags or "")
+    return options
 
 
 def build_ks_selector(  # type: ignore[no-untyped-def]

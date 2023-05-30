@@ -279,6 +279,13 @@ def ks_metadata_selector() -> MetadataSelector:
 
 
 @dataclass
+class Options:
+    """Options for the resource selector for building manifets."""
+
+    kustomize_flags: list[str] = field(default_factory=list)
+
+
+@dataclass
 class ResourceSelector:
     """A filter for objects to select from the cluster.
 
@@ -523,6 +530,7 @@ async def build_kustomization(
     helm_release_selector: MetadataSelector,
     helm_repo_selector: MetadataSelector,
     cluster_policy_selector: MetadataSelector,
+    kustomize_flags: list[str],
 ) -> tuple[Iterable[HelmRepository], Iterable[HelmRelease], Iterable[ClusterPolicy]]:
     """Build helm objects for the Kustomization."""
     if (
@@ -532,8 +540,7 @@ async def build_kustomization(
         and not cluster_policy_selector.enabled
     ):
         return ([], [], [])
-
-    cmd = kustomize.build(root / kustomization.path)
+    cmd = kustomize.build(root / kustomization.path, kustomize_flags)
     skips = []
     if kustomization_selector.skip_crds:
         skips.append(CRD_KIND)
@@ -599,6 +606,7 @@ async def build_kustomization(
 async def build_manifest(
     path: Path | None = None,
     selector: ResourceSelector = ResourceSelector(),
+    options: Options = Options(),
 ) -> Manifest:
     """Build a Manifest object from the local cluster.
 
@@ -647,6 +655,7 @@ async def build_manifest(
                     selector.helm_release,
                     selector.helm_repo,
                     selector.cluster_policy,
+                    options.kustomize_flags,
                 )
             )
         results = list(await asyncio.gather(*build_tasks))

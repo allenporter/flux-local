@@ -261,13 +261,17 @@ class DiffKustomizationAction:
 
         content = ObjectOutput(strip_attrs)
         query.kustomization.visitor = content.visitor()
-        await git_repo.build_manifest(selector=query)
+        await git_repo.build_manifest(
+            selector=query, options=selector.options(**kwargs)
+        )
 
         orig_content = ObjectOutput(strip_attrs)
         with create_diff_path(query.path, **kwargs) as path_selector:
             query.path = path_selector
             query.kustomization.visitor = orig_content.visitor()
-            await git_repo.build_manifest(selector=query)
+            await git_repo.build_manifest(
+                selector=query, options=selector.options(**kwargs)
+            )
 
         if not orig_content.content and not content.content:
             print(selector.not_found("Kustomization", query.kustomization))
@@ -329,7 +333,9 @@ class DiffHelmReleaseAction:
         query.kustomization.visitor = content.visitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
-        await git_repo.build_manifest(selector=query)
+        await git_repo.build_manifest(
+            selector=query, options=selector.options(**kwargs)
+        )
 
         orig_content = ObjectOutput(strip_attrs)
         orig_helm_visitor = HelmVisitor()
@@ -338,7 +344,9 @@ class DiffHelmReleaseAction:
             query.kustomization.visitor = orig_content.visitor()
             query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
             query.helm_release.visitor = orig_helm_visitor.release_visitor()
-            await git_repo.build_manifest(selector=query)
+            await git_repo.build_manifest(
+                selector=query, options=selector.options(**kwargs)
+            )
 
         if not helm_visitor.releases and not orig_helm_visitor.releases:
             print(selector.not_found("HelmRelease", query.helm_release))
