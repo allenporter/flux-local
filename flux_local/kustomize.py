@@ -35,7 +35,7 @@ You can apply kyverno policies to the objects with the `validate` method.
 """
 
 import aiofiles
-from aiofiles.os import listdir  # type: ignore[attr-defined]
+from aiofiles.os import listdir
 from aiofiles.ospath import isdir, exists
 import asyncio
 import logging
@@ -187,9 +187,10 @@ class Stash(Task):
 class Build(Task):
     """A task that issues a build command, handling implicit Kustomizations."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, kustomize_flags: list[str] | None = None) -> None:
         """Initialize Build."""
         self._path = path
+        self._kustomize_flags = kustomize_flags or []
 
     async def run(self, stdin: bytes | None = None) -> bytes:
         """Run the task."""
@@ -204,6 +205,7 @@ class Build(Task):
             return await fluxtomize(self._path)
 
         args = [KUSTOMIZE_BIN, "build"]
+        args.extend(self._kustomize_flags)
         cwd: Path | None = None
         if self._path.is_absolute():
             cwd = self._path
@@ -257,9 +259,9 @@ async def fluxtomize(path: Path) -> bytes:
     return str(out).encode("utf-8")
 
 
-def build(path: Path) -> Kustomize:
+def build(path: Path, kustomize_flags: list[str] | None = None) -> Kustomize:
     """Build cluster artifacts from the specified path."""
-    return Kustomize(cmds=[Build(path)])
+    return Kustomize(cmds=[Build(path, kustomize_flags)])
 
 
 def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
