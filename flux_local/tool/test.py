@@ -32,6 +32,7 @@ _LOGGER = logging.getLogger(__name__)
 class TestConfig:
     """Test configuration, which are parameters to types of the tests."""
 
+    options: git_repo.Options
     kube_version: str | None = None
     api_versions: str | None = None
 
@@ -137,7 +138,12 @@ class KustomizationTest(pytest.Item):
 
     async def async_runtest(self) -> None:
         """Run the Kustomizations test."""
-        cmd = await kustomize.build(Path(self.kustomization.path)).stash()
+        kustomize_flags = []
+        if self.test_config.options:
+            kustomize_flags = self.test_config.options.kustomize_flags
+        cmd = await kustomize.build(
+            Path(self.kustomization.path), kustomize_flags
+        ).stash()
         await cmd.objects()
         await cmd.validate_policies(self.cluster.cluster_policies)
 
@@ -261,12 +267,10 @@ class ManifestPlugin:
     def __init__(
         self,
         selector: git_repo.ResourceSelector,
-        options: git_repo.Options,
         test_config: TestConfig,
         test_filter: list[str],
     ) -> None:
         self.selector = selector
-        self.options = options
         self.manifest: Manifest | None = None
         self.test_config = test_config
         self.test_filter = test_filter
@@ -280,7 +284,7 @@ class ManifestPlugin:
         _LOGGER.debug("async_pytest_sessionstart")
         manifest = await git_repo.build_manifest(
             selector=self.selector,
-            options=self.options,
+            options=self.test_config.options,
         )
         self.manifest = manifest
         _LOGGER.debug("async_pytest_sessionstart ended")
@@ -406,6 +410,7 @@ class TestAction:
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
         query.cluster_policy.enabled = enable_kyverno
+        options = selector.options(**kwargs)
 
         nest_asyncio.apply()
         pytest_args = [
@@ -423,8 +428,11 @@ class TestAction:
             plugins=[
                 ManifestPlugin(
                     query,
-                    selector.options(**kwargs),
-                    TestConfig(kube_version=kube_version, api_versions=api_versions),
+                    TestConfig(
+                        options=options,
+                        kube_version=kube_version,
+                        api_versions=api_versions,
+                    ),
                     test_filter=[str(test_path)] if test_path else [],
                 )
             ],
