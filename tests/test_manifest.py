@@ -66,7 +66,7 @@ def test_parse_helm_repository() -> None:
             Loader=yaml.CLoader,
         )
     )
-    assert len(docs) == 2
+    assert len(docs) == 3
     repo = HelmRepository.parse_doc(docs[0])
     assert repo.name == "bitnami"
     assert repo.namespace == "flux-system"

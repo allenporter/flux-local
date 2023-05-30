@@ -9,5 +9,5 @@ args:
 - --path
 - tests/testdata/cluster/
 - --limit-bytes
-- "20"
+- '20'
 stdout: ''

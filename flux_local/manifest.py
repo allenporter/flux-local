@@ -91,7 +91,7 @@ class HelmChart(BaseManifest):
     """The namespace of the HelmRepository."""
 
     @classmethod
-    def parse_doc(cls, doc: dict[str, Any]) -> "HelmChart":
+    def parse_doc(cls, doc: dict[str, Any], default_namespace: str) -> "HelmChart":
         """Parse a HelmChart from a HelmRelease resource object."""
         _check_version(doc, HELM_RELEASE_DOMAIN)
         if not (spec := doc.get("spec")):
@@ -107,13 +107,13 @@ class HelmChart(BaseManifest):
             raise InputException(
                 f"Invalid {cls} missing spec.chart.spec.sourceRef: {doc}"
             )
-        if "namespace" not in source_ref or "name" not in source_ref:
+        if "name" not in source_ref:
             raise InputException(f"Invalid {cls} missing sourceRef fields: {doc}")
         return cls(
             name=chart,
             version=version,
             repo_name=source_ref["name"],
-            repo_namespace=source_ref["namespace"],
+            repo_namespace=source_ref.get("namespace", default_namespace),
         )
 
     @property
@@ -149,7 +149,7 @@ class HelmRelease(BaseManifest):
             raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
         if not (namespace := metadata.get("namespace")):
             raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
-        chart = HelmChart.parse_doc(doc)
+        chart = HelmChart.parse_doc(doc, namespace)
         return cls(
             name=name,
             namespace=namespace,

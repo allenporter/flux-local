@@ -7,4 +7,4 @@ args:
 - -o
 - yaml
 - --limit-bytes
-- "20000"
+- '20000'
