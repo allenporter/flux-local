@@ -23,6 +23,12 @@ inputs:
   python-version:
     description: Python version used for running flux-local
     default: '3.10'
+  debug:
+    description: When true, uses the DEBUG log level
+    default: false
+  kustomize-build-flags:
+    description: Additional flags to pass to kustomize build
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -43,9 +49,12 @@ runs:
       if: ${{ inputs.enable-kyverno == 'true' }}
     - name: Test cluster (flux-local)
       run: |
-        flux-local test \
+        flux-local \
+          --log-level ${{ inputs.debug != 'true' && 'INFO' || 'DEBUG' }} \
+          test \
           --${{ inputs.enable-helm != 'true' && 'no-' || '' }}enable-helm \
           --${{ inputs.enable-kyverno != 'true' && 'no-' || '' }}enable-kyverno \
           --api-versions "${{ inputs.api-versions }}" \
+          --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
           --path ${{ inputs.path }}
       shell: bash

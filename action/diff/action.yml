@@ -33,6 +33,9 @@ inputs:
   limit-bytes:
     description: Maximum number of bytes per individual diff (0=unlimited)
     default: 10000
+  kustomize-build-flags:
+    description: Additional flags to pass to kustomize build
+    default: ''
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
@@ -75,6 +78,7 @@ runs:
             --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
             --limit-bytes ${{ inputs.limit-bytes }} \
             --all-namespaces \
+            --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
             >> $GITHUB_OUTPUT
         echo "${delimiter}" >> $GITHUB_OUTPUT
       shell: bash
