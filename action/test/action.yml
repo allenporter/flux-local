@@ -29,6 +29,9 @@ inputs:
   kustomize-build-flags:
     description: Additional flags to pass to kustomize build
     default: ''
+  sources:
+    description: OCIRepository source mappings like `cluster=./kubernetes/`
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -56,5 +59,6 @@ runs:
           --${{ inputs.enable-kyverno != 'true' && 'no-' || '' }}enable-kyverno \
           --api-versions "${{ inputs.api-versions }}" \
           --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
+          --sources "${{ inputs.sources }}" \
           --path ${{ inputs.path }}
       shell: bash

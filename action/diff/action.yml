@@ -36,6 +36,9 @@ inputs:
   kustomize-build-flags:
     description: Additional flags to pass to kustomize build
     default: ''
+  sources:
+    description: OCIRepository source mappings like `cluster=./kubernetes/`
+    default: ''
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
@@ -79,6 +82,7 @@ runs:
             --limit-bytes ${{ inputs.limit-bytes }} \
             --all-namespaces \
             --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
+            --sources "${{ inputs.sources }}" \
             >> $GITHUB_OUTPUT
         echo "${delimiter}" >> $GITHUB_OUTPUT
       shell: bash
