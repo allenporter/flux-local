@@ -83,28 +83,12 @@ def main() -> None:
 
     action = args.cls()
 
-    loop = asyncio.get_event_loop()
-    failure = False
-
-    def fail_handler(loop: asyncio.AbstractEventLoop, context: Any) -> None:
-        err = context.get("exception")
-        if args.log_level == "DEBUG":
-            traceback.print_exception(err, file=sys.stderr)
-        print("flux-local error: ", err, file=sys.stderr)
-        loop.stop()
-
-    loop.set_exception_handler(fail_handler)
-    loop.create_task(action.run(**vars(args)))
-
     try:
-        loop.run_forever()
+        asyncio.run(action.run(**vars(args)))
     except FluxException as err:
         if args.log_level == "DEBUG":
             traceback.print_exc(file=sys.stderr)
         print("flux-local error: ", err, file=sys.stderr)
-        sys.exit(1)
-
-    if failure:
         sys.exit(1)
 
 
