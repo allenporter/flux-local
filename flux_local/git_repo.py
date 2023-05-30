@@ -438,9 +438,11 @@ def make_clusters(
                 None,
             ):
                 ks.path = str(root / ks.path)
-                _LOGGER.debug("Updated Source for OCIRepository {ks.name}: {ks.path}")
+                _LOGGER.debug(
+                    "Updated Source for OCIRepository %s: %s", ks.name, ks.path
+                )
             else:
-                _LOGGER.debug("Excluding OCIRepository without source {ks.name}")
+                _LOGGER.debug("Excluding OCIRepository without source %s", ks.name)
                 continue
 
         path = Path(ks.path)
@@ -457,7 +459,6 @@ def make_clusters(
             graph.add_edge(parent_path, path)
         else:
             _LOGGER.debug("No parent for %s (%s)", path, source)
-            _LOGGER.debug("XXX: %s", parent_paths)
 
     # Clusters are subgraphs within the graph that are connected, with the root
     # node being the cluster itself. All children Kustomizations are flattended.
