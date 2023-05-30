@@ -438,9 +438,11 @@ def make_clusters(
                 None,
             ):
                 ks.path = str(root / ks.path)
-                _LOGGER.debug("Updated Source for OCIRepository {ks.name}: {ks.path}")
+                _LOGGER.debug(
+                    "Updated Source for OCIRepository %s: %s", ks.name, ks.path
+                )
             else:
-                _LOGGER.debug("Excluding OCIRepository without source {ks.name}")
+                _LOGGER.debug("Excluding OCIRepository without source %s", ks.name)
                 continue
 
         path = Path(ks.path)

@@ -16,6 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 _CONCURRENCY = 20
 _SEM = asyncio.Semaphore(_CONCURRENCY)
+_TIMEOUT = 20.0
 
 
 # No public API
@@ -92,7 +93,7 @@ async def _run_piped_with_sem(cmds: Sequence[Task]) -> str:
     stdin = None
     out = None
     for cmd in cmds:
-        out = await cmd.run(stdin)
+        out = await asyncio.wait_for(cmd.run(stdin), _TIMEOUT)
         stdin = out
     return out.decode("utf-8") if out else ""
 
