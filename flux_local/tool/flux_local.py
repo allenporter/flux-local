@@ -82,7 +82,6 @@ def main() -> None:
         logging.basicConfig(level=args.log_level)
 
     action = args.cls()
-
     try:
         asyncio.run(action.run(**vars(args)))
     except FluxException as err:
