@@ -30,6 +30,8 @@ class SourceAppendAction(Action):
         option_string: str | None = None,
     ) -> None:
         values = values.split(",")
+        if not values[0]:
+            return
         try:
             source = git_repo.Source.from_str(values[0])
         except ValueError:
