@@ -35,7 +35,7 @@ jobs:
       if: ${{ steps.diff.outputs.diff != '' }}
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        message-id: ${{ matrix.cluster_path }}/${{ matrix.resource }}
+        message-id: ${{ github.event.pull_request.number }}/${{ matrix.cluster_path }}/${{ matrix.resource }}
         message-failure: Unable to post kustomization diff
         message: |
           `````diff
