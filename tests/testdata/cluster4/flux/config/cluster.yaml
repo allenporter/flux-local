@@ -1,0 +1,32 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: GitRepository
+metadata:
+  name: home-ops-kubernetes
+  namespace: flux-system
+spec:
+  interval: 30m
+  url: ssh://git@github.com/example/home-ops
+  ref:
+    branch: main
+  secretRef:
+    name: github-deploy-key
+  ignore: |
+    # exclude all
+    /*
+    # include kubernetes directory
+    !/tests/testdata/cluster4/kubernetes
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: cluster
+  namespace: flux-system
+spec:
+  interval: 30m
+  path: ./tests/testdata/cluster4/flux
+  prune: true
+  wait: false
+  sourceRef:
+    kind: GitRepository
+    name: home-ops-kubernetes
