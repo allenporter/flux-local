@@ -344,10 +344,10 @@ async def test_kustomization_traversal(path: str) -> None:
     assert cluster.name == "cluster"
     assert cluster.namespace == "flux-system"
     assert [ks.path for ks in cluster.kustomizations] == [
+        "./kubernetes/flux",
         "./kubernetes/apps",
         "./kubernetes/apps/rook-ceph/rook-ceph/app",
         "./kubernetes/apps/volsync/volsync/app",
-        "./kubernetes/flux",
     ]
 
 

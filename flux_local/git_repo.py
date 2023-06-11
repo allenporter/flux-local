@@ -332,6 +332,18 @@ async def get_flux_kustomizations(
     ]
 
 
+def find_source_kustomization(
+    search: Path, node_map: dict[Path, Kustomization]
+) -> list[Kustomization]:
+    """Return all source Kustomizations that might manage the specified path."""
+    results = []
+    set(node_map)
+    for parent in search.parents:
+        if node := node_map.get(parent):
+            results.append(node)
+    return results
+
+
 def find_path_parent(search: Path, prefixes: set[Path]) -> Path | None:
     """Return a prefix path that is a parent of the search path."""
     for parent in search.parents:
@@ -383,6 +395,7 @@ async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomiza
         visited |= set({path})
 
         _LOGGER.debug("Found %s Kustomizations", len(docs))
+        result_docs = []
         for doc in docs:
             found_path: Path | None = None
             _LOGGER.debug(
@@ -409,8 +422,18 @@ async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomiza
                 path_queue.put(found_path)
             else:
                 _LOGGER.debug("Already visited %s", found_path)
-        kustomizations.extend(docs)
+            result_docs.append(doc)
+        kustomizations.extend(result_docs)
     return kustomizations
+
+
+def node_name(ks: Kustomization) -> str:
+    """Return a unique node name for the Kustomization.
+
+    This includes the path since it needs to be unique within the entire
+    repository since we support multi-cluster.
+    """
+    return f"{ks.namespaced_name} @ {ks.id_name}"
 
 
 def make_clusters(
@@ -428,7 +451,7 @@ def make_clusters(
     # Build a directed graph from a kustomization path to the path
     # of the kustomization that created it.
     graph = networkx.DiGraph()
-    parent_paths = set([Path(ks.path) for ks in kustomizations])
+    node_path_map = {Path(ks.path): ks for ks in kustomizations if ks.source_path}
     for ks in kustomizations:
         if not ks.source_path:
             raise InputException(
@@ -452,20 +475,38 @@ def make_clusters(
                 _LOGGER.debug("Excluding OCIRepository without source %s", ks.name)
                 continue
 
-        path = Path(ks.path)
-        graph.add_node(path, ks=ks)
+        graph.add_node(node_name(ks), ks=ks)
 
         # Find the parent Kustomization that produced this based on the
         # matching the kustomize source parent paths with a Kustomization
         # target path.
         source = Path(ks.source_path)
-        if (
-            parent_path := find_path_parent(source, parent_paths)
-        ) and parent_path != path:
-            _LOGGER.debug("Found parent %s => %s", path, parent_path)
-            graph.add_edge(parent_path, path)
+        _LOGGER.debug("--- Examining candidate Kustomization ---")
+        _LOGGER.debug("Ks         : %s", ks.namespaced_name)
+        _LOGGER.debug("Path       : %s", Path(ks.path))
+        _LOGGER.debug("Source path: %s", source)
+        source_kustomizations = find_source_kustomization(source, node_path_map)
+        _LOGGER.debug(
+            "Possible sources: %s", [f"{node_name(ks)}" for ks in source_kustomizations]
+        )
+        if source_kustomizations:
+            while source_kustomizations:
+                candidate = source_kustomizations.pop(0)
+                # These names can be compared since they are within the scope of
+                # the source path so within the same cluster.
+                if candidate.namespaced_name != ks.namespaced_name:
+                    _LOGGER.debug(
+                        "Found parent %s => %s",
+                        ks.namespaced_name,
+                        candidate.namespaced_name,
+                    )
+                    graph.add_edge(node_name(candidate), node_name(ks))
+                else:
+                    _LOGGER.debug(
+                        "Skipping candidate source %s", candidate.namespaced_name
+                    )
         else:
-            _LOGGER.debug("No parent for %s (%s)", path, source)
+            _LOGGER.debug("No parent for %s (source=%s)", node_name(ks), source)
 
     # Clusters are subgraphs within the graph that are connected, with the root
     # node being the cluster itself. All children Kustomizations are flattended.

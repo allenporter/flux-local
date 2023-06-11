@@ -310,6 +310,11 @@ class Kustomization(BaseManifest):
         """Identifier for the Kustomization in tests"""
         return f"{self.path}"
 
+    @property
+    def namespaced_name(self, sep: str = "/") -> str:
+        """Return the namespace and name concatenated as an id."""
+        return f"{self.namespace}{sep}{self.name}"
+
     _COMPACT_EXCLUDE_FIELDS = {
         "helm_releases": {
             "__all__": HelmRelease._COMPACT_EXCLUDE_FIELDS,
