@@ -382,14 +382,13 @@ async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomiza
         for kustomization in docs:
             if not kustomization.source_path:
                 continue
-            _LOGGER.debug(
-                "Updating relative path: %s, %s, %s",
-                root,
-                path,
-                kustomization.source_path,
-            )
             kustomization.source_path = str(
                 ((root / path) / kustomization.source_path).relative_to(root)
+            )
+            _LOGGER.debug(
+                "Updated relative path: %s => %s",
+                node_name(kustomization),
+                kustomization.source_path,
             )
 
         visited |= set({path})
@@ -410,7 +409,14 @@ async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomiza
                 for source in path_selector.sources or ():
                     if source.name == doc.source_name:
                         found_path = source.root / doc.path
+                        doc.path = str(found_path)
+                        _LOGGER.debug(
+                            "Updated Source for OCIRepository %s: %s",
+                            doc.name,
+                            doc.path,
+                        )
                         break
+
             elif not doc.source_kind or doc.source_kind == GIT_REPO_KIND:
                 found_path = Path(doc.path)
 
@@ -457,23 +463,6 @@ def make_clusters(
             raise InputException(
                 "Kustomization did not have source path; Old kustomize?"
             )
-
-        # OCIRepositories may be build pointed at a subset of the cluster which can
-        # only be determined based on input command line flags
-        if ks.source_kind == OCI_REPO_KIND:
-            if root := next(
-                map(
-                    source_root, filter(has_source_name(ks.source_name or ""), sources)
-                ),
-                None,
-            ):
-                ks.path = str(root / ks.path)
-                _LOGGER.debug(
-                    "Updated Source for OCIRepository %s: %s", ks.name, ks.path
-                )
-            else:
-                _LOGGER.debug("Excluding OCIRepository without source %s", ks.name)
-                continue
 
         graph.add_node(node_name(ks), ks=ks)
 
