@@ -19,7 +19,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m0s
-  path: ./tests/testdata/cluster/clusters/prod
+  path: ./tests/testdata/cluster5/clusters/prod
   prune: true
   sourceRef:
     kind: GitRepository
