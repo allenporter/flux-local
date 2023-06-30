@@ -292,8 +292,7 @@ class Kustomization(BaseManifest):
             raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
         if not (spec := doc.get("spec")):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
-        if not (path := spec.get("path")):
-            raise InputException(f"Invalid {cls} missing spec.path: {doc}")
+        path = spec.get("path", "")
         source_path = metadata.get("annotations", {}).get("config.kubernetes.io/path")
         source_ref = spec.get("sourceRef", {})
         return Kustomization(

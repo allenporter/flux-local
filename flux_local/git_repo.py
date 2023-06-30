@@ -380,6 +380,8 @@ async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomiza
         # Source path is relative to the search path. Update to have the
         # full prefix relative to the root.
         for kustomization in docs:
+            if not kustomization.path:
+                kustomization.path = str(root / path)
             if not kustomization.source_path:
                 continue
             kustomization.source_path = str(

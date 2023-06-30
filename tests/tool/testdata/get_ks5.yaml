@@ -1,0 +1,8 @@
+args:
+- get
+- ks
+- --path
+- tests/testdata/cluster5
+stdout: |
+  NAME           PATH                                       
+  flux-system    ./tests/testdata/cluster5/clusters/prod    
