@@ -406,6 +406,7 @@ class TestAction:
             # If a real file path, then clear so it is not a test nodeid filter
             if test_path.startswith(".") or test_path.startswith("/"):
                 test_path = None
+        query.kustomization.namespace = query.cluster.namespace
         query.kustomization.skip_crds = True
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
