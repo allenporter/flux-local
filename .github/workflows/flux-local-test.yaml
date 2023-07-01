@@ -12,6 +12,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cluster_path:
+        - tests/testdata/cluster
+        - tests/testdata/cluster2
+        - tests/testdata/cluster3
+        - tests/testdata/cluster5
+        - tests/testdata/cluster6
     steps:
     - uses: actions/checkout@v3
     - uses: ./action/test
@@ -19,3 +27,4 @@ jobs:
         enable-helm: true
         enable-kyverno: false
         sources: cluster=tests/testdata/cluster3
+        path: ${{ matrix.cluster_path }}
