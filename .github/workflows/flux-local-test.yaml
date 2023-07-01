@@ -28,3 +28,4 @@ jobs:
         enable-kyverno: false
         sources: cluster=tests/testdata/cluster3
         path: ${{ matrix.cluster_path }}
+        api-versions: batch/v1/CronJob
