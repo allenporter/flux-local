@@ -15,7 +15,7 @@ import nest_asyncio
 import pytest
 
 from flux_local import git_repo, kustomize
-from flux_local.helm import Helm
+from flux_local.helm import Helm, Options
 from flux_local.manifest import (
     Manifest,
     Cluster,
@@ -33,8 +33,7 @@ class TestConfig:
     """Test configuration, which are parameters to types of the tests."""
 
     options: git_repo.Options
-    kube_version: str | None = None
-    api_versions: str | None = None
+    helm_options: Options
 
 
 class HelmReleaseTest(pytest.Item):
@@ -87,9 +86,7 @@ class HelmReleaseTest(pytest.Item):
             await helm.update()
             cmd = await helm.template(
                 self.helm_release,
-                skip_crds=True,
-                kube_version=self.test_config.kube_version,
-                api_versions=self.test_config.api_versions,
+                self.test_config.helm_options,
             )
             await cmd.objects()
             await cmd.validate_policies(self.cluster.cluster_policies)
@@ -431,8 +428,11 @@ class TestAction:
                     query,
                     TestConfig(
                         options=options,
-                        kube_version=kube_version,
-                        api_versions=api_versions,
+                        helm_options=Options(
+                            skip_crds=True,
+                            kube_version=kube_version,
+                            api_versions=api_versions,
+                        ),
                     ),
                     test_filter=[str(test_path)] if test_path else [],
                 )

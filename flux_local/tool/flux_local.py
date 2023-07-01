@@ -76,6 +76,11 @@ def main() -> None:
         default="",
         help="If present, additional flags to pass to `kustomize build`",
     )
+    build_args.add_argument(
+        "--api-versions",
+        "-a",
+        help="Kubernetes api versions used for helm Capabilities.APIVersions",
+    )
     build_args.set_defaults(cls=build.BuildAction)
 
     get.GetAction.register(subparsers)

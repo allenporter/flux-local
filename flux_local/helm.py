@@ -35,9 +35,10 @@ for object in objects:
 """
 
 import datetime
+from dataclasses import dataclass
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, overload
 
 import aiofiles
 import yaml
@@ -49,6 +50,7 @@ from .exceptions import HelmException
 
 __all__ = [
     "Helm",
+    "Options",
 ]
 
 _LOGGER = logging.getLogger(__name__)
@@ -86,6 +88,45 @@ class RepositoryConfig:
                 for repo in self._repos
             ],
         }
+
+
+@dataclass
+class Options:
+    """Options to use when inflating a Helm chart.
+
+    Internally, these translate into either command line flags or
+    resource kinds that will be filtered form the output.
+    """
+
+    skip_crds: bool = True
+    skip_tests: bool = True
+    skip_secrets: bool = False
+    kube_version: str | None = None
+    api_versions: str | None = None
+
+    @property
+    def template_args(self) -> list[str]:
+        """Helm template CLI arguments built from the options."""
+        args = []
+        if self.skip_crds:
+            args.append("--skip-crds")
+        if self.skip_tests:
+            args.append("--skip-tests")
+        if self.kube_version:
+            args.extend(["--kube-version", self.kube_version])
+        if self.api_versions:
+            args.extend(["--api-versions", self.api_versions])
+        return args
+
+    @property
+    def skip_resources(self) -> list[str]:
+        """A list of CRD resources to filter from the output."""
+        skips = []
+        if self.skip_crds:
+            skips.append(CRD_KIND)
+        if self.skip_secrets:
+            skips.append(SECRET_KIND)
+        return skips
 
 
 class Helm:
@@ -132,22 +173,46 @@ class Helm:
             )
         )
 
+    @overload
     async def template(
+        self,
+        release: HelmRelease,
+        values: dict[str, Any],
+        skip_crds: bool = True,
+        skip_tests: bool = True,
+        skip_secrets: bool = False,
+    ) -> Kustomize:
+        ...
+
+    @overload
+    async def template(
+        self,
+        release: HelmRelease,
+        options: Options | None = None,
+    ) -> Kustomize:
+        ...
+
+    async def template(  # type: ignore[misc]
         self,
         release: HelmRelease,
         values: dict[str, Any] | None = None,
         skip_crds: bool = True,
         skip_tests: bool = True,
         skip_secrets: bool = False,
-        kube_version: str | None = None,
-        api_versions: str | None = None,
+        options: Options | None = None,
     ) -> Kustomize:
         """Return command line arguments to template the specified chart.
 
         The default values will come from the `HelmRelease`, though you can
         also specify values directory if not present in cluster manifest
         e.g. it came from a truncated yaml.
+
+        Note that options used over the individual booleans.
         """
+        if options is None:
+            options = Options(
+                skip_crds=skip_crds, skip_tests=skip_tests, skip_secrets=skip_secrets
+            )
         repo = next(
             iter([repo for repo in self._repos if repo.repo_name == release.repo_name]),
             None,
@@ -165,10 +230,6 @@ class Helm:
             "--namespace",
             release.namespace,
         ]
-        if skip_crds:
-            args.append("--skip-crds")
-        if skip_tests:
-            args.append("--skip-tests")
         if release.chart.version:
             args.extend(
                 [
@@ -176,10 +237,7 @@ class Helm:
                     release.chart.version,
                 ]
             )
-        if kube_version:
-            args.extend(["--kube-version", kube_version])
-        if api_versions:
-            args.extend(["--api-versions", api_versions])
+        args.extend(options.template_args)
         if release.values and not values:
             values = release.values
         if values:
@@ -188,11 +246,6 @@ class Helm:
                 await values_file.write(yaml.dump(values, sort_keys=False))
             args.extend(["--values", str(values_path)])
         cmd = Kustomize([command.Command(args + self._flags, exc=HelmException)])
-        skips = []
-        if skip_crds:
-            skips.append(CRD_KIND)
-        if skip_secrets:
-            skips.append(SECRET_KIND)
-        if skips:
+        if skips := options.skip_resources:
             cmd = cmd.skip_resources(skips)
         return cmd

@@ -16,7 +16,7 @@ from typing import cast, Generator, Any, AsyncGenerator
 import yaml
 
 
-from flux_local import git_repo, command
+from flux_local import git_repo, command, helm
 
 from . import selector
 from .visitor import HelmVisitor, ObjectOutput, ResourceKey
@@ -336,6 +336,10 @@ class DiffHelmReleaseAction:
         await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
         )
+        options = helm.Options(
+            skip_crds=query.helm_release.skip_crds,
+            skip_secrets=query.helm_release.skip_secrets,
+        )
 
         orig_content = ObjectOutput(strip_attrs)
         orig_helm_visitor = HelmVisitor()
@@ -389,16 +393,10 @@ class DiffHelmReleaseAction:
         with tempfile.TemporaryDirectory() as helm_cache_dir:
             await asyncio.gather(
                 helm_visitor.inflate(
-                    pathlib.Path(helm_cache_dir),
-                    helm_content.visitor(),
-                    query.helm_release.skip_crds,
-                    skip_secrets=query.helm_release.skip_secrets,
+                    pathlib.Path(helm_cache_dir), helm_content.visitor(), options
                 ),
                 orig_helm_visitor.inflate(
-                    pathlib.Path(helm_cache_dir),
-                    orig_helm_content.visitor(),
-                    query.helm_release.skip_crds,
-                    skip_secrets=query.helm_release.skip_secrets,
+                    pathlib.Path(helm_cache_dir), orig_helm_content.visitor(), options
                 ),
             )
 
