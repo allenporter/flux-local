@@ -35,6 +35,7 @@ jobs:
         resource: ${{ matrix.resource }}
         debug: true
         sources: cluster=tests/testdata/cluster3
+        api-versions: batch/v1/CronJob
     - name: PR Comments
       uses: mshick/add-pr-comment@v2
       if: ${{ steps.diff.outputs.diff != '' }}
