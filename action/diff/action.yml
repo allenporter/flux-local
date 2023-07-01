@@ -21,6 +21,10 @@ inputs:
   skip-crds:
     description: When true, does not attempt to diff crds
     default: true
+  api-versions:
+    description: Kubernetes api versions used for helm Capabilities.APIVersions
+    default: policy/v1/PodDisruptionBudget
+    required: false
   python-version:
     description: Python version used for running flux-local
     default: '3.10'
@@ -81,6 +85,7 @@ runs:
             --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
             --limit-bytes ${{ inputs.limit-bytes }} \
             --all-namespaces \
+            --api-versions "${{ inputs.api-versions }}" \
             --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
             --sources "${{ inputs.sources }}" \
             >> $GITHUB_OUTPUT
