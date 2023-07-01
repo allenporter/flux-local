@@ -15,6 +15,7 @@ spec:
   interval: 5m
   values:
     renovate:
+      existingConfigFile: /dev/null
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:

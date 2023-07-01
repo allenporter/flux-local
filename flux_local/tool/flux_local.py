@@ -10,7 +10,7 @@ from typing import Any
 
 import yaml
 
-from . import build, diff, get, test
+from . import build, diff, get, test, selector
 from flux_local.exceptions import FluxException
 
 _LOGGER = logging.getLogger(__name__)
@@ -76,11 +76,7 @@ def main() -> None:
         default="",
         help="If present, additional flags to pass to `kustomize build`",
     )
-    build_args.add_argument(
-        "--api-versions",
-        "-a",
-        help="Kubernetes api versions used for helm Capabilities.APIVersions",
-    )
+    selector.add_helm_options_flags(build_args)
     build_args.set_defaults(cls=build.BuildAction)
 
     get.GetAction.register(subparsers)

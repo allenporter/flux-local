@@ -3,4 +3,6 @@ args:
 - --enable-helm
 - --skip-crds
 - tests/testdata/cluster6/
+- -a
+- batch/v1/CronJob
 stdout: |+

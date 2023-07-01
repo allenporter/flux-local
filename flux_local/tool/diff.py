@@ -16,7 +16,7 @@ from typing import cast, Generator, Any, AsyncGenerator
 import yaml
 
 
-from flux_local import git_repo, command, helm
+from flux_local import git_repo, command
 
 from . import selector
 from .visitor import HelmVisitor, ObjectOutput, ResourceKey
@@ -314,6 +314,7 @@ class DiffHelmReleaseAction:
             ),
         )
         selector.add_hr_selector_flags(args)
+        selector.add_helm_options_flags(args)
         add_diff_flags(args)
         args.set_defaults(cls=cls)
         return args
@@ -333,10 +334,7 @@ class DiffHelmReleaseAction:
         query.kustomization.visitor = content.visitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
-        options = helm.Options(
-            skip_crds=query.helm_release.skip_crds,
-            skip_secrets=query.helm_release.skip_secrets,
-        )
+        options = selector.build_helm_options(**kwargs)
         await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
         )

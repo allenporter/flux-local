@@ -371,15 +371,7 @@ class TestAction:
             dest="verbosity",
             help="Set verbosity. Default is 0",
         )
-        args.add_argument(
-            "--kube-version",
-            help="Kubernetes version used for Capabilities.KubeVersion",
-        )
-        args.add_argument(
-            "--api-versions",
-            "-a",
-            help="Kubernetes api versions used for helm Capabilities.APIVersions",
-        )
+        selector.add_helm_options_flags(args)
         args.set_defaults(cls=cls, verbosity=0)
         selector.add_cluster_selector_flags(args)
         return args
@@ -409,6 +401,7 @@ class TestAction:
         query.helm_release.namespace = None
         query.cluster_policy.enabled = enable_kyverno
         options = selector.options(**kwargs)
+        helm_options = selector.build_helm_options(**kwargs)
 
         nest_asyncio.apply()
         pytest_args = [
@@ -428,11 +421,7 @@ class TestAction:
                     query,
                     TestConfig(
                         options=options,
-                        helm_options=Options(
-                            skip_crds=True,
-                            kube_version=kube_version,
-                            api_versions=api_versions,
-                        ),
+                        helm_options=helm_options,
                     ),
                     test_filter=[str(test_path)] if test_path else [],
                 )
