@@ -1,0 +1,11 @@
+args:
+- diff
+- hr
+- renovate
+- -n
+- default
+- --path
+- tests/testdata/cluster6/
+- -a
+- batch/v1/CronJob
+stdout: ''

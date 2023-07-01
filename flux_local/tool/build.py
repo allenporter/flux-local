@@ -33,6 +33,9 @@ class BuildAction:
         query.kustomization.skip_secrets = skip_secrets
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
+        helm_options = selector.build_helm_options(
+            skip_crds=skip_crds, skip_secrets=skip_secrets, **kwargs
+        )
 
         content = ContentOutput()
         query.kustomization.visitor = content.visitor()
@@ -55,8 +58,7 @@ class BuildAction:
                 await helm_visitor.inflate(
                     pathlib.Path(helm_cache_dir),
                     helm_content.visitor(),
-                    skip_crds,
-                    skip_secrets,
+                    helm_options,
                 )
 
         keys = list(content.content)

@@ -12,7 +12,7 @@ import pathlib
 import shlex
 from typing import Any
 
-from flux_local import git_repo
+from flux_local import git_repo, helm
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -160,6 +160,33 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     selector.helm_release.skip_secrets = kwargs["skip_secrets"]
     selector.cluster_policy.enabled = False
     return selector
+
+
+def add_helm_options_flags(args: ArgumentParser) -> None:
+    """Add common helm template options flags to the arguments object."""
+    args.add_argument(
+        "--kube-version",
+        help="Kubernetes version used for Capabilities.KubeVersion",
+    )
+    args.add_argument(
+        "--api-versions",
+        "-a",
+        help="Kubernetes api versions used for helm Capabilities.APIVersions",
+    )
+
+
+def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def]
+    """Build a helm Options object from the flags.
+
+    This assumes that the hr selector and helm options flags methods were
+    called to add arguments to the parser.
+    """
+    return helm.Options(
+        skip_crds=kwargs["skip_crds"],
+        skip_secrets=kwargs["skip_secrets"],
+        kube_version=kwargs.get("kube_version"),
+        api_versions=kwargs.get("api_versions"),
+    )
 
 
 def add_cluster_selector_flags(args: ArgumentParser) -> None:

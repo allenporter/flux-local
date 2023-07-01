@@ -10,8 +10,8 @@ import yaml
 from typing import Any
 
 from flux_local import git_repo
+from flux_local.helm import Helm, Options
 from flux_local.kustomize import Kustomize
-from flux_local.helm import Helm
 from flux_local.manifest import (
     HelmRelease,
     Kustomization,
@@ -204,10 +204,9 @@ async def inflate_release(
     helm: Helm,
     release: HelmRelease,
     visitor: git_repo.ResourceVisitor,
-    skip_crds: bool,
-    skip_secrets: bool,
+    options: Options,
 ) -> None:
-    cmd = await helm.template(release, skip_crds=skip_crds, skip_secrets=skip_secrets)
+    cmd = await helm.template(release, options)
     # We can ignore the Kustomiation path since we're essentially grouping by cluster
     await visitor.func(cluster_path, pathlib.Path(""), release, cmd)
 
@@ -270,8 +269,7 @@ class HelmVisitor:
         self,
         helm_cache_dir: pathlib.Path,
         visitor: git_repo.ResourceVisitor,
-        skip_crds: bool,
-        skip_secrets: bool,
+        options: Options,
     ) -> None:
         """Expand and notify about HelmReleases discovered."""
         cluster_paths = set(list(self.releases)) | set(list(self.repos))
@@ -280,8 +278,7 @@ class HelmVisitor:
                 helm_cache_dir,
                 pathlib.Path(cluster_path),
                 visitor,
-                skip_crds,
-                skip_secrets,
+                options,
             )
             for cluster_path in cluster_paths
         ]
@@ -293,8 +290,7 @@ class HelmVisitor:
         helm_cache_dir: pathlib.Path,
         cluster_path: pathlib.Path,
         visitor: git_repo.ResourceVisitor,
-        skip_crds: bool,
-        skip_secrets: bool,
+        options: Options,
     ) -> None:
         _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
         if not self.releases:
@@ -306,7 +302,11 @@ class HelmVisitor:
                 await helm.update()
             tasks = [
                 inflate_release(
-                    cluster_path, helm, release, visitor, skip_crds, skip_secrets
+                    cluster_path,
+                    helm,
+                    release,
+                    visitor,
+                    options,
                 )
                 for release in self.releases.get(str(cluster_path), [])
             ]

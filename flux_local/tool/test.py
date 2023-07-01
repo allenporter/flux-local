@@ -15,7 +15,7 @@ import nest_asyncio
 import pytest
 
 from flux_local import git_repo, kustomize
-from flux_local.helm import Helm
+from flux_local.helm import Helm, Options
 from flux_local.manifest import (
     Manifest,
     Cluster,
@@ -33,8 +33,7 @@ class TestConfig:
     """Test configuration, which are parameters to types of the tests."""
 
     options: git_repo.Options
-    kube_version: str | None = None
-    api_versions: str | None = None
+    helm_options: Options
 
 
 class HelmReleaseTest(pytest.Item):
@@ -87,9 +86,7 @@ class HelmReleaseTest(pytest.Item):
             await helm.update()
             cmd = await helm.template(
                 self.helm_release,
-                skip_crds=True,
-                kube_version=self.test_config.kube_version,
-                api_versions=self.test_config.api_versions,
+                self.test_config.helm_options,
             )
             await cmd.objects()
             await cmd.validate_policies(self.cluster.cluster_policies)
@@ -374,15 +371,7 @@ class TestAction:
             dest="verbosity",
             help="Set verbosity. Default is 0",
         )
-        args.add_argument(
-            "--kube-version",
-            help="Kubernetes version used for Capabilities.KubeVersion",
-        )
-        args.add_argument(
-            "--api-versions",
-            "-a",
-            help="Kubernetes api versions used for helm Capabilities.APIVersions",
-        )
+        selector.add_helm_options_flags(args)
         args.set_defaults(cls=cls, verbosity=0)
         selector.add_cluster_selector_flags(args)
         return args
@@ -412,6 +401,7 @@ class TestAction:
         query.helm_release.namespace = None
         query.cluster_policy.enabled = enable_kyverno
         options = selector.options(**kwargs)
+        helm_options = selector.build_helm_options(**kwargs)
 
         nest_asyncio.apply()
         pytest_args = [
@@ -431,8 +421,7 @@ class TestAction:
                     query,
                     TestConfig(
                         options=options,
-                        kube_version=kube_version,
-                        api_versions=api_versions,
+                        helm_options=helm_options,
                     ),
                     test_filter=[str(test_path)] if test_path else [],
                 )

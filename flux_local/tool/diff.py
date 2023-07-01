@@ -314,6 +314,7 @@ class DiffHelmReleaseAction:
             ),
         )
         selector.add_hr_selector_flags(args)
+        selector.add_helm_options_flags(args)
         add_diff_flags(args)
         args.set_defaults(cls=cls)
         return args
@@ -333,6 +334,7 @@ class DiffHelmReleaseAction:
         query.kustomization.visitor = content.visitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
+        options = selector.build_helm_options(**kwargs)
         await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
         )
@@ -389,16 +391,10 @@ class DiffHelmReleaseAction:
         with tempfile.TemporaryDirectory() as helm_cache_dir:
             await asyncio.gather(
                 helm_visitor.inflate(
-                    pathlib.Path(helm_cache_dir),
-                    helm_content.visitor(),
-                    query.helm_release.skip_crds,
-                    skip_secrets=query.helm_release.skip_secrets,
+                    pathlib.Path(helm_cache_dir), helm_content.visitor(), options
                 ),
                 orig_helm_visitor.inflate(
-                    pathlib.Path(helm_cache_dir),
-                    orig_helm_content.visitor(),
-                    query.helm_release.skip_crds,
-                    skip_secrets=query.helm_release.skip_secrets,
+                    pathlib.Path(helm_cache_dir), orig_helm_content.visitor(), options
                 ),
             )
 
