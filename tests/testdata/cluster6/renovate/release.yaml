@@ -16,14 +16,14 @@ spec:
   values:
     renovate:
       securityContext:
-        allowPrivilegeEscalation: False
+        allowPrivilegeEscalation: false
         capabilities:
           drop:
             - ALL
     serviceAccount:
-      create: True
+      create: true
     securityContext:
-      runAsNonRoot: True
+      runAsNonRoot: true
       runAsUser: 1000
       fsGroupChangePolicy: Always
       fsGroup: 1000
