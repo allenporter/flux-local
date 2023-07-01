@@ -38,7 +38,7 @@ import datetime
 from dataclasses import dataclass
 import logging
 from pathlib import Path
-from typing import Any, overload
+from typing import Any
 
 import aiofiles
 import yaml
@@ -173,32 +173,9 @@ class Helm:
             )
         )
 
-    @overload
     async def template(
         self,
         release: HelmRelease,
-        values: dict[str, Any],
-        skip_crds: bool = True,
-        skip_tests: bool = True,
-        skip_secrets: bool = False,
-    ) -> Kustomize:
-        ...
-
-    @overload
-    async def template(
-        self,
-        release: HelmRelease,
-        options: Options | None = None,
-    ) -> Kustomize:
-        ...
-
-    async def template(  # type: ignore[misc]
-        self,
-        release: HelmRelease,
-        values: dict[str, Any] | None = None,
-        skip_crds: bool = True,
-        skip_tests: bool = True,
-        skip_secrets: bool = False,
         options: Options | None = None,
     ) -> Kustomize:
         """Return command line arguments to template the specified chart.
@@ -206,13 +183,9 @@ class Helm:
         The default values will come from the `HelmRelease`, though you can
         also specify values directory if not present in cluster manifest
         e.g. it came from a truncated yaml.
-
-        Note that options used over the individual booleans.
         """
         if options is None:
-            options = Options(
-                skip_crds=skip_crds, skip_tests=skip_tests, skip_secrets=skip_secrets
-            )
+            options = Options()
         repo = next(
             iter([repo for repo in self._repos if repo.repo_name == release.repo_name]),
             None,
@@ -238,12 +211,10 @@ class Helm:
                     release.chart.version,
                 ]
             )
-        if release.values and not values:
-            values = release.values
-        if values:
+        if release.values:
             values_path = self._tmp_dir / f"{release.release_name}-values.yaml"
             async with aiofiles.open(values_path, mode="w") as values_file:
-                await values_file.write(yaml.dump(values, sort_keys=False))
+                await values_file.write(yaml.dump(release.values, sort_keys=False))
             args.extend(["--values", str(values_path)])
         cmd = Kustomize([command.Command(args + self._flags, exc=HelmException)])
         if options.skip_resources:
