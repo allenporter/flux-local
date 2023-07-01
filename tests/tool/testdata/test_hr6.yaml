@@ -1,6 +1,0 @@
-args:
-- test
-- --enable-helm
-- -a
-- batch/v1/CronJob
-- tests/testdata/cluster6
