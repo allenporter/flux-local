@@ -85,7 +85,7 @@ runs:
             --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
             --limit-bytes ${{ inputs.limit-bytes }} \
             --all-namespaces \
-            ${{ inputs.resource == 'helmrelease' && join('--api-versions=', inputs.api-versions) || '' }} \
+            ${{ inputs.resource != 'helmrelease' && '' || join('--api-versions=', inputs.api-versions) }} \
             --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
             --sources "${{ inputs.sources }}" \
             >> $GITHUB_OUTPUT
