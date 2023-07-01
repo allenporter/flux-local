@@ -389,8 +389,6 @@ class TestAction:
         enable_kyverno: bool,
         test_path: str | None,
         verbosity: int,
-        kube_version: str | None,
-        api_versions: str | None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
