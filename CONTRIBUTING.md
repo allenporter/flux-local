@@ -31,12 +31,12 @@ $ pytest --update-goldens
 
 ## Documentation
 
-Documentation is important for any project. This project uses the pydoc documentation
+Documentation is important for any project. This project uses the pdoc documentation
 tool to generate documentation from the source code. The documentation is located in
 the docs/ directory.
 
 To generate the documentation locally, you can use the following command:
 
 ```bash
-$ pydoc -w ./
+$ pdoc flux_local -o docs/
 ```

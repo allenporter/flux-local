@@ -15,6 +15,23 @@ from flux_local.exceptions import FluxException
 _LOGGER = logging.getLogger(__name__)
 
 
+def _make_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Command line utility for inspecting a local flux repository.",
+    )
+    parser.add_argument(
+        "--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="Command", required=True)
+
+    build.BuildAction.register(subparsers)
+    get.GetAction.register(subparsers)
+    diff.DiffAction.register(subparsers)
+    test.TestAction.register(subparsers)
+    return parser
+
+
 def main() -> None:
     """Flux-local command line tool main entry point."""
 
@@ -32,20 +49,7 @@ def main() -> None:
     # https://github.com/yaml/pyyaml/issues/89
     yaml.Loader.yaml_implicit_resolvers.pop("=")
 
-    parser = argparse.ArgumentParser(
-        description="Command line utility for inspecting a local flux repository.",
-    )
-    parser.add_argument(
-        "--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-    )
-
-    subparsers = parser.add_subparsers(dest="command", help="Command", required=True)
-
-    build.BuildAction.register(subparsers)
-    get.GetAction.register(subparsers)
-    diff.DiffAction.register(subparsers)
-    test.TestAction.register(subparsers)
-
+    parser = _make_parser()
     args = parser.parse_args()
 
     if args.log_level:

@@ -33,6 +33,9 @@ class BuildAction:
             subparsers.add_parser(
                 "build",
                 help="Build local flux Kustomization target from a local directory",
+                description="""You can use the flux-local cli to build all
+                    objects in a cluster, similar to how you use kustomize build.
+                    This uses kustomize build internally.""",
             ),
         )
         args.add_argument(
