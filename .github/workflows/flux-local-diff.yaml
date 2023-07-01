@@ -17,6 +17,11 @@ jobs:
       matrix:
         cluster_path:
         - tests/testdata/cluster
+        - tests/testdata/cluster2
+        - tests/testdata/cluster3
+        - tests/testdata/cluster4
+        - tests/testdata/cluster5
+        - tests/testdata/cluster6
         resource:
         - helmrelease
         - kustomization
@@ -30,6 +35,7 @@ jobs:
         resource: ${{ matrix.resource }}
         debug: true
         sources: cluster=tests/testdata/cluster3
+        api-versions: batch/v1/CronJob
     - name: PR Comments
       uses: mshick/add-pr-comment@v2
       if: ${{ steps.diff.outputs.diff != '' }}
