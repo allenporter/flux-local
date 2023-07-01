@@ -1,0 +1,8 @@
+args:
+- get
+- ks
+- --path
+- tests/testdata/cluster6
+stdout: |
+  NAME             PATH                       
+  kustomization    tests/testdata/cluster6    

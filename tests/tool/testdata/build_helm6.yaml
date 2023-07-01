@@ -1,0 +1,6 @@
+args:
+- build
+- --enable-helm
+- --skip-crds
+- tests/testdata/cluster6/
+stdout: |+

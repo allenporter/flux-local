@@ -1,0 +1,59 @@
+args:
+- build
+- tests/testdata/cluster6/
+stdout: |+
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    name: renovate
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    chart:
+      spec:
+        chart: renovate
+        sourceRef:
+          kind: HelmRepository
+          name: renovate
+          namespace: flux-system
+    interval: 5m
+    values:
+      renovate:
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 2G
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: Always
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccount:
+        create: true
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    name: renovate
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 30m
+    url: https://docs.renovatebot.com/helm-charts
+
+...
