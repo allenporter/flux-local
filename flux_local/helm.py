@@ -25,9 +25,7 @@ from flux_local.manifest import HelmRelease
 releases = await kustomize.grep("kind=^HelmRelease$").objects()
 if not len(releases) == 1:
     raise ValueError("Expected only one HelmRelease")
-tmpl = helm.template(
-    HelmRelease.parse_doc(releases[0]),
-    releases[0]["spec"].get("values"))
+tmpl = helm.template(HelmRelease.parse_doc(releases[0]))
 objects = await tmpl.objects()
 for object in objects:
     print(f"Found object {object['apiVersion']} {object['kind']}")
@@ -99,10 +97,19 @@ class Options:
     """
 
     skip_crds: bool = True
+    """Skip CRDs when building the output."""
+
     skip_tests: bool = True
+    """Don't run helm tests on the output."""
+
     skip_secrets: bool = False
+    """Don't emit secrets in the output."""
+
     kube_version: str | None = None
+    """Value of the helm --kube-version flag."""
+
     api_versions: str | None = None
+    """Value of the helm --api-versions flag."""
 
     @property
     def template_args(self) -> list[str]:

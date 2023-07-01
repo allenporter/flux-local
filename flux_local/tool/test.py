@@ -336,6 +336,10 @@ class TestAction:
             subparsers.add_parser(
                 "test",
                 help="Build and validate the cluster",
+                description="""You can verify that the resources in the cluster
+                    are formatted properly before commit or as part of a CI
+                    system. The flux-local test command will build the
+                    Kustomization resources in the cluster.""",
             ),
         )
         args.add_argument(

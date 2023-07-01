@@ -425,6 +425,11 @@ class DiffAction:
         args: ArgumentParser = subparsers.add_parser(
             "diff",
             help="Diff a local flux resource",
+            description="""You may also use flux-local to verify your local changes
+                to cluster resources have the desird effect. This is similar to flux
+                diff but entirely local. This will run a local kustomize build first
+                against the local repo then again against a prior repo revision, then
+                prints the output.""",
         )
         subcmds = args.add_subparsers(
             title="Available commands",

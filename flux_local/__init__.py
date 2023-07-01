@@ -8,4 +8,6 @@ __all__ = [
     "kustomize",
     "helm",
     "exceptions",
+    # Note this is exposed for CLI documentation, not to be used as a library
+    "tool",
 ]
