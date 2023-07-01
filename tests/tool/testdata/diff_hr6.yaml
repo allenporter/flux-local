@@ -1,0 +1,9 @@
+args:
+- diff
+- hr
+- renovate
+- -n
+- default
+- --path
+- tests/testdata/cluster6/
+stdout: ''
