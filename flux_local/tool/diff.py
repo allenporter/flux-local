@@ -333,12 +333,12 @@ class DiffHelmReleaseAction:
         query.kustomization.visitor = content.visitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
-        await git_repo.build_manifest(
-            selector=query, options=selector.options(**kwargs)
-        )
         options = helm.Options(
             skip_crds=query.helm_release.skip_crds,
             skip_secrets=query.helm_release.skip_secrets,
+        )
+        await git_repo.build_manifest(
+            selector=query, options=selector.options(**kwargs)
         )
 
         orig_content = ObjectOutput(strip_attrs)

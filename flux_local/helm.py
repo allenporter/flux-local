@@ -230,6 +230,7 @@ class Helm:
             "--namespace",
             release.namespace,
         ]
+        args.extend(options.template_args)
         if release.chart.version:
             args.extend(
                 [
@@ -237,7 +238,6 @@ class Helm:
                     release.chart.version,
                 ]
             )
-        args.extend(options.template_args)
         if release.values and not values:
             values = release.values
         if values:
@@ -246,6 +246,6 @@ class Helm:
                 await values_file.write(yaml.dump(values, sort_keys=False))
             args.extend(["--values", str(values_path)])
         cmd = Kustomize([command.Command(args + self._flags, exc=HelmException)])
-        if skips := options.skip_resources:
-            cmd = cmd.skip_resources(skips)
+        if options.skip_resources:
+            cmd = cmd.skip_resources(options.skip_resources)
         return cmd
