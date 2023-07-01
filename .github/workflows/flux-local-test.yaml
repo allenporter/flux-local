@@ -19,6 +19,7 @@ jobs:
         - tests/testdata/cluster2
         - tests/testdata/cluster3
         - tests/testdata/cluster5
+        - tests/testdata/cluster4
         - tests/testdata/cluster6
     steps:
     - uses: actions/checkout@v3

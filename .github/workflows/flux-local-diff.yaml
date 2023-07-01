@@ -17,6 +17,11 @@ jobs:
       matrix:
         cluster_path:
         - tests/testdata/cluster
+        - tests/testdata/cluster2
+        - tests/testdata/cluster3
+        - tests/testdata/cluster4
+        - tests/testdata/cluster5
+        - tests/testdata/cluster6
         resource:
         - helmrelease
         - kustomization
