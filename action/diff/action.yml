@@ -73,6 +73,11 @@ runs:
       run: |
         delimiter="$(openssl rand -hex 8)"
         echo "diff<<${delimiter}" >> $GITHUB_OUTPUT
+        if [[ "${{ inputs.resource }}" == "helmrelease" ]]; then
+          extra_flags="--api-versions=${{ inputs.api-versions}}"
+        else
+          extra_flags=""
+        fi
         flux-local \
             --log-level ${{ inputs.debug != 'true' && 'INFO' || 'DEBUG' }} \
             diff \
@@ -85,9 +90,9 @@ runs:
             --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
             --limit-bytes ${{ inputs.limit-bytes }} \
             --all-namespaces \
-            ${{ inputs.resource != 'helmrelease' && '' || join('--api-versions=', inputs.api-versions) }} \
             --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
             --sources "${{ inputs.sources }}" \
+            ${extra_flags} \
             >> $GITHUB_OUTPUT
         echo "${delimiter}" >> $GITHUB_OUTPUT
       shell: bash
