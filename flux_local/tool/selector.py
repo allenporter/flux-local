@@ -70,6 +70,11 @@ def add_selector_flags(args: ArgumentParser) -> None:
         default=DEFAULT_NAMESPACE,
         help="If present, the namespace scope for this request",
     )
+    add_common_flags(args)
+
+
+def add_common_flags(args: ArgumentParser) -> None:
+    """Add flags that are common to selectors and other command types."""
     args.add_argument(
         "--skip-crds",
         type=str,

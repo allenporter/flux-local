@@ -1,8 +1,14 @@
 """Flux-local build action."""
 
+from argparse import (
+    ArgumentParser,
+    _SubParsersAction as SubParsersAction,
+    BooleanOptionalAction,
+)
 import logging
 import pathlib
 import tempfile
+from typing import cast
 
 
 from flux_local import git_repo
@@ -16,6 +22,33 @@ _LOGGER = logging.getLogger(__name__)
 
 class BuildAction:
     """Flux-local build action."""
+
+    @classmethod
+    def register(
+        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+    ) -> ArgumentParser:
+        """Register the subparser commands."""
+        args = cast(
+            ArgumentParser,
+            subparsers.add_parser(
+                "build",
+                help="Build local flux Kustomization target from a local directory",
+            ),
+        )
+        args.add_argument(
+            "path", type=pathlib.Path, help="Path to the kustomization or charts"
+        )
+        args.add_argument(
+            "--enable-helm",
+            type=bool,
+            action=BooleanOptionalAction,
+            help="Enable use of HelmRelease inflation",
+        )
+        # pylint: disable=duplicate-code
+        selector.add_common_flags(args)
+        selector.add_helm_options_flags(args)
+        args.set_defaults(cls=cls)
+        return args
 
     async def run(  # type: ignore[no-untyped-def]
         self,

@@ -3,8 +3,7 @@
 import asyncio
 import functools
 import os
-from argparse import ArgumentParser
-from argparse import _SubParsersAction as SubParsersAction
+from argparse import ArgumentParser, _SubParsersAction as SubParsersAction
 from contextlib import contextmanager
 from dataclasses import asdict
 import difflib
