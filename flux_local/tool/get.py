@@ -1,8 +1,7 @@
 """Flux-local get action."""
 
 import logging
-from argparse import ArgumentParser
-from argparse import _SubParsersAction as SubParsersAction
+from argparse import ArgumentParser, _SubParsersAction as SubParsersAction
 from typing import cast, Any
 
 from flux_local import git_repo

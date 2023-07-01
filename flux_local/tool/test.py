@@ -1,7 +1,10 @@
 """Flux local test action."""
 
-from argparse import ArgumentParser, BooleanOptionalAction
-from argparse import _SubParsersAction as SubParsersAction
+from argparse import (
+    ArgumentParser,
+    BooleanOptionalAction,
+    _SubParsersAction as SubParsersAction,
+)
 import asyncio
 from dataclasses import dataclass
 import logging
