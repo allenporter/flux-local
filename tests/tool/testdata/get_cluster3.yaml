@@ -3,6 +3,8 @@ args:
 - cluster
 - --path
 - tests/testdata/cluster3/
+- --sources
+- cluster=tests/testdata/cluster3
 stdout: |
   NAME           PATH                          KUSTOMIZATIONS    
-  flux-system    ./tests/testdata/cluster3/    1                 
+  flux-system    ./tests/testdata/cluster3/    3                 

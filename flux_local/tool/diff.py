@@ -214,7 +214,7 @@ def create_diff_path(
     which is useful when run from CI.
     """
     if path_orig := kwargs.get("path_orig"):
-        yield git_repo.PathSelector(path_orig)
+        yield git_repo.PathSelector(path_orig, sources=kwargs.get("sources"))
         return
 
     with git_repo.create_worktree(selector.repo) as worktree:

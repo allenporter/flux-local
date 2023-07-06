@@ -1,0 +1,10 @@
+args:
+- get
+- ks
+- -A
+- --path
+- tests/testdata/cluster5
+stdout: |
+  NAMESPACE      NAME                 PATH                                       
+  controllers    infra-controllers    tests/testdata/cluster5                    
+  flux-system    flux-system          ./tests/testdata/cluster5/clusters/prod    

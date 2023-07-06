@@ -44,6 +44,16 @@ class ResourceKey:
     namespace: str
     name: str
 
+    def __post_init__(self) -> None:
+        if self.cluster_path.startswith("/"):
+            raise AssertionError(
+                f"Expected cluster_path as relative: {self.cluster_path}"
+            )
+        if self.kustomization_path.startswith("/"):
+            raise AssertionError(
+                f"Expected kustomization_path as relative: {self.kustomization_path}"
+            )
+
     @property
     def label(self) -> str:
         parts = []

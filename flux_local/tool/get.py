@@ -61,6 +61,8 @@ class GetKustomizationAction:
         cols = ["name", "path"]
         if output == "wide":
             cols.extend(["helmrepos", "releases"])
+        if query.kustomization.namespace is None:
+            cols.insert(0, "namespace")
         if len(manifest.clusters) > 1:
             cols.insert(0, "cluster")
         for cluster in manifest.clusters:
