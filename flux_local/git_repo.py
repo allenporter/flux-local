@@ -76,6 +76,7 @@ CLUSTER_POLICY_KIND = "ClusterPolicy"
 GIT_REPO_KIND = "GitRepository"
 OCI_REPO_KIND = "OCIRepository"
 DEFAULT_NAMESPACE = "flux-system"
+ROOT_KUSTOMIZATION_NAME = "flux-system"
 
 
 @dataclass
@@ -381,7 +382,8 @@ async def kustomization_traversal(path_selector: PathSelector) -> list[Kustomiza
         # full prefix relative to the root.
         for kustomization in docs:
             if not kustomization.path:
-                kustomization.path = str(root / path)
+                _LOGGER.debug("Assigning implicit path %s", path_selector.relative_path)
+                kustomization.path = str(path_selector.relative_path)
             if not kustomization.source_path:
                 continue
             kustomization.source_path = str(
@@ -467,6 +469,9 @@ def make_clusters(
             )
 
         graph.add_node(node_name(ks), ks=ks)
+        if ks.name == ROOT_KUSTOMIZATION_NAME and ks.namespace == DEFAULT_NAMESPACE:
+            # Do not attempt parent search below
+            continue
 
         # Find the parent Kustomization that produced this based on the
         # matching the kustomize source parent paths with a Kustomization
@@ -491,7 +496,10 @@ def make_clusters(
                         ks.namespaced_name,
                         candidate.namespaced_name,
                     )
-                    graph.add_edge(node_name(candidate), node_name(ks))
+                    if graph.has_edge(node_name(ks), node_name(candidate)):
+                        _LOGGER.debug("Already has opposite edge; Skipping cycle")
+                    else:
+                        graph.add_edge(node_name(candidate), node_name(ks))
                 else:
                     _LOGGER.debug(
                         "Skipping candidate source %s", candidate.namespaced_name
@@ -502,8 +510,11 @@ def make_clusters(
     # Clusters are subgraphs within the graph that are connected, with the root
     # node being the cluster itself. All children Kustomizations are flattended.
     _LOGGER.debug("Creating clusters based on connectivity")
+    for node, degree in graph.in_degree():
+        _LOGGER.debug("Node: %s, degree: %s", node, degree)
     roots = [node for node, degree in graph.in_degree() if degree == 0]
     roots.sort()
+
     clusters: list[Cluster] = []
     _LOGGER.debug("roots=%s", roots)
     for root in roots:
