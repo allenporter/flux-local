@@ -175,3 +175,15 @@ async def test_fluxtomize_ignores_empty_subdir(tmp_path: Path) -> None:
 
     content = await kustomize.fluxtomize(tmp_path)
     assert not content
+
+
+async def test_build_flags() -> None:
+    """Test a kustomize build command with extra flags."""
+    result = await kustomize.build(
+        TESTDATA_DIR / "repo",
+        # Duplicates existing flags, should be a no-op
+        kustomize_flags=["--load-restrictor=LoadRestrictionsNone"],
+    ).run()
+    assert "Secret" in result
+    assert "ConfigMap" in result
+    assert result == (TESTDATA_DIR / "repo/all.golden").read_text()
