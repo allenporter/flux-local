@@ -66,6 +66,11 @@ KYVERNO_BIN = "kyverno"
 HELM_RELEASE_KIND = "HelmRelease"
 KUSTOMIZE_FILES = ["kustomization.yaml", "kustomization.yml", "Kustomization"]
 
+# Use the same behavior as flux to allow loading files outside the directory
+# containing kustomization.yaml
+# https://fluxcd.io/flux/faq/#what-is-the-behavior-of-kustomize-used-by-flux
+KUSTOMIZE_BUILD_FLAGS = ["--load-restrictor=LoadRestrictionsNone"]
+
 
 class Kustomize:
     """Library for issuing a kustomize command."""
@@ -190,7 +195,9 @@ class Build(Task):
     def __init__(self, path: Path, kustomize_flags: list[str] | None = None) -> None:
         """Initialize Build."""
         self._path = path
-        self._kustomize_flags = kustomize_flags or []
+        self._kustomize_flags = list(KUSTOMIZE_BUILD_FLAGS)
+        if kustomize_flags:
+            self._kustomize_flags.extend(kustomize_flags)
 
     async def run(self, stdin: bytes | None = None) -> bytes:
         """Run the task."""
