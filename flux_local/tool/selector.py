@@ -208,9 +208,10 @@ def build_cluster_selector(  # type: ignore[no-untyped-def]
     selector.path = git_repo.PathSelector(
         kwargs.get("path"), sources=kwargs.get("sources")
     )
-    selector.cluster.namespace = kwargs.get("namespace")
+    selector.kustomization.namespace = kwargs.get("namespace")
     if kwargs.get("all_namespaces"):
         selector.cluster.namespace = None
+        selector.kustomization.namespace = None
     return selector
 
 
