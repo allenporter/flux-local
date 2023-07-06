@@ -673,11 +673,15 @@ async def build_manifest(
         _LOGGER.debug("No clusters found; Processing as a Kustomization: %s", selector)
         # The argument path may be a Kustomization inside a cluster. Create a synthetic
         # cluster with any found Kustomizations
-        cluster = Cluster(name="cluster", namespace="", path=str(selector.path.path))
+        cluster = Cluster(
+            name="cluster", namespace="", path=str(selector.path.relative_path)
+        )
         objects = await get_kustomizations(selector.path.path)
         if objects:
             cluster.kustomizations = [
-                Kustomization(name="kustomization", path=str(selector.path.path))
+                Kustomization(
+                    name="kustomization", path=str(selector.path.relative_path)
+                )
             ]
             clusters.append(cluster)
 
