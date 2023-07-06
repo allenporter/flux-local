@@ -4,5 +4,5 @@ args:
 - --path
 - tests/testdata/cluster6/
 stdout: |
-  NAME       PATH                       KUSTOMIZATIONS    
-  cluster    tests/testdata/cluster6    1                 
+  NAME           PATH                                 KUSTOMIZATIONS    
+  flux-system    ./tests/testdata/cluster6/cluster    2                 

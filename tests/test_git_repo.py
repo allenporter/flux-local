@@ -13,7 +13,6 @@ from flux_local.git_repo import (
     kustomization_traversal,
     Source,
     PathSelector,
-    make_clusters,
 )
 from flux_local.kustomize import Kustomize
 from flux_local.manifest import Kustomization
@@ -327,27 +326,17 @@ async def test_kustomization_traversal(path: str) -> None:
         return results.pop(0)
 
     with patch("flux_local.git_repo.PathSelector.root", Path("/home/example")), patch(
-        "flux_local.git_repo.get_flux_kustomizations", fetch
+        "flux_local.git_repo.get_fluxtomizations", fetch
     ):
         kustomizations = await kustomization_traversal(
-            path_selector=PathSelector(path=Path(path))
+            root_path_selector=PathSelector(path=Path(path)),
+            path_selector=PathSelector(path=Path(path)),
+            build=True,
         )
     assert len(kustomizations) == 4
     assert paths == [
         ("/home/example", "kubernetes/flux"),
         ("/home/example", "kubernetes/apps"),
-    ]
-
-    clusters = make_clusters(kustomizations)
-    assert len(clusters) == 1
-    cluster = clusters[0]
-    assert cluster.name == "cluster"
-    assert cluster.namespace == "flux-system"
-    assert [ks.path for ks in cluster.kustomizations] == [
-        "./kubernetes/flux",
-        "./kubernetes/apps",
-        "./kubernetes/apps/rook-ceph/rook-ceph/app",
-        "./kubernetes/apps/volsync/volsync/app",
     ]
 
 
@@ -404,37 +393,18 @@ async def test_kustomization_traversal_multi_cluster() -> None:
         return results.pop(0)
 
     with patch("flux_local.git_repo.PathSelector.root", Path("/home/example")), patch(
-        "flux_local.git_repo.get_flux_kustomizations", fetch
+        "flux_local.git_repo.get_fluxtomizations", fetch
     ):
         kustomizations = await kustomization_traversal(
-            path_selector=PathSelector(path=Path("."))
+            root_path_selector=PathSelector(path=Path(".")),
+            path_selector=PathSelector(path=Path(".")),
+            build=True,
         )
     assert len(kustomizations) == 6
     # We don't need to visit the clusters subdirectories because the original
     # traversal was at the root
     assert paths == [
         ("/home/example", "."),
-    ]
-
-    clusters = make_clusters(kustomizations)
-    assert len(clusters) == 2
-    cluster = clusters[0]
-    assert cluster.name == "cluster"
-    assert cluster.namespace == "flux-system"
-    assert cluster.path == "./clusters/dev"
-    assert [ks.path for ks in cluster.kustomizations] == [
-        "./certmanager/dev",
-        "./clusters/dev",
-        "./crds",
-    ]
-    cluster = clusters[1]
-    assert cluster.name == "cluster"
-    assert cluster.namespace == "flux-system"
-    assert cluster.path == "./clusters/prod"
-    assert [ks.path for ks in cluster.kustomizations] == [
-        "./certmanager/prod",
-        "./clusters/prod",
-        "./crds",
     ]
 
 

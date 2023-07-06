@@ -1,0 +1,10 @@
+args:
+- get
+- hr
+- -A
+- --path
+- tests/testdata/cluster2
+stdout: |
+  NAMESPACE     NAME                    REVISION    CHART                              SOURCE                  
+  networking    ingress-nginx           4.5.2       networking-ingress-nginx           ingress-nginx           
+  monitoring    kubernetes-dashboard    6.0.0       monitoring-kubernetes-dashboard    kubernetes-dashboard    
