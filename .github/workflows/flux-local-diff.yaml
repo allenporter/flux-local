@@ -26,11 +26,9 @@ jobs:
         - helmrelease
         - kustomization
     steps:
-    - name: Checkout PR branch
+    - name: Checkout
       uses: actions/checkout@v3
-      with:
-        path: flux-local-repo
-    - uses: ./flux-local-repo/action/diff
+    - uses: ./action/diff
       id: diff
       with:
         path: ${{ matrix.cluster_path }}
