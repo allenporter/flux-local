@@ -118,20 +118,6 @@ class Source:
         return Source(name=name, root=Path(root), namespace=namespace)
 
 
-def has_source_name(name: str) -> Callable[[Source], bool]:
-    """Return a source root if the source exists."""
-
-    def predicate(source: Source) -> bool:
-        return source.name == name
-
-    return predicate
-
-
-def source_root(source: Source) -> Path:
-    """Return the sources root path."""
-    return source.root
-
-
 @cache
 def git_repo(path: Path | None = None) -> git.repo.Repo:
     """Return the local git repo path."""
