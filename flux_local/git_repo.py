@@ -63,6 +63,7 @@ __all__ = [
     "ResourceSelector",
     "PathSelector",
     "MetadataSelector",
+    "Options",
 ]
 
 _LOGGER = logging.getLogger(__name__)
