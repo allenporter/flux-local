@@ -61,7 +61,7 @@ stdout: |+
         tag: 7.0.6
 
   ---
-  apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
   metadata:
     name: apps
@@ -81,7 +81,7 @@ stdout: |+
     wait: true
     timeout: 5m0s
   ---
-  apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
   metadata:
     name: flux-system
@@ -113,7 +113,7 @@ stdout: |+
       name: flux-system
     url: ssh://git@github.com/allenporter/flux-local
   ---
-  apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
   metadata:
     name: infra-controllers
@@ -132,7 +132,7 @@ stdout: |+
     prune: true
     wait: true
   ---
-  apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
   metadata:
     name: infra-configs
