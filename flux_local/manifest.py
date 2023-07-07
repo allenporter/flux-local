@@ -28,7 +28,7 @@ __all__ = [
 
 # Match a prefix of apiVersion to ensure we have the right type of object.
 # We don't check specific versions for forward compatibility on upgrade.
-CLUSTER_KUSTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
+FLUXTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
 KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
@@ -283,7 +283,7 @@ class Kustomization(BaseManifest):
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":
         """Parse a partial Kustomization from a kubernetes resource."""
-        _check_version(doc, CLUSTER_KUSTOMIZE_DOMAIN)
+        _check_version(doc, FLUXTOMIZE_DOMAIN)
         if not (metadata := doc.get("metadata")):
             raise InputException(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
@@ -349,7 +349,7 @@ class Cluster(BaseManifest):
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Cluster":
         """Parse a partial Kustomization from a kubernetes resource."""
-        _check_version(doc, CLUSTER_KUSTOMIZE_DOMAIN)
+        _check_version(doc, FLUXTOMIZE_DOMAIN)
         if not (metadata := doc.get("metadata")):
             raise InputException(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
@@ -361,6 +361,11 @@ class Cluster(BaseManifest):
         if not (path := spec.get("path")):
             raise InputException(f"Invalid {cls} missing spec.path: {doc}")
         return Cluster(name=name, namespace=namespace, path=path)
+
+    @property
+    def namespaced_name(self, sep: str = "/") -> str:
+        """Return the namespace and name concatenated as an id."""
+        return f"{self.namespace}{sep}{self.name}"
 
     @property
     def id_name(self) -> str:

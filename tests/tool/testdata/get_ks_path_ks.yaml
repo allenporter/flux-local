@@ -5,5 +5,4 @@ args:
 - --path
 - ./tests/testdata/cluster/apps/prod
 stdout: |
-  NAMESPACE    NAME             PATH                                
-  None         kustomization    tests/testdata/cluster/apps/prod    
+  no Kustomization objects found in cluster

@@ -1,0 +1,12 @@
+args:
+- get
+- ks
+- -A
+- --path
+- tests/testdata/cluster3
+- --sources
+- cluster=tests/testdata/cluster3
+stdout: |
+  NAMESPACE      NAME          PATH                                                    
+  flux-system    namespaces    tests/testdata/cluster3/namespaces/overlays/cluster3    
+  flux-system    tenants       tests/testdata/cluster3/tenants/overlays/cluster3       
