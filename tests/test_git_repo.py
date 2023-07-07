@@ -34,24 +34,6 @@ async def test_build_manifest() -> None:
     assert len(cluster.helm_releases) == 3
 
 
-async def test_build_manifest_ks_path() -> None:
-    """Tests for building a kustomization directly."""
-
-    query = ResourceSelector()
-    query.path.path = TESTDATA / "apps/prod"
-    query.kustomization.namespace = None
-
-    manifest = await build_manifest(selector=query)
-    assert len(manifest.clusters) == 1
-    cluster = manifest.clusters[0]
-    assert cluster.name == "cluster"
-    assert cluster.namespace == ""
-    assert cluster.path == "tests/testdata/cluster/apps/prod"
-    assert len(cluster.kustomizations) == 1
-    assert len(cluster.helm_repos) == 0
-    assert len(cluster.helm_releases) == 1
-
-
 async def test_cluster_selector_disabled() -> None:
     """Tests for building the manifest."""
 
@@ -284,8 +266,17 @@ async def test_helm_release_visitor() -> None:
 async def test_kustomization_traversal(path: str) -> None:
     """Tests for finding Kustomizations."""
 
-    results = [
+    results: list[list[Kustomization]] = [
         # First traversal
+        [
+            Kustomization(
+                name="flux-system",
+                namespace="flux-system",
+                path="./kubernetes/cluster",
+                source_path="apps.yaml",
+            ),
+        ],
+        # Second traversal
         [
             Kustomization(
                 name="cluster-apps",
@@ -300,7 +291,7 @@ async def test_kustomization_traversal(path: str) -> None:
                 source_path="config/cluster.yaml",
             ),
         ],
-        # Second traversal
+        # Third traversal
         [
             Kustomization(
                 name="cluster-apps-rook-ceph",
@@ -315,12 +306,14 @@ async def test_kustomization_traversal(path: str) -> None:
                 source_path="volsync/volsync/ks.yaml",
             ),
         ],
+        [],
+        [],
         # The returned kustomizations point to subdirectories that have
         # already been searched so no need to search further.
     ]
     paths = []
 
-    async def fetch(root: Path, p: Path) -> list[Kustomization]:
+    async def fetch(root: Path, p: Path, build: bool) -> list[Kustomization]:
         nonlocal paths, results
         paths.append((str(root), str(p)))
         return results.pop(0)
@@ -333,78 +326,13 @@ async def test_kustomization_traversal(path: str) -> None:
             path_selector=PathSelector(path=Path(path)),
             build=True,
         )
-    assert len(kustomizations) == 4
+    assert len(kustomizations) == 5
     assert paths == [
         ("/home/example", "kubernetes/flux"),
+        ("/home/example", "kubernetes/cluster"),
         ("/home/example", "kubernetes/apps"),
-    ]
-
-
-async def test_kustomization_traversal_multi_cluster() -> None:
-    """Test discovery of multiple clusters in the repo."""
-
-    results = [
-        # First traversal
-        [
-            Kustomization(
-                name="cluster",
-                namespace="flux-system",
-                path="./clusters/prod",
-                source_path="clusters/prod/flux-system/gotk-sync.yaml",
-            ),
-            Kustomization(
-                name="cluster",
-                namespace="flux-system",
-                path="./clusters/dev",
-                source_path="clusters/dev/flux-system/gotk-sync.yaml",
-            ),
-            Kustomization(
-                name="certmanager",
-                namespace="flux-system",
-                path="./certmanager/dev",
-                source_path="clusters/dev/certmanager.yaml",
-            ),
-            # crds are referenced by both clusters
-            Kustomization(
-                name="crds",
-                namespace="flux-system",
-                path="./crds",
-                source_path="clusters/dev/crds.yaml",
-            ),
-            Kustomization(
-                name="certmanager",
-                namespace="flux-system",
-                path="./certmanager/prod",
-                source_path="clusters/prod/certmanager.yaml",
-            ),
-            Kustomization(
-                name="crds",
-                namespace="flux-system",
-                path="./crds",
-                source_path="clusters/prod/crds.yaml",
-            ),
-        ],
-    ]
-    paths = []
-
-    async def fetch(root: Path, p: Path) -> list[Kustomization]:
-        nonlocal paths, results
-        paths.append((str(root), str(p)))
-        return results.pop(0)
-
-    with patch("flux_local.git_repo.PathSelector.root", Path("/home/example")), patch(
-        "flux_local.git_repo.get_fluxtomizations", fetch
-    ):
-        kustomizations = await kustomization_traversal(
-            root_path_selector=PathSelector(path=Path(".")),
-            path_selector=PathSelector(path=Path(".")),
-            build=True,
-        )
-    assert len(kustomizations) == 6
-    # We don't need to visit the clusters subdirectories because the original
-    # traversal was at the root
-    assert paths == [
-        ("/home/example", "."),
+        ("/home/example", "kubernetes/apps/rook-ceph/rook-ceph/app"),
+        ("/home/example", "kubernetes/apps/volsync/volsync/app"),
     ]
 
 

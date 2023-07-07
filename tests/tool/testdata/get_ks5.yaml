@@ -5,5 +5,4 @@ args:
 - tests/testdata/cluster5
 stdout: |
   NAME                 PATH                                       
-  infra-controllers    tests/testdata/cluster5                    
   flux-system          ./tests/testdata/cluster5/clusters/prod    

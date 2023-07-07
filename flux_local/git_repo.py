@@ -495,7 +495,7 @@ async def get_clusters(
             build=build,
         )
         results.sort(key=lambda x: (x.namespace, x.name))
-        cluster.kustomizations = results
+        cluster.kustomizations = list(filter(kustomization_selector.predicate, results))
     clusters.sort(key=lambda x: (x.path, x.namespace, x.name))
     return clusters
 
