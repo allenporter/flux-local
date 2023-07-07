@@ -123,7 +123,7 @@ async def test_kustomization_visitor() -> None:
     kustomization = cluster.kustomizations[0]
     assert kustomization.name == "apps"
     assert kustomization.namespace == "flux-system"
-    assert kustomization.path == "./tests/testdata/cluster/apps/prod"
+    assert kustomization.path == "tests/testdata/cluster/apps/prod"
 
     visits.sort()
     assert visits == [
