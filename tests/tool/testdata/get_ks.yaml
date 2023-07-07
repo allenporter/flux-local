@@ -4,8 +4,8 @@ args:
 - --path
 - tests/testdata/cluster
 stdout: |
-  NAME                 PATH                                                   
-  apps                 ./tests/testdata/cluster/apps/prod                     
-  flux-system          ./tests/testdata/cluster/clusters/prod                 
-  infra-configs        ./tests/testdata/cluster/infrastructure/configs        
-  infra-controllers    ./tests/testdata/cluster/infrastructure/controllers    
+  NAME                 PATH                                                 
+  apps                 tests/testdata/cluster/apps/prod                     
+  flux-system          tests/testdata/cluster/clusters/prod                 
+  infra-configs        tests/testdata/cluster/infrastructure/configs        
+  infra-controllers    tests/testdata/cluster/infrastructure/controllers    

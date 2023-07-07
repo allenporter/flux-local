@@ -4,7 +4,7 @@ args:
 - --path
 - tests/testdata/cluster4
 stdout: |
-  NAME                                 PATH                                                              
-  cluster                              ./tests/testdata/cluster4/flux                                    
-  cluster-apps                         ./tests/testdata/cluster4/apps                                    
-  cluster-apps-kubernetes-dashboard    ./tests/testdata/cluster4/apps/monitoring/kubernetes-dashboard    
+  NAME                                 PATH                                                            
+  cluster                              tests/testdata/cluster4/flux                                    
+  cluster-apps                         tests/testdata/cluster4/apps                                    
+  cluster-apps-kubernetes-dashboard    tests/testdata/cluster4/apps/monitoring/kubernetes-dashboard    

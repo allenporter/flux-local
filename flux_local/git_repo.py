@@ -329,14 +329,42 @@ async def get_fluxtomizations(
     ]
 
 
+# default_path=root_path_selector.relative_path
+# sources=path-selector.sources or ()
+def adjust_ks_path(
+    doc: Kustomization, default_path: Path, sources: list[Source]
+) -> Path | None:
+    """Make adjustments to the Kustomizations path."""
+    # Source path is relative to the search path. Update to have the
+    # full prefix relative to the root.
+    if not doc.path:
+        _LOGGER.debug("Assigning implicit path %s", default_path)
+        return default_path
+
+    if doc.source_kind == OCI_REPO_KIND:
+        for source in sources:
+            if source.name == doc.source_name:
+                _LOGGER.debug(
+                    "Updated Source for OCIRepository %s: %s", doc.name, doc.path
+                )
+                return source.root / doc.path
+
+        _LOGGER.info(
+            "Unknown cluster source for OCIRepository %s: %s", doc.name, doc.path
+        )
+        return None
+
+    return Path(doc.path)
+
+
 async def kustomization_traversal(
     root_path_selector: PathSelector, path_selector: PathSelector, build: bool
 ) -> list[Kustomization]:
     """Search for kustomizations in the specified path."""
 
     kustomizations: list[Kustomization] = []
-    visited: set[Path] = set()  # Relative paths within the cluster
-    nodes: set[str] = set()
+    visited_paths: set[Path] = set()  # Relative paths within the cluster
+    visited_ks: set[str] = set()
 
     path_queue: queue.Queue[Path] = queue.Queue()
     path_queue.put(path_selector.relative_path)
@@ -346,65 +374,42 @@ async def kustomization_traversal(
         try:
             docs = await get_fluxtomizations(root_path_selector.root, path, build=build)
         except FluxException as err:
-            detail = ERROR_DETAIL_BAD_KS if visited else ERROR_DETAIL_BAD_PATH
+            detail = ERROR_DETAIL_BAD_KS if visited_paths else ERROR_DETAIL_BAD_PATH
             raise FluxException(
                 f"Error building Fluxtomization in '{root_path_selector.root}' "
                 f"path '{path}': {err} - {detail}"
             )
 
-        visited |= set({path})
+        visited_paths |= set({path})
 
-        _LOGGER.debug("Found %s Kustomizations", len(docs))
+        orig_len = len(docs)
+        docs = [doc for doc in docs if doc.namespaced_name not in visited_ks]
+        visited_ks |= set({doc.namespaced_name for doc in docs})
+        new_len = len(docs)
+        _LOGGER.debug("Found %s Kustomizations (%s unique)", orig_len, new_len)
+
         result_docs = []
         for doc in docs:
-            if doc.namespaced_name in nodes:
-                _LOGGER.debug(
-                    "Ignoring duplicate Kustomization %s", doc.namespaced_name
-                )
-                continue
-            nodes.add(doc.namespaced_name)
-            # Source path is relative to the search path. Update to have the
-            # full prefix relative to the root.
-            if not doc.path:
-                _LOGGER.debug(
-                    "Assigning implicit path %s", root_path_selector.relative_path
-                )
-                doc.path = str(root_path_selector.relative_path)
-
-            found_path: Path | None = None
             _LOGGER.debug(
-                "Kustomization '%s' has sourceRef.kind '%s' of '%s'",
+                "Kustomization '%s' sourceRef.kind '%s' of '%s'",
                 doc.name,
                 doc.source_kind,
                 doc.source_name,
             )
-            if not doc.source_kind or doc.source_kind == GIT_REPO_KIND:
-                found_path = Path(doc.path)
-            elif doc.source_kind == OCI_REPO_KIND:
-                for source in path_selector.sources or ():
-                    if source.name == doc.source_name:
-                        found_path = source.root / doc.path
-                        doc.path = str(found_path)
-                        _LOGGER.debug(
-                            "Updated Source for OCIRepository %s: %s",
-                            doc.name,
-                            doc.path,
-                        )
-                        break
-
-            elif not doc.source_kind or doc.source_kind == GIT_REPO_KIND:
-                found_path = Path(doc.path)
-
-            if not found_path:
-                _LOGGER.debug("Skipping kustomization %s; not known source", doc.name)
+            if not (
+                doc_path := adjust_ks_path(
+                    doc, root_path_selector.relative_path, path_selector.sources or []
+                )
+            ):
                 continue
-
-            if found_path not in visited:
-                path_queue.put(found_path)
+            doc.path = str(doc_path)
+            if doc_path not in visited_paths:
+                path_queue.put(doc_path)
             else:
-                _LOGGER.debug("Already visited %s", found_path)
+                _LOGGER.debug("Already visited %s", doc_path)
             result_docs.append(doc)
         kustomizations.extend(result_docs)
+    kustomizations.sort(key=lambda x: (x.namespace, x.name))
     return kustomizations
 
 
@@ -452,15 +457,21 @@ async def get_clusters(
         ]
         build = False
 
+    tasks = []
     for cluster in clusters:
         _LOGGER.debug("Building cluster %s %s", cluster.name, cluster.path)
-        results = await kustomization_traversal(
-            path_selector,
-            PathSelector(path=Path(cluster.path), sources=path_selector.sources),
-            build=build,
+        tasks.append(
+            kustomization_traversal(
+                path_selector,
+                PathSelector(path=Path(cluster.path), sources=path_selector.sources),
+                build=build,
+            )
         )
-        results.sort(key=lambda x: (x.namespace, x.name))
-        cluster.kustomizations = list(filter(kustomization_selector.predicate, results))
+    finished = await asyncio.gather(*tasks)
+    for cluster, results in zip(clusters, finished):
+        cluster.kustomizations = [
+            ks for ks in results if kustomization_selector.predicate(ks)
+        ]
     clusters.sort(key=lambda x: (x.path, x.namespace, x.name))
     return clusters
 

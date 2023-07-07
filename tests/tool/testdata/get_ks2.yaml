@@ -4,9 +4,9 @@ args:
 - --path
 - tests/testdata/cluster2
 stdout: |
-  NAME                                       PATH                                                                    
-  cluster                                    ./tests/testdata/cluster2/flux                                          
-  cluster-apps                               ./tests/testdata/cluster2/apps                                          
-  cluster-apps-ingress-nginx                 ./tests/testdata/cluster2/apps/networking/ingress-nginx/app             
-  cluster-apps-ingress-nginx-certificates    ./tests/testdata/cluster2/apps/networking/ingress-nginx/certificates    
-  cluster-apps-kubernetes-dashboard          ./tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app      
+  NAME                                       PATH                                                                  
+  cluster                                    tests/testdata/cluster2/flux                                          
+  cluster-apps                               tests/testdata/cluster2/apps                                          
+  cluster-apps-ingress-nginx                 tests/testdata/cluster2/apps/networking/ingress-nginx/app             
+  cluster-apps-ingress-nginx-certificates    tests/testdata/cluster2/apps/networking/ingress-nginx/certificates    
+  cluster-apps-kubernetes-dashboard          tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app      
