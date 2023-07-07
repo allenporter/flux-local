@@ -327,14 +327,12 @@ async def get_fluxtomizations(
     """
     cmd: kustomize.Kustomize
     if build:
-        _LOGGER.debug("kustomize.build")
         cmd = (
             kustomize.build(root / relative_path)
             .grep(f"kind={CLUSTER_KUSTOMIZE_KIND}")
             .grep(GREP_SOURCE_REF_KIND)
         )
     else:
-        _LOGGER.debug("kustomize.grep")
         cmd = kustomize.grep(
             f"kind={CLUSTER_KUSTOMIZE_KIND}", root / relative_path
         ).grep(GREP_SOURCE_REF_KIND)
@@ -342,26 +340,6 @@ async def get_fluxtomizations(
     return [
         Kustomization.parse_doc(doc) for doc in filter(FLUXTOMIZE_DOMAIN_FILTER, docs)
     ]
-
-
-def find_source_kustomization(
-    search: Path, node_map: dict[Path, Kustomization]
-) -> list[Kustomization]:
-    """Return all source Kustomizations that might manage the specified path."""
-    results = []
-    set(node_map)
-    for parent in search.parents:
-        if node := node_map.get(parent):
-            results.append(node)
-    return results
-
-
-def find_path_parent(search: Path, prefixes: set[Path]) -> Path | None:
-    """Return a prefix path that is a parent of the search path."""
-    for parent in search.parents:
-        if parent in prefixes:
-            return parent
-    return None
 
 
 async def kustomization_traversal(

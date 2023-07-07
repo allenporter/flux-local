@@ -5,7 +5,6 @@ coverage==7.2.7
 GitPython==3.1.31
 mypy==1.4.1
 nest_asyncio==1.5.6
-networkx==3.1
 pdoc==14.0.0
 pip==23.1.2
 pre-commit==3.3.3
