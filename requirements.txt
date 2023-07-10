@@ -2,7 +2,7 @@
 aiofiles==23.1.0
 black==23.3.0
 coverage==7.2.7
-GitPython==3.1.31
+GitPython==3.1.32
 mypy==1.4.1
 nest_asyncio==1.5.6
 pdoc==14.0.0
