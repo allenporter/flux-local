@@ -11,9 +11,9 @@ from typing import Any, Optional, cast
 import aiofiles
 import yaml
 try:
-    from pydantic.v1 import BaseModel, Field
+    from pydantic.v1 import BaseModel, Field, ValidationError
 except ImportError:
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, Field, ValidationError
 
 from .exceptions import InputException
 
