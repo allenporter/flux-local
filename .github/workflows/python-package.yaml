@@ -38,6 +38,10 @@ jobs:
     - name: Test with pytest
       run: |
         SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing
+    - name: Test with pytest pydantic v1
+      run: |
+        pip install pydantic==1.10.11
+        SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing
     - uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}

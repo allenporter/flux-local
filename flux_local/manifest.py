@@ -10,7 +10,10 @@ from typing import Any, Optional, cast
 
 import aiofiles
 import yaml
-from pydantic import BaseModel, Field
+try:
+    from pydantic.v1 import BaseModel, Field
+except ImportError:
+    from pydantic import BaseModel, Field
 
 from .exceptions import InputException
 
@@ -427,6 +430,8 @@ async def read_manifest(manifest_path: Path) -> Manifest:
     """
     async with aiofiles.open(str(manifest_path)) as manifest_file:
         content = await manifest_file.read()
+        if not content:
+            raise ValueError("validation error for Manifest file {manifest_path}")
         return cast(Manifest, Manifest.parse_yaml(content))
 
 

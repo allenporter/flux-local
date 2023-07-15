@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-from pydantic import ValidationError
 
 from flux_local.manifest import (
     Cluster,
@@ -94,7 +93,7 @@ async def test_read_write_empty_manifest(tmp_path: Path) -> None:
 
 async def test_read_manifest_invalid_file() -> None:
     """Test reading an invalid manifest file."""
-    with pytest.raises(ValidationError, match="validation error for Manifest"):
+    with pytest.raises(ValueError, match="validation error for Manifest"):
         await read_manifest(Path("/dev/null"))
 
 
