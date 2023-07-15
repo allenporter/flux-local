@@ -19,9 +19,6 @@ jobs:
         python-version:
         - "3.10"
         - "3.11"
-        extra_requirements:
-        - ""
-        - "pydantic==1.10.11"
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -32,7 +29,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        if [ -f ${{ matrix.extra_requirements }} ]; then pip install ${{ matrix.extra_requirements }}; fi
     - uses: supplypike/setup-bin@v3
       with:
         uri: https://github.com/kyverno/kyverno/releases/download/v1.9.0/kyverno-cli_v1.9.0_linux_x86_64.tar.gz
@@ -40,6 +36,10 @@ jobs:
         version: v1.9.0
     - name: Test with pytest
       run: |
+        SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing
+    - name: Test with pytest pydantic v1
+      run: |
+        pip install pydantic==1.10.11
         SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing
     - uses: codecov/codecov-action@v3
       with:
