@@ -431,7 +431,7 @@ async def read_manifest(manifest_path: Path) -> Manifest:
     async with aiofiles.open(str(manifest_path)) as manifest_file:
         content = await manifest_file.read()
         if not content:
-            raise ValidationError("Invalid manifest path: {manifest_path}")
+            raise ValueError("validation error for Manifest file {manifest_path}")
         return cast(Manifest, Manifest.parse_yaml(content))
 
 
