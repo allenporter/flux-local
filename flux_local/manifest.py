@@ -10,7 +10,10 @@ from typing import Any, Optional, cast
 
 import aiofiles
 import yaml
-from pydantic import BaseModel, Field
+try:
+    from pydantic.v1 import BaseModel, Field
+except ImportError:
+    from pydantic import BaseModel, Field
 
 from .exceptions import InputException
 
