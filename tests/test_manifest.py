@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-from pydantic import ValidationError
 
 from flux_local.manifest import (
     Cluster,
