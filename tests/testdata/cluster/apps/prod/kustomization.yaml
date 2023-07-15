@@ -4,5 +4,5 @@ kind: Kustomization
 resources:
   - ../base/podinfo
   - configmap.yaml
-patches:
+patchesStrategicMerge:
   - podinfo-values.yaml
