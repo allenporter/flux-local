@@ -27,6 +27,6 @@ jobs:
       with:
         enable-helm: true
         enable-kyverno: false
-        sources: cluster=tests/testdata/cluster3
+        sources: cluster=tests/testdata/cluster3,flux-system,home-ops-kubernetes
         path: ${{ matrix.cluster_path }}
         api-versions: batch/v1/CronJob

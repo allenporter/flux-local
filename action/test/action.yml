@@ -30,7 +30,7 @@ inputs:
     description: Additional flags to pass to kustomize build
     default: ''
   sources:
-    description: OCIRepository source mappings like `cluster=./kubernetes/`
+    description: GitRepository or OCIRepository to include with optional source mappings like `flux-system` or `cluster=./kubernetes/`
     default: ''
 runs:
   using: "composite"

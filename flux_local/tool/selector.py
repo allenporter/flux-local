@@ -32,12 +32,15 @@ class SourceAppendAction(Action):
         values = values.split(",")
         if not values[0]:
             return
-        try:
-            source = git_repo.Source.from_str(values[0])
-        except ValueError:
-            raise ArgumentError(self, f"Expected key=value format from '{values[0]}'")
         result = getattr(namespace, self.dest) or []
-        result.append(source)
+        for value in values:
+            try:
+                source = git_repo.Source.from_str(value)
+            except ValueError:
+                raise ArgumentError(
+                    self, f"Expected key or key=value format from '{value}'"
+                )
+            result.append(source)
         setattr(namespace, self.dest, result)
 
 
@@ -52,7 +55,9 @@ def add_selector_flags(args: ArgumentParser) -> None:
     )
     args.add_argument(
         "--sources",
-        help="Optional map of repository source to relative path e.g. cluster=./k8s/",
+        help="Optional GitRepository or OCIRepository sources to restrict "
+        "to e.g. `flux-system`. Can include optional map of repository "
+        "source to relative path e.g. `cluster=./k8s/`",
         action=SourceAppendAction,
     )
     args.add_argument(
