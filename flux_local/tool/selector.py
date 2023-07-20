@@ -32,12 +32,15 @@ class SourceAppendAction(Action):
         values = values.split(",")
         if not values[0]:
             return
-        try:
-            source = git_repo.Source.from_str(values[0])
-        except ValueError:
-            raise ArgumentError(self, f"Expected key=value format from '{values[0]}'")
         result = getattr(namespace, self.dest) or []
-        result.append(source)
+        for value in values:
+            try:
+                source = git_repo.Source.from_str(value)
+            except ValueError:
+                raise ArgumentError(
+                    self, f"Expected key or key=value format from '{value}'"
+                )
+            result.append(source)
         setattr(namespace, self.dest, result)
 
 
