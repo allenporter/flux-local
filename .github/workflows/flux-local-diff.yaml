@@ -34,7 +34,7 @@ jobs:
         path: ${{ matrix.cluster_path }}
         resource: ${{ matrix.resource }}
         debug: true
-        sources: cluster=tests/testdata/cluster3
+        sources: cluster=tests/testdata/cluster3,flux-system,home-ops-kubernetes
         api-versions: batch/v1/CronJob
     - name: PR Comments
       uses: mshick/add-pr-comment@v2
