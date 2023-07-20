@@ -17,7 +17,7 @@ python-slugify==8.0.1
 PyYAML==6.0.1
 ruff==0.0.278
 types-aiofiles==23.1.0.4
-types-PyYAML==6.0.12.10
+types-PyYAML==6.0.12.11
 typing-extensions==4.7.1
 types-python-slugify==8.0.0.2
 wheel==0.40.0
