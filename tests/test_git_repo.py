@@ -13,6 +13,7 @@ from flux_local.git_repo import (
     kustomization_traversal,
     Source,
     PathSelector,
+    is_allowed_source,
 )
 from flux_local.kustomize import Kustomize
 from flux_local.manifest import Kustomization
@@ -273,7 +274,6 @@ async def test_kustomization_traversal(path: str) -> None:
                 name="flux-system",
                 namespace="flux-system",
                 path="./kubernetes/cluster",
-                source_path="apps.yaml",
             ),
         ],
         # Second traversal
@@ -282,13 +282,11 @@ async def test_kustomization_traversal(path: str) -> None:
                 name="cluster-apps",
                 namespace="flux-system",
                 path="./kubernetes/apps",
-                source_path="apps.yaml",
             ),
             Kustomization(
                 name="cluster",
                 namespace="flux-system",
                 path="./kubernetes/flux",
-                source_path="config/cluster.yaml",
             ),
         ],
         # Third traversal
@@ -297,13 +295,11 @@ async def test_kustomization_traversal(path: str) -> None:
                 name="cluster-apps-rook-ceph",
                 namespace="flux-system",
                 path="./kubernetes/apps/rook-ceph/rook-ceph/app",
-                source_path="rook-ceph/rook-ceph/ks.yaml",
             ),
             Kustomization(
                 name="cluster-apps-volsync",
                 namespace="flux-system",
                 path="./kubernetes/apps/volsync/volsync/app",
-                source_path="volsync/volsync/ks.yaml",
             ),
         ],
         [],
@@ -313,7 +309,9 @@ async def test_kustomization_traversal(path: str) -> None:
     ]
     paths = []
 
-    async def fetch(root: Path, p: Path, build: bool) -> list[Kustomization]:
+    async def fetch(
+        root: Path, p: Path, build: bool, sources: list[Source]
+    ) -> list[Kustomization]:
         nonlocal paths, results
         paths.append((str(root), str(p)))
         return results.pop(0)
@@ -340,7 +338,7 @@ def test_source() -> None:
     """Test parsing a source from a string."""
     source = Source.from_str("cluster=./k8s")
     assert source.name == "cluster"
-    assert source.namespace == "flux-system"
+    assert source.namespace is None
     assert str(source.root) == "k8s"
 
 
@@ -350,3 +348,47 @@ def test_source_with_namespace() -> None:
     assert source.name == "cluster"
     assert source.namespace == "flux-system2"
     assert str(source.root) == "k8s"
+
+
+def test_source_without_path() -> None:
+    """Test parsing a source without a path."""
+    source = Source.from_str("cluster")
+    assert source.name == "cluster"
+    assert source.namespace is None
+    assert source.root is None
+
+
+def test_is_allowed_source() -> None:
+    """Test GitRepository sources allowed."""
+    ks = Kustomization(
+        name="ks",
+        namespace="flux-system",
+        path="./kubernetes/apps/volsync/volsync/app",
+        source_name="flux-system",
+    )
+    assert is_allowed_source(ks, [Source.from_str("flux-system")])
+
+
+def test_is_not_allowed_source() -> None:
+    """Test GitRepository sources allowed."""
+    ks = Kustomization(
+        name="ks",
+        namespace="flux-system",
+        path="./kubernetes/apps/volsync/volsync/app",
+        source_name="flux-system",
+    )
+    assert not is_allowed_source(ks, [Source.from_str("flux-system-other")])
+
+
+def test_is_allowed_source_namespace_optional() -> None:
+    """Test GitRepository sources allowed."""
+    ks = Kustomization(
+        name="ks",
+        namespace="flux-system",
+        path="./kubernetes/apps/volsync/volsync/app",
+        source_name="flux-system",
+        source_namespace="flux-system2",
+    )
+    assert is_allowed_source(ks, [Source.from_str("flux-system")])
+    assert is_allowed_source(ks, [Source.from_str("flux-system2/flux-system")])
+    assert not is_allowed_source(ks, [Source.from_str("flux-system3/flux-system")])

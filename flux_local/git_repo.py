@@ -96,10 +96,10 @@ class Source:
     name: str
     """The name of the repository source."""
 
-    root: Path
+    root: Path | None
     """The path name within the repo root."""
 
-    namespace: str
+    namespace: str | None
     """The namespace of the repository source."""
 
     @property
@@ -110,13 +110,16 @@ class Source:
     @classmethod
     def from_str(self, value: str) -> "Source":
         """Parse a Source from key=value string."""
-        if "=" not in value:
-            raise ValueError("Expected source name=root")
-        namespace = "flux-system"
-        name, root = value.split("=")
+        root: Path | None = None
+        if "=" in value:
+            name, root_str = value.split("=")
+            root = Path(root_str)
+        else:
+            name = value
+        namespace: str | None = None
         if "/" in name:
             namespace, name = name.split("/")
-        return Source(name=name, root=Path(root), namespace=namespace)
+        return Source(name=name, root=root, namespace=namespace)
 
 
 @cache
@@ -304,7 +307,10 @@ class ResourceSelector:
 
 
 async def get_fluxtomizations(
-    root: Path, relative_path: Path, build: bool
+    root: Path,
+    relative_path: Path,
+    build: bool,
+    sources: list[Source],
 ) -> list[Kustomization]:
     """Find all flux Kustomizations in the specified path.
 
@@ -324,13 +330,27 @@ async def get_fluxtomizations(
             f"kind={CLUSTER_KUSTOMIZE_KIND}", root / relative_path
         ).grep(GREP_SOURCE_REF_KIND)
     docs = await cmd.objects()
-    return [
-        Kustomization.parse_doc(doc) for doc in filter(FLUXTOMIZE_DOMAIN_FILTER, docs)
-    ]
+    results = []
+    for doc in filter(FLUXTOMIZE_DOMAIN_FILTER, docs):
+        ks = Kustomization.parse_doc(doc)
+        if not is_allowed_source(ks, sources):
+            continue
+        results.append(ks)
+    return results
 
 
-# default_path=root_path_selector.relative_path
-# sources=path-selector.sources or ()
+def is_allowed_source(doc: Kustomization, sources: list[Source]) -> bool:
+    """Return true if this Kustomization is from an allowed source."""
+    if not sources:
+        return True
+    for source in sources:
+        if source.name == doc.source_name and (
+            source.namespace is None or source.namespace == doc.source_namespace
+        ):
+            return True
+    return False
+
+
 def adjust_ks_path(
     doc: Kustomization, default_path: Path, sources: list[Source]
 ) -> Path | None:
@@ -347,6 +367,9 @@ def adjust_ks_path(
                 _LOGGER.debug(
                     "Updated Source for OCIRepository %s: %s", doc.name, doc.path
                 )
+                if not source.root:
+                    _LOGGER.info("OCIRepository source has no root specified")
+                    continue
                 return source.root / doc.path
 
         _LOGGER.info(
@@ -372,7 +395,12 @@ async def kustomization_traversal(
         path = path_queue.get()
         _LOGGER.debug("Visiting path (%s) %s", root_path_selector.path, path)
         try:
-            docs = await get_fluxtomizations(root_path_selector.root, path, build=build)
+            docs = await get_fluxtomizations(
+                root_path_selector.root,
+                path,
+                build=build,
+                sources=path_selector.sources or [],
+            )
         except FluxException as err:
             detail = ERROR_DETAIL_BAD_KS if visited_paths else ERROR_DETAIL_BAD_PATH
             raise FluxException(
@@ -430,7 +458,10 @@ async def get_clusters(
     """Load Cluster objects from the specified path."""
     try:
         roots = await get_fluxtomizations(
-            path_selector.root, path_selector.relative_path, build=False
+            path_selector.root,
+            path_selector.relative_path,
+            build=False,
+            sources=path_selector.sources or [],
         )
     except FluxException as err:
         raise FluxException(

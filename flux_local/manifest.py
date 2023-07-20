@@ -10,10 +10,11 @@ from typing import Any, Optional, cast
 
 import aiofiles
 import yaml
+
 try:
     from pydantic.v1 import BaseModel, Field
 except ImportError:
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, Field  # type: ignore
 
 from .exceptions import InputException
 
@@ -283,6 +284,9 @@ class Kustomization(BaseManifest):
     source_name: str | None = None
     """The name of the sourceRef that provides this Kustomization."""
 
+    source_namespace: str | None = None
+    """The namespace of the sourceRef that provides this Kustomization."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":
         """Parse a partial Kustomization from a kubernetes resource."""
@@ -305,6 +309,7 @@ class Kustomization(BaseManifest):
             source_path=source_path,
             source_kind=source_ref.get("kind"),
             source_name=source_ref.get("name"),
+            source_namespace=source_ref.get("namespace", namespace),
         )
 
     @property
@@ -326,6 +331,7 @@ class Kustomization(BaseManifest):
         },
         "source_path": True,
         "source_name": True,
+        "source_namespace": True,
         "source_kind": True,
     }
 

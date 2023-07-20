@@ -52,7 +52,9 @@ def add_selector_flags(args: ArgumentParser) -> None:
     )
     args.add_argument(
         "--sources",
-        help="Optional map of repository source to relative path e.g. cluster=./k8s/",
+        help="Optional GitRepository or OCIRepository sources to restrict "
+        "to e.g. `flux-system`. Can include optional map of repository "
+        "source to relative path e.g. `cluster=./k8s/`",
         action=SourceAppendAction,
     )
     args.add_argument(
