@@ -6,7 +6,7 @@ GitPython==3.1.32
 mypy==1.4.1
 nest_asyncio==1.5.6
 pdoc==14.0.0
-pip==23.2
+pip==23.2.1
 pre-commit==3.3.3
 pydantic==2.0.3
 pytest==7.4.0
