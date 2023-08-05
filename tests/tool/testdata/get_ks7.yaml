@@ -1,0 +1,10 @@
+args:
+- get
+- ks
+- --path
+- tests/testdata/cluster7
+stdout: |
+  NAME           PATH                                     
+  apps           tests/testdata/cluster7/flux/apps        
+  charts         tests/testdata/cluster7/flux/charts      
+  flux-system    tests/testdata/cluster7/clusters/home    

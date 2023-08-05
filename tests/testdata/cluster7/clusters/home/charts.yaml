@@ -1,0 +1,13 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: charts
+  namespace: flux-system
+spec:
+  interval: 10m0s
+  path: ./tests/testdata/cluster7/flux/charts
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system

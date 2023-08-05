@@ -22,6 +22,7 @@ jobs:
         - tests/testdata/cluster4
         - tests/testdata/cluster5
         - tests/testdata/cluster6
+        - tests/testdata/cluster7
         resource:
         - helmrelease
         - kustomization

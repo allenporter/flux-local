@@ -1,0 +1,8 @@
+args:
+- get
+- cluster
+- --path
+- tests/testdata/cluster7/
+stdout: |
+  NAME           PATH                                       KUSTOMIZATIONS    
+  flux-system    ./tests/testdata/cluster7/clusters/home    3                 

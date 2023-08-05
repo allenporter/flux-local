@@ -251,7 +251,7 @@ async def fluxtomize(path: Path) -> bytes:
     filenames.sort()
     for filename in filenames:
         new_path = path / filename
-        if new_path.is_dir() and await can_kustomize_dir(new_path):
+        if new_path.is_dir():
             tasks.append(build(new_path).objects())
         elif filename.endswith(".yaml") or filename.endswith(".yml"):
             tasks.append(yaml_load_all(new_path))
