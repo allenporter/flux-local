@@ -1,0 +1,9 @@
+args:
+- get
+- hr
+- -A
+- --path
+- tests/testdata/cluster7
+stdout: |
+  NAMESPACE    NAME          REVISION    CHART                  SOURCE            
+  database     postgresql    12.7.1      database-postgresql    bitnami-charts    
