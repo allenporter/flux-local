@@ -1,5 +1,5 @@
 -e .
-aiofiles==23.1.0
+aiofiles==23.2.1
 black==23.7.0
 coverage==7.2.7
 GitPython==3.1.32
