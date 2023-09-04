@@ -23,7 +23,7 @@ jobs:
         - tests/testdata/cluster6
         - tests/testdata/cluster7
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./action/test
       with:
         enable-helm: true
