@@ -9,7 +9,7 @@ pdoc==14.0.0
 pip==23.2.1
 pre-commit==3.3.3
 pydantic==2.3.0
-pytest==7.4.0
+pytest==7.4.1
 pytest-asyncio==0.21.1
 pytest-cov==4.1.0
 pytest-golden==0.2.2
