@@ -60,11 +60,11 @@ runs:
         pip install -e ${{ github.action_path }}/../../
       shell: bash
     - name: Checkout PR branch
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: pr
     - name: Checkout live branch
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: ${{ inputs.live-branch }}
         path: live
