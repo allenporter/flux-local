@@ -29,7 +29,7 @@ repos:
     - -c
     - ".yaml-lint.yaml"
 - repo: https://github.com/psf/black
-  rev: 23.7.0
+  rev: 23.9.0
   hooks:
   - id: black
 - repo: local
