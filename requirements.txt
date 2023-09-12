@@ -5,7 +5,7 @@ coverage==7.3.1
 GitPython==3.1.35
 mypy==1.5.1
 nest_asyncio==1.5.7
-pdoc==14.0.0
+pdoc==14.1.0
 pip==23.2.1
 pre-commit==3.4.0
 pydantic==2.3.0
