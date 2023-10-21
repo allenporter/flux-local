@@ -3,8 +3,6 @@ name: flux-local diff
 
 on:
   push:
-    branches:
-    - main
   pull_request:
     branches:
     - main
