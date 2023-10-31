@@ -20,5 +20,5 @@ types-aiofiles==23.2.0.0
 types-PyYAML==6.0.12.12
 typing-extensions==4.8.0
 types-python-slugify==8.0.0.3
-wheel==0.41.2
+wheel==0.41.3
 yamllint==1.32.0
