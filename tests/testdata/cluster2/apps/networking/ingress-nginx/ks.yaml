@@ -23,6 +23,7 @@ metadata:
   name: cluster-apps-ingress-nginx
   namespace: flux-system
 spec:
+  targetNamespace: networking
   dependsOn:
     - name: cluster-apps-ingress-nginx-certificates
   path: ./tests/testdata/cluster2/apps/networking/ingress-nginx/app

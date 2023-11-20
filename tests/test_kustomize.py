@@ -187,3 +187,35 @@ async def test_build_flags() -> None:
     assert "Secret" in result
     assert "ConfigMap" in result
     assert result == (TESTDATA_DIR / "repo/all.golden").read_text()
+
+
+async def test_target_namespace() -> None:
+    """Test a kustomization with a target namespace."""
+    ks = kustomize.build(TESTDATA_DIR / "repo").grep("kind=ConfigMap")
+
+    result = await ks.objects()
+    assert len(result) == 1
+    config_map = result[0]
+    assert "metadata" in config_map
+    assert config_map["metadata"] == {
+        "name": "cluster-settings",
+        "namespace": "flux-system",
+        "annotations": {
+            "config.kubernetes.io/index": "0",
+            "internal.config.kubernetes.io/index": "0",
+        },
+    }
+
+    result = await ks.objects(target_namespace="configs")
+    assert len(result) == 1
+    config_map = result[0]
+    assert "metadata" in config_map
+    assert config_map["metadata"] == {
+        "name": "cluster-settings",
+        # Verify updated namespace
+        "namespace": "configs",
+        "annotations": {
+            "config.kubernetes.io/index": "0",
+            "internal.config.kubernetes.io/index": "0",
+        },
+    }

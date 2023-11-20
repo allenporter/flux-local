@@ -559,7 +559,7 @@ async def build_kustomization(
 
     docs = await cmd.grep(
         f"kind=^({HELM_REPO_KIND}|{HELM_RELEASE_KIND}|{CLUSTER_POLICY_KIND})$"
-    ).objects()
+    ).objects(target_namespace=kustomization.target_namespace)
     return (
         filter(
             helm_repo_selector.predicate,

@@ -287,6 +287,9 @@ class Kustomization(BaseManifest):
     source_namespace: str | None = None
     """The namespace of the sourceRef that provides this Kustomization."""
 
+    target_namespace: str | None = None
+    """The namespace to target when performing the operation."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":
         """Parse a partial Kustomization from a kubernetes resource."""
@@ -310,6 +313,7 @@ class Kustomization(BaseManifest):
             source_kind=source_ref.get("kind"),
             source_name=source_ref.get("name"),
             source_namespace=source_ref.get("namespace", namespace),
+            target_namespace=spec.get("targetNamespace"),
         )
 
     @property
@@ -333,6 +337,7 @@ class Kustomization(BaseManifest):
         "source_name": True,
         "source_namespace": True,
         "source_kind": True,
+        "target_namespace": True,
     }
 
 
