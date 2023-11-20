@@ -113,15 +113,21 @@ class Kustomize:
         """Run the kustomize command and return the output as a string."""
         return await run_piped(self._cmds)
 
-    async def _docs(self) -> AsyncGenerator[dict[str, Any], None]:
+    async def _docs(
+        self, target_namespace: str | None = None
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Run the kustomize command and return the result documents."""
         out = await self.run()
         for doc in yaml.safe_load_all(out):
+            if target_namespace is not None:
+                doc = update_namespace(doc, target_namespace)
             yield doc
 
-    async def objects(self) -> list[dict[str, Any]]:
+    async def objects(
+        self, target_namespace: str | None = None
+    ) -> list[dict[str, Any]]:
         """Run the kustomize command and return the result cluster objects as a list."""
-        return [doc async for doc in self._docs()]
+        return [doc async for doc in self._docs(target_namespace=target_namespace)]
 
     def skip_resources(self, kinds: list[str]) -> "Kustomize":
         """Skip resources kinds of the specified types."""
@@ -283,3 +289,13 @@ def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
     else:
         args.append(str(path))
     return Kustomize([Command(args, cwd=cwd, exc=KustomizeException)])
+
+
+def update_namespace(doc: dict[str, Any], namespace: str) -> dict[str, Any]:
+    """Update the namespace of the specified document.
+
+    Will only update the namespace if the doc appears to have a metadata/name.
+    """
+    if (metadata := doc.get("metadata")) is not None and "name" in metadata:
+        doc["metadata"]["namespace"] = namespace
+    return doc
