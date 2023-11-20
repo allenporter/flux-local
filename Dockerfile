@@ -40,6 +40,16 @@ RUN mkdir -p /src && \
     rm -fr /src
 RUN kyverno version
 
+# renovate: datasource=github-releases depName=fluxcd/flux2 extractVersion=^v(?<version>.+)$
+ARG FLUX_CLI_VERSION=2.1.2
+RUN mkdir -p /src && \
+    cd /src && \
+    curl -OL https://github.com/fluxcd/flux2/releases/download/v${FLUX_CLI_VERSION}/flux_${FLUX_CLI_VERSION}_linux_amd64.tar.gz && \
+    tar xf flux_${FLUX_CLI_VERSION}_linux_amd64.tar.gz && \
+    cp flux /usr/local/bin/flux && \
+    rm -fr /src
+RUN flux version --client
+
 COPY . /src/
 WORKDIR /src/
 RUN pip3 install -r /src/requirements.txt
