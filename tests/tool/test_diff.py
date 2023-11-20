@@ -47,5 +47,4 @@ async def test_diff_ks(snapshot: SnapshotAssertion) -> None:
                     str(path_orig),
                 ]
             )
-
     assert result == snapshot

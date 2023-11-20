@@ -52,6 +52,7 @@ from .exceptions import (
     KustomizeException,
     KyvernoException,
 )
+from .manifest import Kustomization
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,6 +64,7 @@ __all__ = [
 
 KUSTOMIZE_BIN = "kustomize"
 KYVERNO_BIN = "kyverno"
+FLUX_BIN = "flux"
 HELM_RELEASE_KIND = "HelmRelease"
 KUSTOMIZE_FILES = ["kustomization.yaml", "kustomization.yml", "Kustomization"]
 
@@ -232,6 +234,48 @@ class KustomizeBuild(Task):
         return f"kustomize build {format_path(self._path)}"
 
 
+class FluxBuild(Task):
+    """A task that issues a flux build command."""
+
+    def __init__(self, ks: Kustomization, path: Path) -> None:
+        """Initialize Build."""
+        self._ks = ks
+        self._path = path
+
+    async def run(self, stdin: bytes | None = None) -> bytes:
+        """Run the task."""
+        if stdin is not None:
+            raise InputException("Invalid stdin cannot be passed to build command")
+        if not await isdir(self._path):
+            raise InputException(f"Specified path is not a directory: {self._path}")
+
+        args = [
+            FLUX_BIN,
+            "build",
+            "ks",
+            self._ks.name,
+            "--dry-run",
+            "--kustomization-file",
+            "/dev/stdin",
+            "--path",
+            str(self._path),
+        ]
+        if self._ks.namespace:
+            args.extend(
+                [
+                    "--namespace",
+                    self._ks.namespace,
+                ]
+            )
+        kustomization_data = yaml.dump_all(
+            [self._ks.contents or {}], sort_keys=False, explicit_start=True
+        )
+        input_ks = str(kustomization_data).encode("utf-8")
+
+        task = Command(args, cwd=None, exc=KustomizeException)
+        return await task.run(stdin=input_ks)
+
+
 async def can_kustomize_dir(path: Path) -> bool:
     """Return true if a kustomize file exists for the specified directory."""
     for name in KUSTOMIZE_FILES:
@@ -279,6 +323,11 @@ async def fluxtomize(path: Path) -> bytes:
 def build(path: Path, kustomize_flags: list[str] | None = None) -> Kustomize:
     """Build cluster artifacts from the specified path."""
     return Kustomize(cmds=[KustomizeBuild(path, kustomize_flags)])
+
+
+def flux_build(ks: Kustomization, path: Path) -> Kustomize:
+    """Build cluster artifacts from the specified path."""
+    return Kustomize(cmds=[FluxBuild(ks, path)])
 
 
 def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:

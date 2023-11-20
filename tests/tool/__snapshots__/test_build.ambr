@@ -296,30 +296,25 @@
   apiVersion: v1
   kind: Namespace
   metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: podinfo
     annotations:
       config.kubernetes.io/index: '0'
       internal.config.kubernetes.io/index: '0'
   ---
-  apiVersion: v1
-  data:
-    foo: bar
-  kind: ConfigMap
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
   metadata:
-    name: podinfo-config
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
     namespace: podinfo
     annotations:
       config.kubernetes.io/index: '1'
       internal.config.kubernetes.io/index: '1'
-  ---
-  apiVersion: helm.toolkit.fluxcd.io/v2beta1
-  kind: HelmRelease
-  metadata:
-    name: podinfo
-    namespace: podinfo
-    annotations:
-      config.kubernetes.io/index: '2'
-      internal.config.kubernetes.io/index: '2'
   spec:
     chart:
       spec:
@@ -349,50 +344,55 @@
         tag: 7.0.6
   
   ---
+  apiVersion: v1
+  data:
+    foo: bar
+  kind: ConfigMap
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo-config
+    namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+
+  ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
   metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: apps
     namespace: flux-system
     annotations:
       config.kubernetes.io/index: '0'
       internal.config.kubernetes.io/index: '0'
   spec:
-    interval: 10m0s
     dependsOn:
     - name: infra-configs
+    interval: 10m0s
+    path: ./tests/testdata/cluster/apps/prod
+    prune: true
     sourceRef:
       kind: GitRepository
       name: flux-system
-    path: ./tests/testdata/cluster/apps/prod
-    prune: true
-    wait: true
     timeout: 5m0s
+    wait: true
   ---
-  apiVersion: kustomize.toolkit.fluxcd.io/v1
-  kind: Kustomization
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
   metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: flux-system
     namespace: flux-system
     annotations:
       config.kubernetes.io/index: '1'
       internal.config.kubernetes.io/index: '1'
-  spec:
-    interval: 10m0s
-    path: ./tests/testdata/cluster/clusters/prod
-    prune: true
-    sourceRef:
-      kind: GitRepository
-      name: flux-system
-  ---
-  apiVersion: source.toolkit.fluxcd.io/v1
-  kind: GitRepository
-  metadata:
-    name: flux-system
-    namespace: flux-system
-    annotations:
-      config.kubernetes.io/index: '2'
-      internal.config.kubernetes.io/index: '2'
   spec:
     interval: 1m0s
     ref:
@@ -404,6 +404,28 @@
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
   metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 10m0s
+    path: ./tests/testdata/cluster/clusters/prod
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: infra-controllers
     namespace: flux-system
     annotations:
@@ -411,18 +433,21 @@
       internal.config.kubernetes.io/index: '3'
   spec:
     interval: 1h
+    path: ./tests/testdata/cluster/infrastructure/controllers
+    prune: true
     retryInterval: 1m
-    timeout: 5m
     sourceRef:
       kind: GitRepository
       name: flux-system
-    path: ./tests/testdata/cluster/infrastructure/controllers
-    prune: true
+    timeout: 5m
     wait: true
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
   metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: infra-configs
     namespace: flux-system
     annotations:
@@ -432,14 +457,17 @@
     dependsOn:
     - name: infra-controllers
     interval: 1h
+    path: ./tests/testdata/cluster/infrastructure/configs
+    prune: true
     retryInterval: 1m
-    timeout: 5m
     sourceRef:
       kind: GitRepository
       name: flux-system
     path: ./tests/testdata/cluster/infrastructure/configs
     prune: true
   
+    timeout: 5m
+
   ---
   apiVersion: kyverno.io/v1
   kind: ClusterPolicy
@@ -449,6 +477,9 @@
       policies.kyverno.io/title: Test Allow Policy
       config.kubernetes.io/index: '0'
       internal.config.kubernetes.io/index: '0'
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: test-allow-policy
   spec:
     background: true
@@ -469,6 +500,9 @@
   apiVersion: source.toolkit.fluxcd.io/v1beta2
   kind: HelmRepository
   metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: bitnami
     namespace: flux-system
     annotations:
@@ -483,6 +517,9 @@
   apiVersion: source.toolkit.fluxcd.io/v1beta2
   kind: HelmRepository
   metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: podinfo
     namespace: flux-system
     annotations:
@@ -496,6 +533,9 @@
   apiVersion: source.toolkit.fluxcd.io/v1beta2
   kind: HelmRepository
   metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: weave-charts
     namespace: flux-system
     annotations:
@@ -510,30 +550,14 @@
   apiVersion: helm.toolkit.fluxcd.io/v2beta1
   kind: HelmRelease
   metadata:
-    name: weave-gitops
-    namespace: flux-system
-    annotations:
-      config.kubernetes.io/index: '0'
-      internal.config.kubernetes.io/index: '0'
-  spec:
-    chart:
-      spec:
-        chart: weave-gitops
-        interval: 12h
-        sourceRef:
-          kind: HelmRepository
-          name: weave-charts
-        version: 4.0.22
-    interval: 60m
-  ---
-  apiVersion: helm.toolkit.fluxcd.io/v2beta1
-  kind: HelmRelease
-  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-controllers
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: metallb
     namespace: metallb
     annotations:
-      config.kubernetes.io/index: '1'
-      internal.config.kubernetes.io/index: '1'
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
   spec:
     chart:
       spec:
@@ -556,6 +580,29 @@
       speaker:
         secretName: metallb-secret
   
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-controllers
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: weave-gitops
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    chart:
+      spec:
+        chart: weave-gitops
+        interval: 12h
+        sourceRef:
+          kind: HelmRepository
+          name: weave-charts
+        version: 4.0.22
+    interval: 60m
+
   ---
   # Source: weave-gitops/templates/network-policy.yaml
   apiVersion: networking.k8s.io/v1

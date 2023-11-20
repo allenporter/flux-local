@@ -447,7 +447,7 @@ async def build_kustomization(
         return ([], [], [])
 
     with trace_context(f"Build Kustomization '{kustomization.namespaced_name}'"):
-        cmd = kustomize.build(root / kustomization.path, kustomize_flags)
+        cmd = kustomize.flux_build(kustomization, root / kustomization.path)
         skips = []
         if kustomization_selector.skip_crds:
             skips.append(CRD_KIND)
