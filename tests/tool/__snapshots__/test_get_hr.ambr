@@ -1,73 +1,73 @@
 # serializer version: 1
 # name: test_get_hr[all_namespace]
   '''
-  NAMESPACE    NAME       REVISION    CHART              SOURCE
-  metallb      metallb    4.1.14      metallb-metallb    bitnami
-
+  NAMESPACE    NAME       REVISION    CHART              SOURCE     
+  metallb      metallb    4.1.14      metallb-metallb    bitnami    
+  
   '''
 # ---
 # name: test_get_hr[cluster2]
   '''
-  NAMESPACE     NAME                    REVISION    CHART                              SOURCE
-  networking    ingress-nginx           4.5.2       networking-ingress-nginx           ingress-nginx
-  monitoring    kubernetes-dashboard    6.0.0       monitoring-kubernetes-dashboard    kubernetes-dashboard
-
+  NAMESPACE     NAME                    REVISION    CHART                              SOURCE                  
+  networking    ingress-nginx           4.5.2       networking-ingress-nginx           ingress-nginx           
+  monitoring    kubernetes-dashboard    6.0.0       monitoring-kubernetes-dashboard    kubernetes-dashboard    
+  
   '''
 # ---
 # name: test_get_hr[cluster3-no-source]
   '''
   no HelmRelease objects found in cluster
-
+  
   '''
 # ---
 # name: test_get_hr[cluster3]
   '''
   no HelmRelease objects found in cluster
-
+  
   '''
 # ---
 # name: test_get_hr[cluster4]
   '''
-  NAMESPACE     NAME                    REVISION    CHART                              SOURCE
-  monitoring    kubernetes-dashboard    6.0.0       monitoring-kubernetes-dashboard    kubernetes-dashboard
-
+  NAMESPACE     NAME                    REVISION    CHART                              SOURCE                  
+  monitoring    kubernetes-dashboard    6.0.0       monitoring-kubernetes-dashboard    kubernetes-dashboard    
+  
   '''
 # ---
 # name: test_get_hr[cluster5]
   '''
-  NAMESPACE      NAME            REVISION    CHART                       SOURCE
-  flux-system    weave-gitops    4.0.22      flux-system-weave-gitops    weave-charts
-  metallb        metallb         4.1.14      metallb-metallb             bitnami
-
+  NAMESPACE      NAME            REVISION    CHART                       SOURCE          
+  flux-system    weave-gitops    4.0.22      flux-system-weave-gitops    weave-charts    
+  metallb        metallb         4.1.14      metallb-metallb             bitnami         
+  
   '''
 # ---
 # name: test_get_hr[cluster6]
   '''
-  NAMESPACE    NAME        REVISION    CHART               SOURCE
-  default      renovate    None        default-renovate    renovate
-
+  NAMESPACE    NAME        REVISION    CHART               SOURCE      
+  default      renovate    None        default-renovate    renovate    
+  
   '''
 # ---
 # name: test_get_hr[cluster7]
   '''
-  NAMESPACE    NAME          REVISION    CHART                  SOURCE
-  database     postgresql    12.7.1      database-postgresql    bitnami-charts
-
+  NAMESPACE    NAME          REVISION    CHART                  SOURCE            
+  database     postgresql    12.7.1      database-postgresql    bitnami-charts    
+  
   '''
 # ---
 # name: test_get_hr[cluster]
   '''
-  NAMESPACE      NAME            REVISION    CHART                       SOURCE
-  podinfo        podinfo         6.3.2       podinfo-podinfo             podinfo
-  flux-system    weave-gitops    4.0.22      flux-system-weave-gitops    weave-charts
-  metallb        metallb         4.1.14      metallb-metallb             bitnami
-
+  NAMESPACE      NAME            REVISION    CHART                       SOURCE          
+  podinfo        podinfo         6.3.2       podinfo-podinfo             podinfo         
+  flux-system    weave-gitops    4.0.22      flux-system-weave-gitops    weave-charts    
+  metallb        metallb         4.1.14      metallb-metallb             bitnami         
+  
   '''
 # ---
 # name: test_get_hr[name]
   '''
-  NAME       REVISION    CHART              SOURCE
-  metallb    4.1.14      metallb-metallb    bitnami
-
+  NAME       REVISION    CHART              SOURCE     
+  metallb    4.1.14      metallb-metallb    bitnami    
+  
   '''
 # ---

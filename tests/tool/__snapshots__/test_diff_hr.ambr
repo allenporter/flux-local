@@ -20,19 +20,19 @@
 # name: test_diff_hr[not-found-all-namespaces]
   '''
   HelmRelease object 'example' not found in 'None' namespace
-
+  
   '''
 # ---
 # name: test_diff_hr[not-found-namespace]
   '''
   HelmRelease object 'example' not found in 'example' namespace
-
+  
   '''
 # ---
 # name: test_diff_hr[not-found]
   '''
   HelmRelease object 'example' not found in 'flux-system' namespace
-
+  
   '''
 # ---
 # name: test_diff_hr[podinfo]

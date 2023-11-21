@@ -21,11 +21,11 @@
       name: podinfo-config
       diff: |-
         --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps ConfigMap: podinfo/podinfo-config
-
+  
         +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps ConfigMap: podinfo/podinfo-config
-
+  
         @@ -1,9 +0,0 @@
-
+  
         ----
         -apiVersion: v1
         -data:
@@ -42,11 +42,11 @@
       name: podinfo
       diff: |-
         --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Namespace: flux-system/podinfo
-
+  
         +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Namespace: flux-system/podinfo
-
+  
         @@ -1,6 +0,0 @@
-
+  
         ----
         -apiVersion: v1
         -kind: Namespace
@@ -60,11 +60,11 @@
       name: podinfo
       diff: |-
         --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps HelmRelease: podinfo/podinfo
-
+  
         +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps HelmRelease: podinfo/podinfo
-
+  
         @@ -1,34 +0,0 @@
-
+  
         ----
         -apiVersion: helm.toolkit.fluxcd.io/v2beta1
         -kind: HelmRelease
@@ -99,8 +99,8 @@
         -      repository: public.ecr.aws/docker/library/redis
         -      tag: 7.0.6
         -
-
-
+  
+  
   '''
 # ---
 # name: test_diff_ks[yaml-limit]

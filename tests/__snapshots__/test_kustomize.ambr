@@ -17,7 +17,7 @@
   metadata:
     name: cluster-secrets
     namespace: flux-system
-
+  
   '''
 # ---
 # name: test_build[path1]
@@ -38,7 +38,7 @@
   metadata:
     name: cluster-secrets
     namespace: flux-system
-
+  
   '''
 # ---
 # name: test_build_flags
@@ -59,7 +59,7 @@
   metadata:
     name: cluster-secrets
     namespace: flux-system
-
+  
   '''
 # ---
 # name: test_build_grep[path0]
@@ -75,7 +75,7 @@
     annotations:
       config.kubernetes.io/index: '0'
       internal.config.kubernetes.io/index: '0'
-
+  
   '''
 # ---
 # name: test_build_grep[path1]
@@ -91,7 +91,7 @@
     annotations:
       config.kubernetes.io/index: '0'
       internal.config.kubernetes.io/index: '0'
-
+  
   '''
 # ---
 # name: test_grep[path0]
@@ -109,7 +109,7 @@
   data:
     CLUSTER: dev
     DOMAIN: example.org
-
+  
   '''
 # ---
 # name: test_grep[path1]
@@ -127,7 +127,7 @@
   data:
     CLUSTER: dev
     DOMAIN: example.org
-
+  
   '''
 # ---
 # name: test_objects[path0]

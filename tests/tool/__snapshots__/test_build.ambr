@@ -55,7 +55,7 @@
   spec:
     interval: 30m
     url: https://docs.renovatebot.com/helm-charts
-
+  
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
@@ -102,8 +102,8 @@
     secretRef:
       name: flux-system
     url: ssh://git@github.com/allenporter/flux-local
-
-
+  
+  
   '''
 # ---
 # name: test_build[build-helm-cluster6]
@@ -162,7 +162,7 @@
   spec:
     interval: 30m
     url: https://docs.renovatebot.com/helm-charts
-
+  
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
@@ -209,7 +209,7 @@
     secretRef:
       name: flux-system
     url: ssh://git@github.com/allenporter/flux-local
-
+  
   ---
   # Source: renovate/templates/serviceaccount.yaml
   apiVersion: v1
@@ -284,8 +284,8 @@
               runAsUser: 1000
               seccompProfile:
                 type: RuntimeDefault
-
-
+  
+  
   '''
 # ---
 # name: test_build[build-helm-cluster]
@@ -345,7 +345,7 @@
         enabled: true
         repository: public.ecr.aws/docker/library/redis
         tag: 7.0.6
-
+  
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
@@ -437,7 +437,7 @@
       name: flux-system
     path: ./tests/testdata/cluster/infrastructure/configs
     prune: true
-
+  
   ---
   apiVersion: kyverno.io/v1
   kind: ClusterPolicy
@@ -503,7 +503,7 @@
     interval: 120m
     type: oci
     url: oci://ghcr.io/weaveworks/charts
-
+  
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1
   kind: HelmRelease
@@ -553,7 +553,7 @@
     values:
       speaker:
         secretName: metallb-secret
-
+  
   ---
   # Source: weave-gitops/templates/network-policy.yaml
   apiVersion: networking.k8s.io/v1
@@ -753,7 +753,7 @@
           - name: WEAVE_GITOPS_FEATURE_CLUSTER
             value: "false"
           resources: {}
-
+  
   ---
   # Source: metallb/templates/controller/serviceaccount.yaml
   apiVersion: v1
@@ -1667,7 +1667,7 @@
       resources:
       - l2advertisements
     sideEffects: None
-
+  
   ---
   # Source: podinfo/templates/redis/config.yaml
   apiVersion: v1
@@ -1920,8 +1920,8 @@
               name: podinfo
               port:
                 number: 9898
-
-
+  
+  
   '''
 # ---
 # name: test_build[build]
@@ -1981,7 +1981,7 @@
         enabled: true
         repository: public.ecr.aws/docker/library/redis
         tag: 7.0.6
-
+  
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
@@ -2073,7 +2073,7 @@
       name: flux-system
     path: ./tests/testdata/cluster/infrastructure/configs
     prune: true
-
+  
   ---
   apiVersion: kyverno.io/v1
   kind: ClusterPolicy
@@ -2139,7 +2139,7 @@
     interval: 120m
     type: oci
     url: oci://ghcr.io/weaveworks/charts
-
+  
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1
   kind: HelmRelease
@@ -2189,7 +2189,7 @@
     values:
       speaker:
         secretName: metallb-secret
-
-
+  
+  
   '''
 # ---

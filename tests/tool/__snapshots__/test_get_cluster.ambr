@@ -1,65 +1,65 @@
 # serializer version: 1
 # name: test_get_cluster[all-namespaces]
   '''
-  NAMESPACE      NAME           PATH                                      KUSTOMIZATIONS
-  flux-system    flux-system    ./tests/testdata/cluster/clusters/prod    4
-
+  NAMESPACE      NAME           PATH                                      KUSTOMIZATIONS    
+  flux-system    flux-system    ./tests/testdata/cluster/clusters/prod    4                 
+  
   '''
 # ---
 # name: test_get_cluster[cluster2]
   '''
-  NAME       PATH                       KUSTOMIZATIONS
-  cluster    tests/testdata/cluster2    5
-
+  NAME       PATH                       KUSTOMIZATIONS    
+  cluster    tests/testdata/cluster2    5                 
+  
   '''
 # ---
 # name: test_get_cluster[cluster3-no-source]
   '''
-  NAME           PATH                                           KUSTOMIZATIONS
-  flux-system    ./tests/testdata/cluster3/clusters/cluster3    1
-
+  NAME           PATH                                           KUSTOMIZATIONS    
+  flux-system    ./tests/testdata/cluster3/clusters/cluster3    1                 
+  
   '''
 # ---
 # name: test_get_cluster[cluster3]
   '''
-  NAME       PATH                       KUSTOMIZATIONS
-  cluster    tests/testdata/cluster3    2
-
+  NAME       PATH                       KUSTOMIZATIONS    
+  cluster    tests/testdata/cluster3    2                 
+  
   '''
 # ---
 # name: test_get_cluster[cluster4]
   '''
-  NAME       PATH                       KUSTOMIZATIONS
-  cluster    tests/testdata/cluster4    3
-
+  NAME       PATH                       KUSTOMIZATIONS    
+  cluster    tests/testdata/cluster4    3                 
+  
   '''
 # ---
 # name: test_get_cluster[cluster5]
   '''
-  NAME           PATH                                       KUSTOMIZATIONS
-  flux-system    ./tests/testdata/cluster5/clusters/prod    1
-
+  NAME           PATH                                       KUSTOMIZATIONS    
+  flux-system    ./tests/testdata/cluster5/clusters/prod    1                 
+  
   '''
 # ---
 # name: test_get_cluster[cluster6]
   '''
-  NAME           PATH                                 KUSTOMIZATIONS
-  flux-system    ./tests/testdata/cluster6/cluster    2
-
+  NAME           PATH                                 KUSTOMIZATIONS    
+  flux-system    ./tests/testdata/cluster6/cluster    2                 
+  
   '''
 # ---
 # name: test_get_cluster[cluster7]
   '''
-  NAME           PATH                                       KUSTOMIZATIONS
-  flux-system    ./tests/testdata/cluster7/clusters/home    3
-
+  NAME           PATH                                       KUSTOMIZATIONS    
+  flux-system    ./tests/testdata/cluster7/clusters/home    3                 
+  
   '''
 # ---
 # name: test_get_cluster[cluster]
   '''
-  NAME           PATH                                      KUSTOMIZATIONS
-  flux-system    ./tests/testdata/cluster/clusters/prod    4
-
+  NAME           PATH                                      KUSTOMIZATIONS    
+  flux-system    ./tests/testdata/cluster/clusters/prod    4                 
+  
   '''
 # ---
 # name: test_get_cluster[yaml]
@@ -126,6 +126,6 @@
           repo_name: bitnami
           repo_namespace: flux-system
       cluster_policies: []
-
+  
   '''
 # ---
