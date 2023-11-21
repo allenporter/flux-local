@@ -1,0 +1,172 @@
+# serializer version: 1
+# name: test_build[path0]
+  '''
+  apiVersion: v1
+  data:
+    CLUSTER: dev
+    DOMAIN: example.org
+  kind: ConfigMap
+  metadata:
+    name: cluster-settings
+    namespace: flux-system
+  ---
+  apiVersion: v1
+  data:
+    PWD: secret
+  kind: Secret
+  metadata:
+    name: cluster-secrets
+    namespace: flux-system
+
+  '''
+# ---
+# name: test_build[path1]
+  '''
+  apiVersion: v1
+  data:
+    CLUSTER: dev
+    DOMAIN: example.org
+  kind: ConfigMap
+  metadata:
+    name: cluster-settings
+    namespace: flux-system
+  ---
+  apiVersion: v1
+  data:
+    PWD: secret
+  kind: Secret
+  metadata:
+    name: cluster-secrets
+    namespace: flux-system
+
+  '''
+# ---
+# name: test_build_flags
+  '''
+  apiVersion: v1
+  data:
+    CLUSTER: dev
+    DOMAIN: example.org
+  kind: ConfigMap
+  metadata:
+    name: cluster-settings
+    namespace: flux-system
+  ---
+  apiVersion: v1
+  data:
+    PWD: secret
+  kind: Secret
+  metadata:
+    name: cluster-secrets
+    namespace: flux-system
+
+  '''
+# ---
+# name: test_build_grep[path0]
+  '''
+  apiVersion: v1
+  data:
+    CLUSTER: dev
+    DOMAIN: example.org
+  kind: ConfigMap
+  metadata:
+    name: cluster-settings
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+
+  '''
+# ---
+# name: test_build_grep[path1]
+  '''
+  apiVersion: v1
+  data:
+    CLUSTER: dev
+    DOMAIN: example.org
+  kind: ConfigMap
+  metadata:
+    name: cluster-settings
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+
+  '''
+# ---
+# name: test_grep[path0]
+  '''
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: flux-system
+    name: cluster-settings
+    annotations:
+      config.kubernetes.io/index: '0'
+      config.kubernetes.io/path: 'cluster-settings.yaml'
+      internal.config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/path: 'cluster-settings.yaml'
+  data:
+    CLUSTER: dev
+    DOMAIN: example.org
+
+  '''
+# ---
+# name: test_grep[path1]
+  '''
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: flux-system
+    name: cluster-settings
+    annotations:
+      config.kubernetes.io/index: '0'
+      config.kubernetes.io/path: 'cluster-settings.yaml'
+      internal.config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/path: 'cluster-settings.yaml'
+  data:
+    CLUSTER: dev
+    DOMAIN: example.org
+
+  '''
+# ---
+# name: test_objects[path0]
+  list([
+    dict({
+      'apiVersion': 'v1',
+      'data': dict({
+        'CLUSTER': 'dev',
+        'DOMAIN': 'example.org',
+      }),
+      'kind': 'ConfigMap',
+      'metadata': dict({
+        'annotations': dict({
+          'config.kubernetes.io/index': '0',
+          'internal.config.kubernetes.io/index': '0',
+        }),
+        'name': 'cluster-settings',
+        'namespace': 'flux-system',
+      }),
+    }),
+  ])
+# ---
+# name: test_objects[path1]
+  list([
+    dict({
+      'apiVersion': 'v1',
+      'data': dict({
+        'CLUSTER': 'dev',
+        'DOMAIN': 'example.org',
+      }),
+      'kind': 'ConfigMap',
+      'metadata': dict({
+        'annotations': dict({
+          'config.kubernetes.io/index': '0',
+          'internal.config.kubernetes.io/index': '0',
+        }),
+        'name': 'cluster-settings',
+        'namespace': 'flux-system',
+      }),
+    }),
+  ])
+# ---

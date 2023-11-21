@@ -1,9 +1,0 @@
-args:
-- diff
-- hr
-- --namespace
-- example
-- --path
-- tests/testdata/cluster
-stdout: |
-  no HelmRelease objects found in 'example' namespace

@@ -414,9 +414,6 @@ class TestAction:
             str(verbosity),
             "--no-header",
             "--disable-warnings",
-            # Disable plugins used by this library that generates warnings
-            "-p",
-            "no:pytest-golden",
         ]
         _LOGGER.debug("pytest.main: %s", pytest_args)
         retcode = pytest.main(

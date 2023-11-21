@@ -1,8 +1,0 @@
-args:
-- get
-- ks
-- --all-namespaces
-- --path
-- ./tests/testdata/cluster/apps/prod
-stdout: |
-  no Kustomization objects found in cluster

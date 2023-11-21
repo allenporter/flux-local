@@ -1,0 +1,43 @@
+# serializer version: 1
+# name: test_diff_hr[all-namespaces]
+  ''
+# ---
+# name: test_diff_hr[all]
+  ''
+# ---
+# name: test_diff_hr[cluster6]
+  ''
+# ---
+# name: test_diff_hr[external-limit-bytes]
+  ''
+# ---
+# name: test_diff_hr[external]
+  ''
+# ---
+# name: test_diff_hr[limit-bytes]
+  ''
+# ---
+# name: test_diff_hr[not-found-all-namespaces]
+  '''
+  HelmRelease object 'example' not found in 'None' namespace
+
+  '''
+# ---
+# name: test_diff_hr[not-found-namespace]
+  '''
+  HelmRelease object 'example' not found in 'example' namespace
+
+  '''
+# ---
+# name: test_diff_hr[not-found]
+  '''
+  HelmRelease object 'example' not found in 'flux-system' namespace
+
+  '''
+# ---
+# name: test_diff_hr[podinfo]
+  ''
+# ---
+# name: test_diff_hr[yaml]
+  ''
+# ---

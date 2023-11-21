@@ -1,9 +1,0 @@
-args:
-- get
-- hr
-- -A
-- --path
-- tests/testdata/cluster4
-stdout: |
-  NAMESPACE     NAME                    REVISION    CHART                              SOURCE                  
-  monitoring    kubernetes-dashboard    6.0.0       monitoring-kubernetes-dashboard    kubernetes-dashboard    

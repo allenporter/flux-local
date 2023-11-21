@@ -1,7 +1,0 @@
-args:
-- diff
-- hr
-- podinfo
-- --all-namespaces
-- --path
-- tests/testdata/cluster
