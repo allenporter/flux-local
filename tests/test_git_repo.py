@@ -400,18 +400,32 @@ def test_is_allowed_source_namespace_optional() -> None:
 
 
 @pytest.mark.parametrize(
-    ("path"),
+    ("path", "sources"),
     [
-        "tests/testdata/cluster",
-        "tests/testdata/cluster2",
-        "tests/testdata/cluster3",
-        "tests/testdata/cluster4",
-        "tests/testdata/cluster5",
-        "tests/testdata/cluster6",
-        "tests/testdata/cluster7",
+        ("tests/testdata/cluster", None),
+        ("tests/testdata/cluster2", None),
+        (
+            "tests/testdata/cluster3",
+            [Source.from_str("cluster=tests/testdata/cluster3")],
+        ),
+        ("tests/testdata/cluster4", None),
+        ("tests/testdata/cluster5", None),
+        ("tests/testdata/cluster6", None),
+        ("tests/testdata/cluster7", None),
+    ],
+    ids=[
+        "cluster",
+        "cluster2",
+        "cluster3",
+        "cluster4",
+        "cluster5",
+        "cluster6",
+        "cluster7",
     ],
 )
-async def test_internal_commands(path: str, snapshot: SnapshotAssertion) -> None:
+async def test_internal_commands(
+    path: str, sources: list[Source] | None, snapshot: SnapshotAssertion
+) -> None:
     """Tests that trace internal command run for each step."""
 
     context_cmds: dict[str, Any] = {}
@@ -433,7 +447,8 @@ async def test_internal_commands(path: str, snapshot: SnapshotAssertion) -> None
         c["cmds"] = c.get("cmds", []) + piped_cmds
         return await run_piped(tasks)
 
+    selector = ResourceSelector(path=PathSelector(path=Path(path), sources=sources))
     with patch("flux_local.kustomize.run_piped", side_effect=piped_recorder):
-        await build_manifest(Path(path))
+        await build_manifest(selector=selector)
 
     assert context_cmds == snapshot

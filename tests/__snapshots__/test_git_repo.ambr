@@ -1,5 +1,5 @@
 # serializer version: 1
-# name: test_internal_commands[tests/testdata/cluster2]
+# name: test_internal_commands[cluster2]
   dict({
     "Traversing Cluster 'tests/testdata/cluster2'": dict({
       "Build Kustomization 'flux-system/cluster'": dict({
@@ -84,23 +84,39 @@
     }),
   })
 # ---
-# name: test_internal_commands[tests/testdata/cluster3]
+# name: test_internal_commands[cluster3]
   dict({
     "Traversing Cluster 'tests/testdata/cluster3'": dict({
-      "Build Kustomization 'flux-system/flux-system'": dict({
+      "Build Kustomization 'flux-system/namespaces'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster3/clusters/cluster3 (abs)',
+          'kustomize build tests/testdata/cluster3/namespaces/overlays/cluster3 (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          'kustomize build tests/testdata/cluster3/clusters/cluster3/flux-system (abs)',
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
-      "Traversing Kustomization 'tests/testdata/cluster3/clusters/cluster3'": dict({
+      "Build Kustomization 'flux-system/tenants'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster3/clusters/cluster3 (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          'kustomize build tests/testdata/cluster3/tenants/overlays/cluster3 (abs)',
+          "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+        ]),
+      }),
+      "Traversing Kustomization 'tests/testdata/cluster3'": dict({
+        'cmds': list([
+          '(tests/testdata/cluster3 (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-          'kustomize build tests/testdata/cluster3/clusters/cluster3/flux-system (abs)',
+        ]),
+      }),
+      "Traversing Kustomization 'tests/testdata/cluster3/namespaces/overlays/cluster3'": dict({
+        'cmds': list([
+          '(tests/testdata/cluster3/namespaces/overlays/cluster3 (abs)) kustomize cfg grep kind=Kustomization .',
+          "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
+        ]),
+      }),
+      "Traversing Kustomization 'tests/testdata/cluster3/tenants/overlays/cluster3'": dict({
+        'cmds': list([
+          '(tests/testdata/cluster3/tenants/overlays/cluster3 (abs)) kustomize cfg grep kind=Kustomization .',
+          "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       'cmds': list([
@@ -110,7 +126,7 @@
     }),
   })
 # ---
-# name: test_internal_commands[tests/testdata/cluster4]
+# name: test_internal_commands[cluster4]
   dict({
     "Traversing Cluster 'tests/testdata/cluster4'": dict({
       "Build Kustomization 'flux-system/cluster'": dict({
@@ -168,7 +184,7 @@
     }),
   })
 # ---
-# name: test_internal_commands[tests/testdata/cluster5]
+# name: test_internal_commands[cluster5]
   dict({
     "Traversing Cluster 'tests/testdata/cluster5'": dict({
       "Build Kustomization 'flux-system/flux-system'": dict({
@@ -201,7 +217,7 @@
     }),
   })
 # ---
-# name: test_internal_commands[tests/testdata/cluster6]
+# name: test_internal_commands[cluster6]
   dict({
     "Traversing Cluster 'tests/testdata/cluster6'": dict({
       "Build Kustomization 'flux-system/apps'": dict({
@@ -243,7 +259,7 @@
     }),
   })
 # ---
-# name: test_internal_commands[tests/testdata/cluster7]
+# name: test_internal_commands[cluster7]
   dict({
     "Traversing Cluster 'tests/testdata/cluster7'": dict({
       "Build Kustomization 'flux-system/apps'": dict({
@@ -301,7 +317,7 @@
     }),
   })
 # ---
-# name: test_internal_commands[tests/testdata/cluster]
+# name: test_internal_commands[cluster]
   dict({
     "Traversing Cluster 'tests/testdata/cluster'": dict({
       "Build Kustomization 'flux-system/apps'": dict({
