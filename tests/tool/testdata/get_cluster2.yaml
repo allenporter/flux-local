@@ -1,8 +1,0 @@
-args:
-- get
-- cluster
-- --path
-- tests/testdata/cluster2/
-stdout: |
-  NAME       PATH                       KUSTOMIZATIONS    
-  cluster    tests/testdata/cluster2    5                 

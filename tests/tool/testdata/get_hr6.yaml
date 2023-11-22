@@ -1,9 +1,0 @@
-args:
-- get
-- hr
-- -A
-- --path
-- tests/testdata/cluster6
-stdout: |
-  NAMESPACE    NAME        REVISION    CHART               SOURCE      
-  default      renovate    None        default-renovate    renovate    

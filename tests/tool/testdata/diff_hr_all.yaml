@@ -1,7 +1,0 @@
-args:
-- diff
-- hr
-- --all-namespaces
-- --path
-- tests/testdata/cluster
-stdout: ''

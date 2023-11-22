@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from flux_local import kustomize, exceptions
 
@@ -20,49 +21,50 @@ resources:
     "path",
     [TESTDATA_DIR / "repo", (TESTDATA_DIR / "repo").absolute()],
 )
-async def test_build(path: Path) -> None:
+async def test_build(path: Path, snapshot: SnapshotAssertion) -> None:
     """Test a kustomize build command."""
     result = await kustomize.build(path).run()
     assert "Secret" in result
     assert "ConfigMap" in result
-    assert result == (TESTDATA_DIR / "repo/all.golden").read_text()
+    assert result == snapshot
 
 
 @pytest.mark.parametrize(
     "path",
     [TESTDATA_DIR / "repo", (TESTDATA_DIR / "repo").absolute()],
 )
-async def test_build_grep(path: Path) -> None:
+async def test_build_grep(path: Path, snapshot: SnapshotAssertion) -> None:
     """Test a kustomize build and grep command chained."""
     result = await kustomize.build(path).grep("kind=ConfigMap").run()
     assert "Secret" not in result
     assert "ConfigMap" in result
-    assert result == (TESTDATA_DIR / "repo/configmap.build.golden").read_text()
+    assert result == snapshot
 
 
 @pytest.mark.parametrize(
     "path",
     [TESTDATA_DIR / "repo", (TESTDATA_DIR / "repo").absolute()],
 )
-async def test_grep(path: Path) -> None:
+async def test_grep(path: Path, snapshot: SnapshotAssertion) -> None:
     """Test a kustomize grep command."""
     result = await kustomize.grep("kind=ConfigMap", path).run()
     assert "Secret" not in result
     assert "ConfigMap" in result
-    assert result == (TESTDATA_DIR / "repo/configmap.grep.golden").read_text()
+    assert result == snapshot
 
 
 @pytest.mark.parametrize(
     "path",
     [TESTDATA_DIR / "repo", (TESTDATA_DIR / "repo").absolute()],
 )
-async def test_objects(path: Path) -> None:
+async def test_objects(path: Path, snapshot: SnapshotAssertion) -> None:
     """Test loading yaml documents."""
     cmd = kustomize.build(path).grep("kind=ConfigMap")
     result = await cmd.objects()
     assert len(result) == 1
     assert result[0].get("kind") == "ConfigMap"
     assert result[0].get("apiVersion") == "v1"
+    assert result == snapshot
 
 
 @pytest.mark.parametrize(
@@ -177,7 +179,7 @@ async def test_fluxtomize_ignores_empty_subdir(tmp_path: Path) -> None:
     assert not content
 
 
-async def test_build_flags() -> None:
+async def test_build_flags(snapshot: SnapshotAssertion) -> None:
     """Test a kustomize build command with extra flags."""
     result = await kustomize.build(
         TESTDATA_DIR / "repo",
@@ -186,7 +188,7 @@ async def test_build_flags() -> None:
     ).run()
     assert "Secret" in result
     assert "ConfigMap" in result
-    assert result == (TESTDATA_DIR / "repo/all.golden").read_text()
+    assert result == snapshot
 
 
 async def test_target_namespace() -> None:

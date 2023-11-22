@@ -1,0 +1,21 @@
+# serializer version: 1
+# name: test_diff_ks
+  '''
+  --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps ConfigMap: podinfo/podinfo-config
+  
+  +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps ConfigMap: podinfo/podinfo-config
+  
+  @@ -1,9 +0,0 @@
+  
+  ----
+  -apiVersion: v1
+  -data:
+  -  foo: bar
+  -kind: ConfigMap
+  -metadata:
+  -  name: podinfo-config
+  -  namespace: podinfo
+  -
+  
+  '''
+# ---

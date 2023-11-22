@@ -4,9 +4,9 @@ repos:
   rev: v4.5.0
   hooks:
   - id: trailing-whitespace
-    exclude: '^tests/tool/testdata/.*\.yaml$'
+    exclude: '^tests/.*.ambr$'
   - id: end-of-file-fixer
-    exclude: '^tests/tool/testdata/.*\.yaml$'
+    exclude: '^tests/.*.ambr$'
   - id: check-yaml
     args:
     - --allow-multiple-documents
@@ -24,7 +24,6 @@ repos:
   rev: v1.33.0
   hooks:
   - id: yamllint
-    exclude: '^tests/tool/testdata/.*\.yaml$'
     args:
     - -c
     - ".yaml-lint.yaml"
@@ -32,6 +31,7 @@ repos:
   rev: 23.11.0
   hooks:
   - id: black
+    exclude: '^tests/.*.ambr$'
 - repo: local
   hooks:
   - id: mypy

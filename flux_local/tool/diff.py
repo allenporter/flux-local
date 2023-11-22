@@ -4,6 +4,7 @@ import asyncio
 import functools
 import os
 from argparse import ArgumentParser, _SubParsersAction as SubParsersAction
+from collections.abc import Iterable
 from contextlib import contextmanager
 from dataclasses import asdict
 import difflib
@@ -11,7 +12,7 @@ import logging
 import pathlib
 import shlex
 import tempfile
-from typing import cast, Generator, Any, AsyncGenerator
+from typing import cast, Generator, Any, AsyncGenerator, TypeVar
 import yaml
 
 
@@ -27,18 +28,28 @@ _CSV = functools.partial(str.split, sep=",")
 
 _TRUNCATE = "[Diff truncated by flux-local]"
 
+T = TypeVar("T")
+
+
+def _unique_keys(k1: dict[T, Any], k2: dict[T, Any]) -> Iterable[T]:
+    """Return an ordered set."""
+    return {
+        **{k: True for k in k1.keys()},
+        **{k: True for k in k2.keys()},
+    }.keys()
+
 
 def perform_object_diff(
     a: ObjectOutput, b: ObjectOutput, n: int, limit_bytes: int
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
-    for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+    for kustomization_key in _unique_keys(a.content, b.content):
         _LOGGER.debug(
             "Diffing results for Kustomization %s (n=%d)", kustomization_key, n
         )
         a_resources = a.content.get(kustomization_key, {})
         b_resources = b.content.get(kustomization_key, {})
-        for resource_key in set(a_resources.keys()) | set(b_resources.keys()):
+        for resource_key in _unique_keys(a_resources, b_resources):
             diff_text = difflib.unified_diff(
                 a=a_resources.get(resource_key, []),
                 b=b_resources.get(resource_key, []),
@@ -63,14 +74,14 @@ async def perform_external_diff(
 ) -> AsyncGenerator[str, None]:
     """Generate diffs between the two output objects."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+        for kustomization_key in _unique_keys(a.content, b.content):
             _LOGGER.debug(
                 "Diffing results for Kustomization %s",
                 kustomization_key,
             )
             a_resources = a.content.get(kustomization_key, {})
             b_resources = b.content.get(kustomization_key, {})
-            keys = set(a_resources.keys()) | set(b_resources.keys())
+            keys = _unique_keys(a_resources, b_resources)
 
             a_file = pathlib.Path(tmpdir) / "a.yaml"
             a_file.write_text(
@@ -115,12 +126,12 @@ def perform_yaml_diff(
     """Generate diffs between the two output objects."""
 
     diffs = []
-    for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+    for kustomization_key in _unique_keys(a.content, b.content):
         _LOGGER.debug("Diffing results for %s (n=%d)", kustomization_key, n)
         a_resources = a.content.get(kustomization_key, {})
         b_resources = b.content.get(kustomization_key, {})
         resource_diffs = []
-        for resource_key in set(a_resources.keys()) | set(b_resources.keys()):
+        for resource_key in _unique_keys(a_resources, b_resources):
             diff_text = difflib.unified_diff(
                 a=a_resources.get(resource_key, []),
                 b=b_resources.get(resource_key, []),
@@ -154,12 +165,12 @@ def get_helm_release_diff_keys(
 ) -> dict[str, list[ResourceKey]]:
     """Return HelmRelease resource keys with diffs, by cluster."""
     result: dict[str, list[ResourceKey]] = {}
-    for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+    for kustomization_key in _unique_keys(a.content, b.content):
         cluster_path = kustomization_key.cluster_path
         _LOGGER.debug("Diffing results for Kustomization %s", kustomization_key)
         a_resources = a.content.get(kustomization_key, {})
         b_resources = b.content.get(kustomization_key, {})
-        for resource_key in set(a_resources.keys()) | set(b_resources.keys()):
+        for resource_key in _unique_keys(a_resources, b_resources):
             if resource_key.kind != "HelmRelease":
                 continue
             if a_resources.get(resource_key) != b_resources.get(resource_key):
