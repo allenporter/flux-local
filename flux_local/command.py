@@ -32,6 +32,7 @@ class Task(ABC):
 
 
 def format_path(path: Path | None) -> str:
+    """Format path for debugging."""
     if path is None:
         return ""
     if path.is_absolute():
