@@ -45,7 +45,7 @@
 # name: test_get_hr[cluster6]
   '''
   NAMESPACE    NAME        REVISION    CHART               SOURCE      
-  default      renovate    None        default-renovate    renovate    
+  default      renovate    37.64.3     default-renovate    renovate    
   
   '''
 # ---
