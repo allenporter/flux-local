@@ -19,6 +19,9 @@ jobs:
         python-version:
         - "3.10"
         - "3.11"
+        pydantic-install:
+        - "echo"
+        - "pip3 install pydantic==1.10.11"
 
     steps:
     - uses: actions/checkout@v4
@@ -37,10 +40,7 @@ jobs:
         version: v1.9.0
     - name: Test with pytest
       run: |
-        SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing
-    - name: Test with pytest pydantic v1
-      run: |
-        pip install pydantic==1.10.11
+        ${{ matrix.pydantic-install }}
         SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing
     - uses: codecov/codecov-action@v3
       with:
