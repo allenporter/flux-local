@@ -31,6 +31,16 @@ class Task(ABC):
         """Execute the task and return the result."""
 
 
+def format_path(path: Path) -> str:
+    """Format path for debugging."""
+    if path.is_absolute():
+        cwd = Path.cwd()
+        if path.is_relative_to(cwd):
+            rel_path = str(path.relative_to(cwd))
+            return f"{rel_path} (abs)"
+    return str(path)
+
+
 @dataclass
 class Command(Task):
     """An instance of a command to run."""
@@ -57,7 +67,10 @@ class Command(Task):
 
     def __str__(self) -> str:
         """Render as a debug string."""
-        return f"({self.cwd}) {self.string}"
+        cwd: str = ""
+        if self.cwd:
+            cwd = f"({format_path(self.cwd)}) "
+        return f"{cwd}{self.string}"
 
     async def run(self, stdin: bytes | None = None) -> bytes:
         """Run the command, returning stdout."""
