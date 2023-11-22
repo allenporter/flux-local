@@ -31,10 +31,8 @@ class Task(ABC):
         """Execute the task and return the result."""
 
 
-def format_path(path: Path | None) -> str:
+def format_path(path: Path) -> str:
     """Format path for debugging."""
-    if path is None:
-        return ""
     if path.is_absolute():
         cwd = Path.cwd()
         if path.is_relative_to(cwd):
