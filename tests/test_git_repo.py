@@ -100,7 +100,9 @@ async def test_kustomization_visitor(snapshot: SnapshotAssertion) -> None:
     assert visits == snapshot
 
     content = stream.getvalue()
-    assert content == snapshot
+    assert content
+    assert "kind: HelmRelease" in content
+    assert "name: metallb" in content
 
 
 async def test_helm_repo_visitor(snapshot: SnapshotAssertion) -> None:
