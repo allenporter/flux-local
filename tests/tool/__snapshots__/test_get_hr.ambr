@@ -22,7 +22,8 @@
 # ---
 # name: test_get_hr[cluster3]
   '''
-  no HelmRelease objects found in cluster
+  NAMESPACE    NAME       REVISION    CHART              SOURCE     
+  podinfo      podinfo    None        podinfo-podinfo    podinfo    
   
   '''
 # ---
