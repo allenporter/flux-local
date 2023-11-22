@@ -57,6 +57,7 @@ from .manifest import (
     SECRET_KIND,
 )
 from .exceptions import InputException
+from .context import trace_context
 
 __all__ = [
     "build_manifest",
@@ -394,19 +395,20 @@ async def kustomization_traversal(
     while not path_queue.empty():
         path = path_queue.get()
         _LOGGER.debug("Visiting path (%s) %s", root_path_selector.path, path)
-        try:
-            docs = await get_fluxtomizations(
-                root_path_selector.root,
-                path,
-                build=build,
-                sources=path_selector.sources or [],
-            )
-        except FluxException as err:
-            detail = ERROR_DETAIL_BAD_KS if visited_paths else ERROR_DETAIL_BAD_PATH
-            raise FluxException(
-                f"Error building Fluxtomization in '{root_path_selector.root}' "
-                f"path '{path}': {err} - {detail}"
-            )
+        with trace_context(f"Traversing Kustomization '{str(path)}'"):
+            try:
+                docs = await get_fluxtomizations(
+                    root_path_selector.root,
+                    path,
+                    build=build,
+                    sources=path_selector.sources or [],
+                )
+            except FluxException as err:
+                detail = ERROR_DETAIL_BAD_KS if visited_paths else ERROR_DETAIL_BAD_PATH
+                raise FluxException(
+                    f"Error building Fluxtomization in '{root_path_selector.root}' "
+                    f"path '{path}': {err} - {detail}"
+                )
 
         visited_paths |= set({path})
 
@@ -525,67 +527,68 @@ async def build_kustomization(
         and not cluster_policy_selector.enabled
     ):
         return ([], [], [])
-    cmd = kustomize.build(root / kustomization.path, kustomize_flags)
-    skips = []
-    if kustomization_selector.skip_crds:
-        skips.append(CRD_KIND)
-    if kustomization_selector.skip_secrets:
-        skips.append(SECRET_KIND)
-    cmd = cmd.skip_resources(skips)
-    try:
-        cmd = await cmd.stash()
-    except FluxException as err:
-        raise FluxException(
-            f"Error while building Kustomization "
-            f"'{kustomization.namespace}/{kustomization.name}' "
-            f"(path={kustomization.source_path}): {err}"
-        ) from err
 
-    if kustomization_selector.visitor:
+    with trace_context(f"Build Kustomization '{kustomization.namespaced_name}'"):
+        cmd = kustomize.build(root / kustomization.path, kustomize_flags)
+        skips = []
+        if kustomization_selector.skip_crds:
+            skips.append(CRD_KIND)
+        if kustomization_selector.skip_secrets:
+            skips.append(SECRET_KIND)
+        cmd = cmd.skip_resources(skips)
+        try:
+            cmd = await cmd.stash()
+        except FluxException as err:
+            raise FluxException(
+                f"Error while building Kustomization "
+                f"'{kustomization.namespace}/{kustomization.name}' "
+                f"(path={kustomization.source_path}): {err}"
+            ) from err
+
         if kustomization_selector.visitor:
-            await kustomization_selector.visitor.func(
-                cluster_path,
-                Path(kustomization.path),
-                kustomization,
-                cmd,
-            )
+            if kustomization_selector.visitor:
+                await kustomization_selector.visitor.func(
+                    cluster_path,
+                    Path(kustomization.path),
+                    kustomization,
+                    cmd,
+                )
 
-    if (
-        not helm_release_selector.enabled
-        and not helm_repo_selector.enabled
-        and not cluster_policy_selector.enabled
-    ):
-        return ([], [], [])
-
-    docs = await cmd.grep(
-        f"kind=^({HELM_REPO_KIND}|{HELM_RELEASE_KIND}|{CLUSTER_POLICY_KIND})$"
-    ).objects(target_namespace=kustomization.target_namespace)
-    return (
-        filter(
-            helm_repo_selector.predicate,
-            [
-                HelmRepository.parse_doc(doc)
-                for doc in docs
-                if doc.get("kind") == HELM_REPO_KIND
-            ],
-        ),
-        filter(
-            helm_release_selector.predicate,
-            [
-                HelmRelease.parse_doc(doc)
-                for doc in docs
-                if doc.get("kind") == HELM_RELEASE_KIND
-            ],
-        ),
-        filter(
-            cluster_policy_selector.predicate,
-            [
-                ClusterPolicy.parse_doc(doc)
-                for doc in docs
-                if doc.get("kind") == CLUSTER_POLICY_KIND
-            ],
-        ),
-    )
+        if (
+            not helm_release_selector.enabled
+            and not helm_repo_selector.enabled
+            and not cluster_policy_selector.enabled
+        ):
+            return ([], [], [])
+        docs = await cmd.grep(
+            f"kind=^({HELM_REPO_KIND}|{HELM_RELEASE_KIND}|{CLUSTER_POLICY_KIND})$"
+        ).objects(target_namespace=kustomization.target_namespace)
+        return (
+            filter(
+                helm_repo_selector.predicate,
+                [
+                    HelmRepository.parse_doc(doc)
+                    for doc in docs
+                    if doc.get("kind") == HELM_REPO_KIND
+                ],
+            ),
+            filter(
+                helm_release_selector.predicate,
+                [
+                    HelmRelease.parse_doc(doc)
+                    for doc in docs
+                    if doc.get("kind") == HELM_RELEASE_KIND
+                ],
+            ),
+            filter(
+                cluster_policy_selector.predicate,
+                [
+                    ClusterPolicy.parse_doc(doc)
+                    for doc in docs
+                    if doc.get("kind") == CLUSTER_POLICY_KIND
+                ],
+            ),
+        )
 
 
 async def build_manifest(
@@ -608,78 +611,79 @@ async def build_manifest(
     if not selector.cluster.enabled:
         return Manifest(clusters=[])
 
-    clusters = await get_clusters(
-        selector.path, selector.cluster, selector.kustomization
-    )
+    with trace_context(f"Traversing Cluster '{str(selector.path.path)}'"):
+        clusters = await get_clusters(
+            selector.path, selector.cluster, selector.kustomization
+        )
 
-    async def update_kustomization(cluster: Cluster) -> None:
-        build_tasks = []
-        for kustomization in cluster.kustomizations:
-            _LOGGER.debug(
-                "Processing kustomization '%s': %s",
-                kustomization.name,
-                kustomization.path,
-            )
-            build_tasks.append(
-                build_kustomization(
-                    kustomization,
-                    Path(cluster.path),
-                    selector.path.root,
-                    selector.kustomization,
-                    selector.helm_release,
-                    selector.helm_repo,
-                    selector.cluster_policy,
-                    options.kustomize_flags,
+        async def update_kustomization(cluster: Cluster) -> None:
+            build_tasks = []
+            for kustomization in cluster.kustomizations:
+                _LOGGER.debug(
+                    "Processing kustomization '%s': %s",
+                    kustomization.name,
+                    kustomization.path,
                 )
-            )
-        results = list(await asyncio.gather(*build_tasks))
-        for kustomization, (helm_repos, helm_releases, cluster_policies) in zip(
-            cluster.kustomizations,
-            results,
-        ):
-            kustomization.helm_repos = list(helm_repos)
-            kustomization.helm_releases = list(helm_releases)
-            kustomization.cluster_policies = list(cluster_policies)
-
-    kustomization_tasks = []
-    # Expand and visit Kustomizations
-    for cluster in clusters:
-        kustomization_tasks.append(update_kustomization(cluster))
-    await asyncio.gather(*kustomization_tasks)
-
-    # Visit Helm resources
-    for cluster in clusters:
-        if selector.helm_repo.visitor:
-            for kustomization in cluster.kustomizations:
-                for helm_repo in kustomization.helm_repos:
-                    await selector.helm_repo.visitor.func(
+                build_tasks.append(
+                    build_kustomization(
+                        kustomization,
                         Path(cluster.path),
-                        Path(kustomization.path),
-                        helm_repo,
-                        None,
+                        selector.path.root,
+                        selector.kustomization,
+                        selector.helm_release,
+                        selector.helm_repo,
+                        selector.cluster_policy,
+                        options.kustomize_flags,
                     )
+                )
+            results = list(await asyncio.gather(*build_tasks))
+            for kustomization, (helm_repos, helm_releases, cluster_policies) in zip(
+                cluster.kustomizations,
+                results,
+            ):
+                kustomization.helm_repos = list(helm_repos)
+                kustomization.helm_releases = list(helm_releases)
+                kustomization.cluster_policies = list(cluster_policies)
 
-        if selector.helm_release.visitor:
-            for kustomization in cluster.kustomizations:
-                for helm_release in kustomization.helm_releases:
-                    await selector.helm_release.visitor.func(
-                        Path(cluster.path),
-                        Path(kustomization.path),
-                        helm_release,
-                        None,
-                    )
+        kustomization_tasks = []
+        # Expand and visit Kustomizations
+        for cluster in clusters:
+            kustomization_tasks.append(update_kustomization(cluster))
+        await asyncio.gather(*kustomization_tasks)
 
-        if selector.cluster_policy.visitor:
-            for kustomization in cluster.kustomizations:
-                for cluster_policy in kustomization.cluster_policies:
-                    await selector.cluster_policy.visitor.func(
-                        Path(cluster.path),
-                        Path(kustomization.path),
-                        cluster_policy,
-                        None,
-                    )
+        # Visit Helm resources
+        for cluster in clusters:
+            if selector.helm_repo.visitor:
+                for kustomization in cluster.kustomizations:
+                    for helm_repo in kustomization.helm_repos:
+                        await selector.helm_repo.visitor.func(
+                            Path(cluster.path),
+                            Path(kustomization.path),
+                            helm_repo,
+                            None,
+                        )
 
-    return Manifest(clusters=clusters)
+            if selector.helm_release.visitor:
+                for kustomization in cluster.kustomizations:
+                    for helm_release in kustomization.helm_releases:
+                        await selector.helm_release.visitor.func(
+                            Path(cluster.path),
+                            Path(kustomization.path),
+                            helm_release,
+                            None,
+                        )
+
+            if selector.cluster_policy.visitor:
+                for kustomization in cluster.kustomizations:
+                    for cluster_policy in kustomization.cluster_policies:
+                        await selector.cluster_policy.visitor.func(
+                            Path(cluster.path),
+                            Path(kustomization.path),
+                            cluster_policy,
+                            None,
+                        )
+
+        return Manifest(clusters=clusters)
 
 
 @contextlib.contextmanager

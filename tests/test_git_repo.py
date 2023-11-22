@@ -1,10 +1,13 @@
 """Tests for git_repo."""
 
-from pathlib import Path
+from collections.abc import Sequence
 import io
+from pathlib import Path
 from typing import Any
-import pytest
 from unittest.mock import patch
+
+import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from flux_local.git_repo import (
     build_manifest,
@@ -15,8 +18,10 @@ from flux_local.git_repo import (
     PathSelector,
     is_allowed_source,
 )
-from flux_local.kustomize import Kustomize
+from flux_local.kustomize import Kustomize, Stash
+from flux_local.command import Task, run_piped
 from flux_local.manifest import Kustomization
+from flux_local.context import trace
 
 TESTDATA = Path("tests/testdata/cluster")
 
@@ -392,3 +397,43 @@ def test_is_allowed_source_namespace_optional() -> None:
     assert is_allowed_source(ks, [Source.from_str("flux-system")])
     assert is_allowed_source(ks, [Source.from_str("flux-system2/flux-system")])
     assert not is_allowed_source(ks, [Source.from_str("flux-system3/flux-system")])
+
+
+@pytest.mark.parametrize(
+    ("path"),
+    [
+        "tests/testdata/cluster",
+        "tests/testdata/cluster2",
+        "tests/testdata/cluster3",
+        "tests/testdata/cluster4",
+        "tests/testdata/cluster5",
+        "tests/testdata/cluster6",
+        "tests/testdata/cluster7",
+    ],
+)
+async def test_internal_commands(path: str, snapshot: SnapshotAssertion) -> None:
+    """Tests that trace internal command run for each step."""
+
+    context_cmds: dict[str, Any] = {}
+
+    async def piped_recorder(tasks: Sequence[Task]) -> str:
+        """Record commands run with the trace context."""
+
+        piped_cmds = []
+        for task in tasks:
+            if isinstance(task, Stash):
+                continue
+            piped_cmds.append(str(task))
+
+        c = context_cmds
+        for level in trace.get(["root"]):
+            if level not in c:
+                c[level] = {}
+            c = c[level]
+        c["cmds"] = c.get("cmds", []) + piped_cmds
+        return await run_piped(tasks)
+
+    with patch("flux_local.kustomize.run_piped", side_effect=piped_recorder):
+        await build_manifest(Path(path))
+
+    assert context_cmds == snapshot

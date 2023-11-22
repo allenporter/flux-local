@@ -46,7 +46,7 @@ from typing import Any, AsyncGenerator
 import yaml
 
 from . import manifest
-from .command import Command, run_piped, Task
+from .command import Command, run_piped, Task, format_path
 from .exceptions import (
     InputException,
     KustomizeException,
@@ -195,7 +195,7 @@ class Stash(Task):
         return self._out
 
 
-class Build(Task):
+class KustomizeBuild(Task):
     """A task that issues a build command, handling implicit Kustomizations."""
 
     def __init__(self, path: Path, kustomize_flags: list[str] | None = None) -> None:
@@ -226,6 +226,10 @@ class Build(Task):
             args.append(str(self._path))
         task = Command(args, cwd=cwd, exc=KustomizeException)
         return await task.run()
+
+    def __str__(self) -> str:
+        """Render as a debug string."""
+        return f"kustomize build {format_path(self._path)}"
 
 
 async def can_kustomize_dir(path: Path) -> bool:
@@ -274,7 +278,7 @@ async def fluxtomize(path: Path) -> bytes:
 
 def build(path: Path, kustomize_flags: list[str] | None = None) -> Kustomize:
     """Build cluster artifacts from the specified path."""
-    return Kustomize(cmds=[Build(path, kustomize_flags)])
+    return Kustomize(cmds=[KustomizeBuild(path, kustomize_flags)])
 
 
 def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
