@@ -1,4 +1,539 @@
 # serializer version: 1
+# name: test_build_manifest
+  dict({
+    'clusters': list([
+      dict({
+        'kustomizations': list([
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'podinfo',
+                  'repo_name': 'podinfo',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'podinfo',
+                'namespace': 'podinfo',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'apps',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/apps/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'flux-system',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/clusters/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+              dict({
+                'name': 'test-allow-policy',
+                'namespace': None,
+              }),
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+              dict({
+                'name': 'bitnami',
+                'namespace': 'flux-system',
+                'repo_type': 'default',
+                'url': 'https://charts.bitnami.com/bitnami',
+              }),
+              dict({
+                'name': 'podinfo',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/stefanprodan/charts',
+              }),
+              dict({
+                'name': 'weave-charts',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/weaveworks/charts',
+              }),
+            ]),
+            'name': 'infra-configs',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/configs',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'weave-gitops',
+                  'repo_name': 'weave-charts',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'weave-gitops',
+                'namespace': 'flux-system',
+              }),
+              dict({
+                'chart': dict({
+                  'name': 'metallb',
+                  'repo_name': 'bitnami',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'metallb',
+                'namespace': 'metallb',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'infra-controllers',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/controllers',
+          }),
+        ]),
+        'name': 'flux-system',
+        'namespace': 'flux-system',
+        'path': './tests/testdata/cluster/clusters/prod',
+      }),
+    ]),
+  })
+# ---
+# name: test_cluster_selector_disabled
+  dict({
+    'clusters': list([
+    ]),
+  })
+# ---
+# name: test_helm_release_selector_disabled
+  dict({
+    'clusters': list([
+      dict({
+        'kustomizations': list([
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'apps',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/apps/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'flux-system',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/clusters/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+              dict({
+                'name': 'test-allow-policy',
+                'namespace': None,
+              }),
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+              dict({
+                'name': 'bitnami',
+                'namespace': 'flux-system',
+                'repo_type': 'default',
+                'url': 'https://charts.bitnami.com/bitnami',
+              }),
+              dict({
+                'name': 'podinfo',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/stefanprodan/charts',
+              }),
+              dict({
+                'name': 'weave-charts',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/weaveworks/charts',
+              }),
+            ]),
+            'name': 'infra-configs',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/configs',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'infra-controllers',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/controllers',
+          }),
+        ]),
+        'name': 'flux-system',
+        'namespace': 'flux-system',
+        'path': './tests/testdata/cluster/clusters/prod',
+      }),
+    ]),
+  })
+# ---
+# name: test_helm_release_visitor
+  dict({
+    'clusters': list([
+      dict({
+        'kustomizations': list([
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'podinfo',
+                  'repo_name': 'podinfo',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'podinfo',
+                'namespace': 'podinfo',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'apps',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/apps/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'flux-system',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/clusters/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+              dict({
+                'name': 'test-allow-policy',
+                'namespace': None,
+              }),
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+              dict({
+                'name': 'bitnami',
+                'namespace': 'flux-system',
+                'repo_type': 'default',
+                'url': 'https://charts.bitnami.com/bitnami',
+              }),
+              dict({
+                'name': 'podinfo',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/stefanprodan/charts',
+              }),
+              dict({
+                'name': 'weave-charts',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/weaveworks/charts',
+              }),
+            ]),
+            'name': 'infra-configs',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/configs',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'weave-gitops',
+                  'repo_name': 'weave-charts',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'weave-gitops',
+                'namespace': 'flux-system',
+              }),
+              dict({
+                'chart': dict({
+                  'name': 'metallb',
+                  'repo_name': 'bitnami',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'metallb',
+                'namespace': 'metallb',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'infra-controllers',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/controllers',
+          }),
+        ]),
+        'name': 'flux-system',
+        'namespace': 'flux-system',
+        'path': './tests/testdata/cluster/clusters/prod',
+      }),
+    ]),
+  })
+# ---
+# name: test_helm_release_visitor.1
+  list([
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/apps/prod',
+      'podinfo',
+      'podinfo',
+    ),
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/infrastructure/controllers',
+      'flux-system',
+      'weave-gitops',
+    ),
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/infrastructure/controllers',
+      'metallb',
+      'metallb',
+    ),
+  ])
+# ---
+# name: test_helm_repo_selector_disabled
+  dict({
+    'clusters': list([
+      dict({
+        'kustomizations': list([
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'podinfo',
+                  'repo_name': 'podinfo',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'podinfo',
+                'namespace': 'podinfo',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'apps',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/apps/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'flux-system',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/clusters/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+              dict({
+                'name': 'test-allow-policy',
+                'namespace': None,
+              }),
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'infra-configs',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/configs',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'weave-gitops',
+                  'repo_name': 'weave-charts',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'weave-gitops',
+                'namespace': 'flux-system',
+              }),
+              dict({
+                'chart': dict({
+                  'name': 'metallb',
+                  'repo_name': 'bitnami',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'metallb',
+                'namespace': 'metallb',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'infra-controllers',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/controllers',
+          }),
+        ]),
+        'name': 'flux-system',
+        'namespace': 'flux-system',
+        'path': './tests/testdata/cluster/clusters/prod',
+      }),
+    ]),
+  })
+# ---
+# name: test_helm_repo_visitor
+  dict({
+    'clusters': list([
+      dict({
+        'kustomizations': list([
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'podinfo',
+                  'repo_name': 'podinfo',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'podinfo',
+                'namespace': 'podinfo',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'apps',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/apps/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'flux-system',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/clusters/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+              dict({
+                'name': 'test-allow-policy',
+                'namespace': None,
+              }),
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+              dict({
+                'name': 'bitnami',
+                'namespace': 'flux-system',
+                'repo_type': 'default',
+                'url': 'https://charts.bitnami.com/bitnami',
+              }),
+              dict({
+                'name': 'podinfo',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/stefanprodan/charts',
+              }),
+              dict({
+                'name': 'weave-charts',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/weaveworks/charts',
+              }),
+            ]),
+            'name': 'infra-configs',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/configs',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'weave-gitops',
+                  'repo_name': 'weave-charts',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'weave-gitops',
+                'namespace': 'flux-system',
+              }),
+              dict({
+                'chart': dict({
+                  'name': 'metallb',
+                  'repo_name': 'bitnami',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'metallb',
+                'namespace': 'metallb',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'infra-controllers',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/controllers',
+          }),
+        ]),
+        'name': 'flux-system',
+        'namespace': 'flux-system',
+        'path': './tests/testdata/cluster/clusters/prod',
+      }),
+    ]),
+  })
+# ---
+# name: test_helm_repo_visitor.1
+  list([
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/infrastructure/configs',
+      'flux-system',
+      'bitnami',
+    ),
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/infrastructure/configs',
+      'flux-system',
+      'podinfo',
+    ),
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/infrastructure/configs',
+      'flux-system',
+      'weave-charts',
+    ),
+  ])
+# ---
 # name: test_internal_commands[cluster2]
   dict({
     "Traversing Cluster 'tests/testdata/cluster2'": dict({
@@ -384,4 +919,151 @@
       ]),
     }),
   })
+# ---
+# name: test_kustomization_selector_disabled
+  dict({
+    'clusters': list([
+      dict({
+        'kustomizations': list([
+        ]),
+        'name': 'flux-system',
+        'namespace': 'flux-system',
+        'path': './tests/testdata/cluster/clusters/prod',
+      }),
+    ]),
+  })
+# ---
+# name: test_kustomization_visitor
+  dict({
+    'clusters': list([
+      dict({
+        'kustomizations': list([
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'podinfo',
+                  'repo_name': 'podinfo',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'podinfo',
+                'namespace': 'podinfo',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'apps',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/apps/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'flux-system',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/clusters/prod',
+          }),
+          dict({
+            'cluster_policies': list([
+              dict({
+                'name': 'test-allow-policy',
+                'namespace': None,
+              }),
+            ]),
+            'helm_releases': list([
+            ]),
+            'helm_repos': list([
+              dict({
+                'name': 'bitnami',
+                'namespace': 'flux-system',
+                'repo_type': 'default',
+                'url': 'https://charts.bitnami.com/bitnami',
+              }),
+              dict({
+                'name': 'podinfo',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/stefanprodan/charts',
+              }),
+              dict({
+                'name': 'weave-charts',
+                'namespace': 'flux-system',
+                'repo_type': 'oci',
+                'url': 'oci://ghcr.io/weaveworks/charts',
+              }),
+            ]),
+            'name': 'infra-configs',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/configs',
+          }),
+          dict({
+            'cluster_policies': list([
+            ]),
+            'helm_releases': list([
+              dict({
+                'chart': dict({
+                  'name': 'weave-gitops',
+                  'repo_name': 'weave-charts',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'weave-gitops',
+                'namespace': 'flux-system',
+              }),
+              dict({
+                'chart': dict({
+                  'name': 'metallb',
+                  'repo_name': 'bitnami',
+                  'repo_namespace': 'flux-system',
+                }),
+                'name': 'metallb',
+                'namespace': 'metallb',
+              }),
+            ]),
+            'helm_repos': list([
+            ]),
+            'name': 'infra-controllers',
+            'namespace': 'flux-system',
+            'path': 'tests/testdata/cluster/infrastructure/controllers',
+          }),
+        ]),
+        'name': 'flux-system',
+        'namespace': 'flux-system',
+        'path': './tests/testdata/cluster/clusters/prod',
+      }),
+    ]),
+  })
+# ---
+# name: test_kustomization_visitor.1
+  list([
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/apps/prod',
+      'flux-system',
+      'apps',
+    ),
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/clusters/prod',
+      'flux-system',
+      'flux-system',
+    ),
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/infrastructure/configs',
+      'flux-system',
+      'infra-configs',
+    ),
+    tuple(
+      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster/infrastructure/controllers',
+      'flux-system',
+      'infra-controllers',
+    ),
+  ])
 # ---

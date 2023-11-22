@@ -26,21 +26,14 @@ from flux_local.context import trace
 TESTDATA = Path("tests/testdata/cluster")
 
 
-async def test_build_manifest() -> None:
+async def test_build_manifest(snapshot: SnapshotAssertion) -> None:
     """Tests for building the manifest."""
 
     manifest = await build_manifest(TESTDATA)
-    assert len(manifest.clusters) == 1
-    cluster = manifest.clusters[0]
-    assert cluster.name == "flux-system"
-    assert cluster.namespace == "flux-system"
-    assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 4
-    assert len(cluster.helm_repos) == 3
-    assert len(cluster.helm_releases) == 3
+    assert manifest.compact_dict() == snapshot
 
 
-async def test_cluster_selector_disabled() -> None:
+async def test_cluster_selector_disabled(snapshot: SnapshotAssertion) -> None:
     """Tests for building the manifest."""
 
     query = ResourceSelector()
@@ -48,10 +41,10 @@ async def test_cluster_selector_disabled() -> None:
     query.cluster.enabled = False
 
     manifest = await build_manifest(selector=query)
-    assert len(manifest.clusters) == 0
+    assert manifest.compact_dict() == snapshot
 
 
-async def test_kustomization_selector_disabled() -> None:
+async def test_kustomization_selector_disabled(snapshot: SnapshotAssertion) -> None:
     """Tests for building the manifest."""
 
     query = ResourceSelector()
@@ -59,15 +52,10 @@ async def test_kustomization_selector_disabled() -> None:
     query.kustomization.enabled = False
 
     manifest = await build_manifest(selector=query)
-    assert len(manifest.clusters) == 1
-    cluster = manifest.clusters[0]
-    assert cluster.name == "flux-system"
-    assert cluster.namespace == "flux-system"
-    assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 0
+    assert manifest.compact_dict() == snapshot
 
 
-async def test_helm_release_selector_disabled() -> None:
+async def test_helm_release_selector_disabled(snapshot: SnapshotAssertion) -> None:
     """Tests for building the manifest with helm releases disabled."""
 
     query = ResourceSelector()
@@ -75,17 +63,10 @@ async def test_helm_release_selector_disabled() -> None:
     query.helm_release.enabled = False
 
     manifest = await build_manifest(selector=query)
-    assert len(manifest.clusters) == 1
-    cluster = manifest.clusters[0]
-    assert cluster.name == "flux-system"
-    assert cluster.namespace == "flux-system"
-    assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 4
-    assert len(cluster.helm_repos) == 3
-    assert len(cluster.helm_releases) == 0
+    assert manifest.compact_dict() == snapshot
 
 
-async def test_helm_repo_selector_disabled() -> None:
+async def test_helm_repo_selector_disabled(snapshot: SnapshotAssertion) -> None:
     """Tests for building the manifest with helm repos disabled."""
 
     query = ResourceSelector()
@@ -93,17 +74,10 @@ async def test_helm_repo_selector_disabled() -> None:
     query.helm_repo.enabled = False
 
     manifest = await build_manifest(selector=query)
-    assert len(manifest.clusters) == 1
-    cluster = manifest.clusters[0]
-    assert cluster.name == "flux-system"
-    assert cluster.namespace == "flux-system"
-    assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 4
-    assert len(cluster.helm_repos) == 0
-    assert len(cluster.helm_releases) == 3
+    assert manifest.compact_dict() == snapshot
 
 
-async def test_kustomization_visitor() -> None:
+async def test_kustomization_visitor(snapshot: SnapshotAssertion) -> None:
     """Tests for visiting Kustomizations."""
 
     query = ResourceSelector()
@@ -120,44 +94,10 @@ async def test_kustomization_visitor() -> None:
     query.kustomization.visitor = ResourceVisitor(func=write)
 
     manifest = await build_manifest(selector=query)
-    assert len(manifest.clusters) == 1
-    cluster = manifest.clusters[0]
-    assert cluster.name == "flux-system"
-    assert cluster.namespace == "flux-system"
-    assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 4
-    kustomization = cluster.kustomizations[0]
-    assert kustomization.name == "apps"
-    assert kustomization.namespace == "flux-system"
-    assert kustomization.path == "tests/testdata/cluster/apps/prod"
+    assert manifest.compact_dict() == snapshot
 
     visits.sort()
-    assert visits == [
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/apps/prod",
-            "flux-system",
-            "apps",
-        ),
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/clusters/prod",
-            "flux-system",
-            "flux-system",
-        ),
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/infrastructure/configs",
-            "flux-system",
-            "infra-configs",
-        ),
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/infrastructure/controllers",
-            "flux-system",
-            "infra-controllers",
-        ),
-    ]
+    assert visits == snapshot
 
     content = stream.getvalue()
     assert content
@@ -165,7 +105,7 @@ async def test_kustomization_visitor() -> None:
     assert "name: metallb" in content
 
 
-async def test_helm_repo_visitor() -> None:
+async def test_helm_repo_visitor(snapshot: SnapshotAssertion) -> None:
     """Tests for visiting a HelmRepository objects."""
 
     query = ResourceSelector()
@@ -176,44 +116,16 @@ async def test_helm_repo_visitor() -> None:
     async def append(w: Path, x: Path, y: Any, z: Any) -> None:
         visits.append((str(w), str(x), y.namespace, y.name))
 
-    query.helm_repo.visitor = ResourceVisitor(
-        func=append,
-    )
+    query.helm_repo.visitor = ResourceVisitor(func=append)
 
     manifest = await build_manifest(selector=query)
-    assert len(manifest.clusters) == 1
-    cluster = manifest.clusters[0]
-    assert cluster.name == "flux-system"
-    assert cluster.namespace == "flux-system"
-    assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 4
-    assert len(cluster.helm_repos) == 3
-    assert len(cluster.helm_releases) == 3
+    assert manifest.compact_dict() == snapshot
 
     visits.sort()
-    assert visits == [
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/infrastructure/configs",
-            "flux-system",
-            "bitnami",
-        ),
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/infrastructure/configs",
-            "flux-system",
-            "podinfo",
-        ),
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/infrastructure/configs",
-            "flux-system",
-            "weave-charts",
-        ),
-    ]
+    assert visits == snapshot
 
 
-async def test_helm_release_visitor() -> None:
+async def test_helm_release_visitor(snapshot: SnapshotAssertion) -> None:
     """Tests for visiting a HelmRelease objects."""
 
     query = ResourceSelector()
@@ -229,36 +141,10 @@ async def test_helm_release_visitor() -> None:
     )
 
     manifest = await build_manifest(selector=query)
-    assert len(manifest.clusters) == 1
-    cluster = manifest.clusters[0]
-    assert cluster.name == "flux-system"
-    assert cluster.namespace == "flux-system"
-    assert cluster.path == "./tests/testdata/cluster/clusters/prod"
-    assert len(cluster.kustomizations) == 4
-    assert len(cluster.helm_repos) == 3
-    assert len(cluster.helm_releases) == 3
+    assert manifest.compact_dict() == snapshot
 
     visits.sort()
-    assert visits == [
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/apps/prod",
-            "podinfo",
-            "podinfo",
-        ),
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/infrastructure/controllers",
-            "flux-system",
-            "weave-gitops",
-        ),
-        (
-            "tests/testdata/cluster/clusters/prod",
-            "tests/testdata/cluster/infrastructure/controllers",
-            "metallb",
-            "metallb",
-        ),
-    ]
+    assert visits == snapshot
 
 
 @pytest.mark.parametrize(

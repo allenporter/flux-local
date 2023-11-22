@@ -18,6 +18,7 @@
           kind: HelmRepository
           name: renovate
           namespace: flux-system
+        version: 37.64.3
     interval: 5m
     values:
       renovate:
@@ -125,6 +126,7 @@
           kind: HelmRepository
           name: renovate
           namespace: flux-system
+        version: 37.64.3
     interval: 5m
     values:
       renovate:
