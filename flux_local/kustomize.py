@@ -275,6 +275,10 @@ class FluxBuild(Task):
         task = Command(args, cwd=None, exc=KustomizeException)
         return await task.run(stdin=input_ks)
 
+    def __str__(self) -> str:
+        """Render as a debug string."""
+        return f"flux build {format_path(self._path)}"
+
 
 async def can_kustomize_dir(path: Path) -> bool:
     """Return true if a kustomize file exists for the specified directory."""
