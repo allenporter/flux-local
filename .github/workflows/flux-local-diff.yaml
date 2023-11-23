@@ -29,6 +29,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+    - name: Setup Flux CLI
+      uses: fluxcd/flux2/action@v2.1.2
     - uses: ./action/diff
       id: diff
       with:
