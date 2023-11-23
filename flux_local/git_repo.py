@@ -305,37 +305,31 @@ class ResourceSelector:
     """ClusterPolicy objects to return."""
 
 
-async def get_fluxtomizations(
+async def grep_fluxtomizations(
     root: Path,
     relative_path: Path,
-    build: bool,
-    sources: list[Source],
 ) -> list[Kustomization]:
-    """Find all flux Kustomizations in the specified path.
-
-    This may be called repeatedly with different paths to repeatedly collect
-    Kustomizations from the repo. Assumes that any flux Kustomization
-    for a GitRepository is pointed at this cluster, following normal conventions.
-    """
-    cmd: kustomize.Kustomize
-    if build:
-        cmd = (
-            kustomize.build(root / relative_path)
-            .grep(f"kind={CLUSTER_KUSTOMIZE_KIND}")
+    """Find all flux Kustomizations in the specified path."""
+    try:
+        docs = (
+            await kustomize.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}", root / relative_path)
             .grep(GREP_SOURCE_REF_KIND)
+            .objects()
         )
-    else:
-        cmd = kustomize.grep(
-            f"kind={CLUSTER_KUSTOMIZE_KIND}", root / relative_path
-        ).grep(GREP_SOURCE_REF_KIND)
-    docs = await cmd.objects()
-    results = []
-    for doc in filter(FLUXTOMIZE_DOMAIN_FILTER, docs):
-        ks = Kustomization.parse_doc(doc)
-        if not is_allowed_source(ks, sources):
-            continue
-        results.append(ks)
-    return results
+    except FluxException as err:
+        raise FluxException(
+            f"Error building Fluxtomization in '{root}' "
+            f"path '{relative_path}': {err} - {ERROR_DETAIL_BAD_PATH}"
+        )
+    kustomizations = [
+        Kustomization.parse_doc(doc) for doc in filter(FLUXTOMIZE_DOMAIN_FILTER, docs)
+    ]
+    unique = {ks.namespaced_name for ks in kustomizations}
+    if len(unique) != len(kustomizations):
+        raise FluxException(
+            "Detected multiple Fluxtomizations with the same name indicating a multi-cluster setup. Please run with a more strict path"
+        )
+    return kustomizations
 
 
 def is_allowed_source(doc: Kustomization, sources: list[Source]) -> bool:
@@ -350,18 +344,16 @@ def is_allowed_source(doc: Kustomization, sources: list[Source]) -> bool:
     return False
 
 
-def adjust_ks_path(
-    doc: Kustomization, default_path: Path, sources: list[Source]
-) -> Path | None:
+def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
     """Make adjustments to the Kustomizations path."""
     # Source path is relative to the search path. Update to have the
     # full prefix relative to the root.
     if not doc.path:
-        _LOGGER.debug("Assigning implicit path %s", default_path)
-        return default_path
+        _LOGGER.debug("Assigning implicit path %s", selector.relative_path)
+        return selector.relative_path
 
     if doc.source_kind == OCI_REPO_KIND:
-        for source in sources:
+        for source in selector.sources or []:
             if source.name == doc.source_name:
                 _LOGGER.debug(
                     "Updated Source for OCIRepository %s: %s", doc.name, doc.path
@@ -379,9 +371,7 @@ def adjust_ks_path(
     return Path(doc.path)
 
 
-async def kustomization_traversal(
-    root_path_selector: PathSelector, path_selector: PathSelector, build: bool
-) -> list[Kustomization]:
+async def kustomization_traversal(selector: PathSelector) -> list[Kustomization]:
     """Search for kustomizations in the specified path."""
 
     kustomizations: list[Kustomization] = []
@@ -389,29 +379,15 @@ async def kustomization_traversal(
     visited_ks: set[str] = set()
 
     path_queue: queue.Queue[Path] = queue.Queue()
-    path_queue.put(path_selector.relative_path)
+    path_queue.put(selector.relative_path)
     while not path_queue.empty():
         path = path_queue.get()
-        _LOGGER.debug("Visiting path (%s) %s", root_path_selector.path, path)
+        _LOGGER.debug("Visiting path (%s) %s", selector.path, path)
         with trace_context(f"Traversing Kustomization '{str(path)}'"):
-            try:
-                docs = await get_fluxtomizations(
-                    root_path_selector.root,
-                    path,
-                    build=build,
-                    sources=path_selector.sources or [],
-                )
-            except FluxException as err:
-                detail = ERROR_DETAIL_BAD_KS if visited_paths else ERROR_DETAIL_BAD_PATH
-                raise FluxException(
-                    f"Error building Fluxtomization in '{root_path_selector.root}' "
-                    f"path '{path}': {err} - {detail}"
-                )
-        unique = {ks.namespaced_name for ks in docs}
-        if len(unique) != len(docs):
-            raise FluxException(
-                "Detected multiple Fluxtomizations with the same name indicating a multi-cluster setup. Please run with a more strict path"
-            )
+            docs = await grep_fluxtomizations(selector.root, path)
+            docs = [
+                doc for doc in docs if is_allowed_source(doc, selector.sources or [])
+            ]
 
         visited_paths |= set({path})
 
@@ -429,11 +405,7 @@ async def kustomization_traversal(
                 doc.source_kind,
                 doc.source_name,
             )
-            if not (
-                doc_path := adjust_ks_path(
-                    doc, root_path_selector.relative_path, path_selector.sources or []
-                )
-            ):
+            if not (doc_path := adjust_ks_path(doc, selector)):
                 continue
             doc.path = str(doc_path)
             if doc_path not in visited_paths:
@@ -558,13 +530,7 @@ async def build_manifest(
         return Manifest(clusters=[])
 
     with trace_context(f"Traversing Cluster '{str(selector.path.path)}'"):
-        results = await kustomization_traversal(
-            selector.path,
-            PathSelector(
-                path=selector.path.relative_path, sources=selector.path.sources
-            ),
-            build=False,
-        )
+        results = await kustomization_traversal(selector.path)
         clusters = [
             Cluster(
                 path=str(selector.path.relative_path),
