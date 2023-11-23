@@ -111,17 +111,17 @@
       path: tests/testdata/cluster/infrastructure/controllers
       helm_repos: []
       helm_releases:
-      - name: weave-gitops
-        namespace: flux-system
-        chart:
-          name: weave-gitops
-          repo_name: weave-charts
-          repo_namespace: flux-system
       - name: metallb
         namespace: metallb
         chart:
           name: metallb
           repo_name: bitnami
+          repo_namespace: flux-system
+      - name: weave-gitops
+        namespace: flux-system
+        chart:
+          name: weave-gitops
+          repo_name: weave-charts
           repo_namespace: flux-system
       cluster_policies: []
   
