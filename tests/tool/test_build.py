@@ -11,6 +11,8 @@ from . import run_command
     ("args"),
     [
         (["tests/testdata/cluster/"]),
+        (["tests/testdata/cluster2/"]),
+        (["tests/testdata/cluster3/"]),
         (["tests/testdata/cluster6/"]),
         (["--enable-helm", "--skip-crds", "tests/testdata/cluster/"]),
         (
