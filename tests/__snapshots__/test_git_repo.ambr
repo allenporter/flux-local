@@ -570,31 +570,36 @@
       }),
       "Traversing Kustomization 'tests/testdata/cluster2/apps'": dict({
         'cmds': list([
-          '(tests/testdata/cluster2/apps (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster2/apps (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app'": dict({
         'cmds': list([
-          '(tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster2/apps/networking/ingress-nginx/app'": dict({
         'cmds': list([
-          '(tests/testdata/cluster2/apps/networking/ingress-nginx/app (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster2/apps/networking/ingress-nginx/app (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster2/apps/networking/ingress-nginx/certificates'": dict({
         'cmds': list([
-          '(tests/testdata/cluster2/apps/networking/ingress-nginx/certificates (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster2/apps/networking/ingress-nginx/certificates (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster2/flux'": dict({
         'cmds': list([
-          '(tests/testdata/cluster2/flux (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster2/flux (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
@@ -626,13 +631,15 @@
       }),
       "Traversing Kustomization 'tests/testdata/cluster3/namespaces/overlays/cluster3'": dict({
         'cmds': list([
-          '(tests/testdata/cluster3/namespaces/overlays/cluster3 (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster3/namespaces/overlays/cluster3 (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster3/tenants/overlays/cluster3'": dict({
         'cmds': list([
-          '(tests/testdata/cluster3/tenants/overlays/cluster3 (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster3/tenants/overlays/cluster3 (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
@@ -671,19 +678,22 @@
       }),
       "Traversing Kustomization 'tests/testdata/cluster4/apps'": dict({
         'cmds': list([
-          '(tests/testdata/cluster4/apps (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster4/apps (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster4/apps/monitoring/kubernetes-dashboard'": dict({
         'cmds': list([
-          '(tests/testdata/cluster4/apps/monitoring/kubernetes-dashboard (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster4/apps/monitoring/kubernetes-dashboard (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster4/flux'": dict({
         'cmds': list([
-          '(tests/testdata/cluster4/flux (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster4/flux (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
@@ -708,7 +718,8 @@
       }),
       "Traversing Kustomization 'tests/testdata/cluster5/clusters/prod'": dict({
         'cmds': list([
-          '(tests/testdata/cluster5/clusters/prod (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster5/clusters/prod (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
@@ -740,13 +751,15 @@
       }),
       "Traversing Kustomization 'tests/testdata/cluster6/apps'": dict({
         'cmds': list([
-          '(tests/testdata/cluster6/apps (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster6/apps (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster6/cluster'": dict({
         'cmds': list([
-          '(tests/testdata/cluster6/cluster (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster6/cluster (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
@@ -785,19 +798,22 @@
       }),
       "Traversing Kustomization 'tests/testdata/cluster7/clusters/home'": dict({
         'cmds': list([
-          '(tests/testdata/cluster7/clusters/home (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster7/clusters/home (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster7/flux/apps'": dict({
         'cmds': list([
-          '(tests/testdata/cluster7/flux/apps (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster7/flux/apps (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster7/flux/charts'": dict({
         'cmds': list([
-          '(tests/testdata/cluster7/flux/charts (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster7/flux/charts (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
@@ -843,25 +859,29 @@
       }),
       "Traversing Kustomization 'tests/testdata/cluster/apps/prod'": dict({
         'cmds': list([
-          '(tests/testdata/cluster/apps/prod (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster/apps/prod (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster/clusters/prod'": dict({
         'cmds': list([
-          '(tests/testdata/cluster/clusters/prod (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster/clusters/prod (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster/infrastructure/configs'": dict({
         'cmds': list([
-          '(tests/testdata/cluster/infrastructure/configs (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster/infrastructure/configs (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster/infrastructure/controllers'": dict({
         'cmds': list([
-          '(tests/testdata/cluster/infrastructure/controllers (abs)) kustomize cfg grep kind=Kustomization .',
+          'flux build tests/testdata/cluster/infrastructure/controllers (abs)',
+          'kustomize cfg grep kind=Kustomization',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
