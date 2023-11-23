@@ -34,7 +34,6 @@ for object in objects:
 You can apply kyverno policies to the objects with the `validate` method.
 """
 
-import aiofiles
 from aiofiles.ospath import isdir
 import logging
 from pathlib import Path
@@ -233,13 +232,6 @@ class FluxBuild(Task):
     def __str__(self) -> str:
         """Render as a debug string."""
         return f"flux build {format_path(self._path)}"
-
-
-async def yaml_load_all(path: Path) -> list[dict[str, Any]]:
-    """Load all documents from the file."""
-    async with aiofiles.open(path) as f:
-        contents = await f.read()
-        return list(yaml.load_all(contents, Loader=yaml.Loader))
 
 
 def flux_build(ks: Kustomization, path: Path) -> Kustomize:
