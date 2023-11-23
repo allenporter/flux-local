@@ -390,12 +390,9 @@ async def kustomization_traversal(selector: PathSelector) -> list[Kustomization]
             ]
 
         visited_paths |= set({path})
-
-        orig_len = len(docs)
         docs = [doc for doc in docs if doc.namespaced_name not in visited_ks]
         visited_ks |= set({doc.namespaced_name for doc in docs})
-        new_len = len(docs)
-        _LOGGER.debug("Found %s Kustomizations (%s unique)", orig_len, new_len)
+        _LOGGER.debug("Found %s new Kustomizations", len(docs))
 
         result_docs = []
         for doc in docs:
