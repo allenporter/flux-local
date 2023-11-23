@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pytest
 from syrupy.assertion import SnapshotAssertion
+import yaml
 
-from flux_local import kustomize, exceptions
+from flux_local import kustomize, exceptions, manifest
 
 TESTDATA_DIR = Path("tests/testdata")
 
@@ -119,3 +120,29 @@ async def test_target_namespace() -> None:
             "internal.config.kubernetes.io/path": "cluster-settings.yaml",
         },
     }
+
+
+async def test_flux_build_path_is_not_dir() -> None:
+    """Test case where the flux build path does not exist."""
+    cmd = kustomize.flux_build(
+        manifest.Kustomization(name="example", path="./"),
+        Path(TESTDATA_DIR) / "does-not-exist",
+    )
+    with pytest.raises(exceptions.FluxException, match="not a directory"):
+        await cmd.objects()
+
+
+async def test_flux_build() -> None:
+    """Test flux build cli."""
+    docs = list(
+        yaml.safe_load_all(
+            Path(
+                f"{TESTDATA_DIR}/cluster/clusters/prod/flux-system/gotk-sync.yaml"
+            ).read_text()
+        )
+    )
+    assert len(docs) == 2
+    ks = manifest.Kustomization.parse_doc(docs[1])
+    cmd = kustomize.flux_build(ks, Path(ks.path))
+    result = await cmd.run()
+    assert "GitRepository" in result
