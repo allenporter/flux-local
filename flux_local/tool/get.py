@@ -174,9 +174,7 @@ class GetClusterAction:
             YamlFormatter().print([manifest.compact_dict()])
             return
 
-        cols = ["name", "path", "kustomizations"]
-        if query.cluster.namespace is None:
-            cols.insert(0, "namespace")
+        cols = ["path", "kustomizations"]
         results: list[dict[str, Any]] = []
         for cluster in manifest.clusters:
             value: dict[str, Any] = cluster.dict(include=set(cols))

@@ -1,64 +1,64 @@
 # serializer version: 1
 # name: test_get_cluster[all-namespaces]
   '''
-  NAMESPACE      NAME           PATH                                      KUSTOMIZATIONS    
-  flux-system    flux-system    ./tests/testdata/cluster/clusters/prod    4                 
+  PATH                      KUSTOMIZATIONS    
+  tests/testdata/cluster    4                 
   
   '''
 # ---
 # name: test_get_cluster[cluster2]
   '''
-  NAME       PATH                       KUSTOMIZATIONS    
-  cluster    tests/testdata/cluster2    5                 
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster2    5                 
   
   '''
 # ---
 # name: test_get_cluster[cluster3-no-source]
   '''
-  NAME           PATH                                           KUSTOMIZATIONS    
-  flux-system    ./tests/testdata/cluster3/clusters/cluster3    1                 
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster3    1                 
   
   '''
 # ---
 # name: test_get_cluster[cluster3]
   '''
-  NAME       PATH                       KUSTOMIZATIONS    
-  cluster    tests/testdata/cluster3    2                 
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster3    2                 
   
   '''
 # ---
 # name: test_get_cluster[cluster4]
   '''
-  NAME       PATH                       KUSTOMIZATIONS    
-  cluster    tests/testdata/cluster4    3                 
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster4    3                 
   
   '''
 # ---
 # name: test_get_cluster[cluster5]
   '''
-  NAME           PATH                                       KUSTOMIZATIONS    
-  flux-system    ./tests/testdata/cluster5/clusters/prod    1                 
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster5    1                 
   
   '''
 # ---
 # name: test_get_cluster[cluster6]
   '''
-  NAME           PATH                                 KUSTOMIZATIONS    
-  flux-system    ./tests/testdata/cluster6/cluster    2                 
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster6    2                 
   
   '''
 # ---
 # name: test_get_cluster[cluster7]
   '''
-  NAME           PATH                                       KUSTOMIZATIONS    
-  flux-system    ./tests/testdata/cluster7/clusters/home    3                 
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster7    3                 
   
   '''
 # ---
 # name: test_get_cluster[cluster]
   '''
-  NAME           PATH                                      KUSTOMIZATIONS    
-  flux-system    ./tests/testdata/cluster/clusters/prod    4                 
+  PATH                      KUSTOMIZATIONS    
+  tests/testdata/cluster    4                 
   
   '''
 # ---
@@ -66,9 +66,7 @@
   '''
   ---
   clusters:
-  - name: flux-system
-    namespace: flux-system
-    path: ./tests/testdata/cluster/clusters/prod
+  - path: tests/testdata/cluster
     kustomizations:
     - name: apps
       namespace: flux-system

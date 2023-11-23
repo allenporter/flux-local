@@ -348,38 +348,11 @@ class Cluster(BaseManifest):
     a repo may also contain multiple (e.g. dev an prod).
     """
 
-    name: str
-    """The name of the cluster."""
-
-    namespace: str
-    """The namespace of the cluster."""
-
     path: str
     """The local git repo path to the Kustomization objects for the cluster."""
 
     kustomizations: list[Kustomization] = Field(default_factory=list)
     """A list of flux Kustomizations for the cluster."""
-
-    @classmethod
-    def parse_doc(cls, doc: dict[str, Any]) -> "Cluster":
-        """Parse a partial Kustomization from a kubernetes resource."""
-        _check_version(doc, FLUXTOMIZE_DOMAIN)
-        if not (metadata := doc.get("metadata")):
-            raise InputException(f"Invalid {cls} missing metadata: {doc}")
-        if not (name := metadata.get("name")):
-            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
-        if not (namespace := metadata.get("namespace")):
-            raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
-        if not (spec := doc.get("spec")):
-            raise InputException(f"Invalid {cls} missing spec: {doc}")
-        if not (path := spec.get("path")):
-            raise InputException(f"Invalid {cls} missing spec.path: {doc}")
-        return Cluster(name=name, namespace=namespace, path=path)
-
-    @property
-    def namespaced_name(self, sep: str = "/") -> str:
-        """Return the namespace and name concatenated as an id."""
-        return f"{self.namespace}{sep}{self.name}"
 
     @property
     def id_name(self) -> str:

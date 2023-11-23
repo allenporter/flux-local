@@ -8,13 +8,13 @@
 # name: test_diff_ks[yaml-empty-sources]
   '''
   ---
-  - cluster_path: tests/testdata/cluster/clusters/prod
+  - cluster_path: tests/testdata/cluster
     kustomization_path: tests/testdata/cluster/apps/prod
     kind: Kustomization
     namespace: flux-system
     name: apps
     diffs:
-    - cluster_path: tests/testdata/cluster/clusters/prod
+    - cluster_path: tests/testdata/cluster
       kustomization_path: tests/testdata/cluster/apps/prod
       kind: Namespace
       namespace: flux-system
@@ -32,7 +32,7 @@
         -metadata:
         -  name: podinfo
         -
-    - cluster_path: tests/testdata/cluster/clusters/prod
+    - cluster_path: tests/testdata/cluster
       kustomization_path: tests/testdata/cluster/apps/prod
       kind: ConfigMap
       namespace: podinfo
@@ -53,7 +53,7 @@
         -  name: podinfo-config
         -  namespace: podinfo
         -
-    - cluster_path: tests/testdata/cluster/clusters/prod
+    - cluster_path: tests/testdata/cluster
       kustomization_path: tests/testdata/cluster/apps/prod
       kind: HelmRelease
       namespace: podinfo
