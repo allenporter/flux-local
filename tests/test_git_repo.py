@@ -200,21 +200,15 @@ async def test_kustomization_traversal(path: str) -> None:
     ]
     paths = []
 
-    async def fetch(
-        root: Path, p: Path, build: bool, sources: list[Source]
-    ) -> list[Kustomization]:
+    async def grep(root: Path, p: Path) -> list[Kustomization]:
         nonlocal paths, results
         paths.append((str(root), str(p)))
         return results.pop(0)
 
     with patch("flux_local.git_repo.PathSelector.root", Path("/home/example")), patch(
-        "flux_local.git_repo.get_fluxtomizations", fetch
+        "flux_local.git_repo.grep_fluxtomizations", grep
     ):
-        kustomizations = await kustomization_traversal(
-            root_path_selector=PathSelector(path=Path(path)),
-            path_selector=PathSelector(path=Path(path)),
-            build=True,
-        )
+        kustomizations = await kustomization_traversal(PathSelector(path=Path(path)))
     assert len(kustomizations) == 5
     assert paths == [
         ("/home/example", "kubernetes/flux"),

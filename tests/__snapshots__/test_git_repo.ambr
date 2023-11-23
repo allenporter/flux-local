@@ -602,10 +602,6 @@
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
-      'cmds': list([
-        '(tests/testdata/cluster2 (abs)) kustomize cfg grep kind=Kustomization .',
-        "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-      ]),
     }),
   })
 # ---
@@ -644,10 +640,6 @@
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
-      'cmds': list([
-        '(tests/testdata/cluster3 (abs)) kustomize cfg grep kind=Kustomization .',
-        "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-      ]),
     }),
   })
 # ---
@@ -702,10 +694,6 @@
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
-      'cmds': list([
-        '(tests/testdata/cluster4 (abs)) kustomize cfg grep kind=Kustomization .',
-        "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-      ]),
     }),
   })
 # ---
@@ -732,10 +720,6 @@
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
-      'cmds': list([
-        '(tests/testdata/cluster5 (abs)) kustomize cfg grep kind=Kustomization .',
-        "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-      ]),
     }),
   })
 # ---
@@ -776,10 +760,6 @@
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
-      'cmds': list([
-        '(tests/testdata/cluster6 (abs)) kustomize cfg grep kind=Kustomization .',
-        "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-      ]),
     }),
   })
 # ---
@@ -834,10 +814,6 @@
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
-      'cmds': list([
-        '(tests/testdata/cluster7 (abs)) kustomize cfg grep kind=Kustomization .',
-        "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-      ]),
     }),
   })
 # ---
@@ -903,10 +879,6 @@
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
-      'cmds': list([
-        '(tests/testdata/cluster (abs)) kustomize cfg grep kind=Kustomization .',
-        "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-      ]),
     }),
   })
 # ---
