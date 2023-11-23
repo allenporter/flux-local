@@ -237,7 +237,7 @@ clusters/prod ............................................                      
 ## GitHub Action
 
 You may use `flux-local` as a github action to verify the health of the cluster on changes
-or PRs.
+or PRs. The actions expect to find the `flux` and `kustomize` binaries installed.
 
 ### test action
 
@@ -302,6 +302,8 @@ jobs:
           - helmrelease
           - kustomization
     steps:
+      - name: Setup Flux CLI
+        uses: fluxcd/flux2/action@v2
       - uses: allenporter/flux-local/action/diff@2.0.0
         id: diff
         with:
