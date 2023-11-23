@@ -205,7 +205,7 @@ class ClusterCollector(pytest.Collector):
         """The public constructor."""
         item: ClusterCollector = super().from_parent(
             parent=parent,
-            name=cluster.name,
+            name=cluster.path,
             path=Path(cluster.path),
             nodeid=str(Path(cluster.path)),
         )

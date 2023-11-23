@@ -98,9 +98,7 @@
             'path': 'tests/testdata/cluster/infrastructure/controllers',
           }),
         ]),
-        'name': 'flux-system',
-        'namespace': 'flux-system',
-        'path': './tests/testdata/cluster/clusters/prod',
+        'path': 'tests/testdata/cluster',
       }),
     ]),
   })
@@ -183,9 +181,7 @@
             'path': 'tests/testdata/cluster/infrastructure/controllers',
           }),
         ]),
-        'name': 'flux-system',
-        'namespace': 'flux-system',
-        'path': './tests/testdata/cluster/clusters/prod',
+        'path': 'tests/testdata/cluster',
       }),
     ]),
   })
@@ -289,9 +285,7 @@
             'path': 'tests/testdata/cluster/infrastructure/controllers',
           }),
         ]),
-        'name': 'flux-system',
-        'namespace': 'flux-system',
-        'path': './tests/testdata/cluster/clusters/prod',
+        'path': 'tests/testdata/cluster',
       }),
     ]),
   })
@@ -299,19 +293,19 @@
 # name: test_helm_release_visitor.1
   list([
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/apps/prod',
       'podinfo',
       'podinfo',
     ),
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/controllers',
       'flux-system',
       'weave-gitops',
     ),
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/controllers',
       'metallb',
       'metallb',
@@ -399,9 +393,7 @@
             'path': 'tests/testdata/cluster/infrastructure/controllers',
           }),
         ]),
-        'name': 'flux-system',
-        'namespace': 'flux-system',
-        'path': './tests/testdata/cluster/clusters/prod',
+        'path': 'tests/testdata/cluster',
       }),
     ]),
   })
@@ -505,9 +497,7 @@
             'path': 'tests/testdata/cluster/infrastructure/controllers',
           }),
         ]),
-        'name': 'flux-system',
-        'namespace': 'flux-system',
-        'path': './tests/testdata/cluster/clusters/prod',
+        'path': 'tests/testdata/cluster',
       }),
     ]),
   })
@@ -515,19 +505,19 @@
 # name: test_helm_repo_visitor.1
   list([
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/configs',
       'flux-system',
       'bitnami',
     ),
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/configs',
       'flux-system',
       'podinfo',
     ),
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/configs',
       'flux-system',
       'weave-charts',
@@ -732,17 +722,14 @@
       }),
       "Traversing Kustomization 'tests/testdata/cluster5'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster5 (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster5 (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster5/clusters/prod'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster5/clusters/prod (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster5/clusters/prod (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-          'kustomize build tests/testdata/cluster5/clusters/prod/flux-system (abs)',
         ]),
       }),
       'cmds': list([
@@ -771,20 +758,22 @@
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
+      "Traversing Kustomization 'tests/testdata/cluster6'": dict({
+        'cmds': list([
+          '(tests/testdata/cluster6 (abs)) kustomize cfg grep kind=Kustomization .',
+          "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
+        ]),
+      }),
       "Traversing Kustomization 'tests/testdata/cluster6/apps'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster6/apps (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster6/apps (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-          'kustomize build tests/testdata/cluster6/apps/renovate (abs)',
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster6/cluster'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster6/cluster (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster6/cluster (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-          'kustomize build tests/testdata/cluster6/cluster/flux-system (abs)',
         ]),
       }),
       'cmds': list([
@@ -821,27 +810,27 @@
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
+      "Traversing Kustomization 'tests/testdata/cluster7'": dict({
+        'cmds': list([
+          '(tests/testdata/cluster7 (abs)) kustomize cfg grep kind=Kustomization .',
+          "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
+        ]),
+      }),
       "Traversing Kustomization 'tests/testdata/cluster7/clusters/home'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster7/clusters/home (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster7/clusters/home (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-          'kustomize build tests/testdata/cluster7/clusters/home/flux-system (abs)',
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster7/flux/apps'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster7/flux/apps (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster7/flux/apps (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-          'kustomize build tests/testdata/cluster7/flux/apps/database (abs)',
-          'kustomize build tests/testdata/cluster7/flux/apps/database/postgresql (abs)',
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster7/flux/charts'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster7/flux/charts (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster7/flux/charts (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
@@ -884,32 +873,33 @@
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
+      "Traversing Kustomization 'tests/testdata/cluster'": dict({
+        'cmds': list([
+          '(tests/testdata/cluster (abs)) kustomize cfg grep kind=Kustomization .',
+          "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
+        ]),
+      }),
       "Traversing Kustomization 'tests/testdata/cluster/apps/prod'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster/apps/prod (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster/apps/prod (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster/clusters/prod'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster/clusters/prod (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster/clusters/prod (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
-          'kustomize build tests/testdata/cluster/clusters/prod/flux-system (abs)',
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster/infrastructure/configs'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster/infrastructure/configs (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster/infrastructure/configs (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
       "Traversing Kustomization 'tests/testdata/cluster/infrastructure/controllers'": dict({
         'cmds': list([
-          'kustomize build tests/testdata/cluster/infrastructure/controllers (abs)',
-          'kustomize cfg grep kind=Kustomization',
+          '(tests/testdata/cluster/infrastructure/controllers (abs)) kustomize cfg grep kind=Kustomization .',
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository'",
         ]),
       }),
@@ -926,9 +916,7 @@
       dict({
         'kustomizations': list([
         ]),
-        'name': 'flux-system',
-        'namespace': 'flux-system',
-        'path': './tests/testdata/cluster/clusters/prod',
+        'path': 'tests/testdata/cluster',
       }),
     ]),
   })
@@ -1032,9 +1020,7 @@
             'path': 'tests/testdata/cluster/infrastructure/controllers',
           }),
         ]),
-        'name': 'flux-system',
-        'namespace': 'flux-system',
-        'path': './tests/testdata/cluster/clusters/prod',
+        'path': 'tests/testdata/cluster',
       }),
     ]),
   })
@@ -1042,25 +1028,25 @@
 # name: test_kustomization_visitor.1
   list([
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/apps/prod',
       'flux-system',
       'apps',
     ),
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/clusters/prod',
       'flux-system',
       'flux-system',
     ),
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/configs',
       'flux-system',
       'infra-configs',
     ),
     tuple(
-      'tests/testdata/cluster/clusters/prod',
+      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/controllers',
       'flux-system',
       'infra-controllers',

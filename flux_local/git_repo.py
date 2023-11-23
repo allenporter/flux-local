@@ -243,13 +243,11 @@ class MetadataSelector:
     @property
     def predicate(
         self,
-    ) -> Callable[
-        [Kustomization | HelmRelease | Cluster | HelmRepository | ClusterPolicy], bool
-    ]:
+    ) -> Callable[[Kustomization | HelmRelease | HelmRepository | ClusterPolicy], bool]:
         """A predicate that selects Kustomization objects."""
 
         def predicate(
-            obj: Kustomization | HelmRelease | Cluster | HelmRepository | ClusterPolicy,
+            obj: Kustomization | HelmRelease | HelmRepository | ClusterPolicy,
         ) -> bool:
             if not self.enabled:
                 return False
@@ -472,41 +470,24 @@ async def get_clusters(
             f"Try specifying another path within the git repo?"
         )
     _LOGGER.debug("roots=%s", roots)
-    clusters = [
-        Cluster(name=ks.name, namespace=ks.namespace or "", path=ks.path)
-        for ks in roots
-        if cluster_selector.predicate(ks)
+    names = {ks.namespaced_name for ks in roots}
+    if len(names) != len(roots):
+        raise FluxException(
+            "Detected multiple Fluxtomizations with the same name indicating a multi-cluster setup. Please run with a more strict path"
+        )
+    results = await kustomization_traversal(
+        path_selector,
+        PathSelector(path=path_selector.relative_path, sources=path_selector.sources),
+        build=False,
+    )
+    return [
+        Cluster(
+            path=str(path_selector.relative_path),
+            kustomizations=[
+                ks for ks in results if kustomization_selector.predicate(ks)
+            ],
+        )
     ]
-    build = True
-    if not clusters:
-        # There are no flux-system Kustomizations within this path. Fall back to
-        # assuming everything in the current directory is part of a cluster.
-        _LOGGER.debug(
-            "No clusters found; Processing as a Kustomization: %s",
-            path_selector.relative_path,
-        )
-        clusters = [
-            Cluster(name="cluster", namespace="", path=str(path_selector.relative_path))
-        ]
-        build = False
-
-    tasks = []
-    for cluster in clusters:
-        _LOGGER.debug("Building cluster %s %s", cluster.name, cluster.path)
-        tasks.append(
-            kustomization_traversal(
-                path_selector,
-                PathSelector(path=Path(cluster.path), sources=path_selector.sources),
-                build=build,
-            )
-        )
-    finished = await asyncio.gather(*tasks)
-    for cluster, results in zip(clusters, finished):
-        cluster.kustomizations = [
-            ks for ks in results if kustomization_selector.predicate(ks)
-        ]
-    clusters.sort(key=lambda x: (x.path, x.namespace, x.name))
-    return clusters
 
 
 async def build_kustomization(

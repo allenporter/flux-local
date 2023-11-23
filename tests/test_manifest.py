@@ -102,8 +102,6 @@ async def test_serializing_manifest(tmp_path: Path) -> None:
     manifest = Manifest(
         clusters=[
             Cluster(
-                name="cluster",
-                namespace="flux-system",
                 path="./example",
                 kustomizations=[],
             )
@@ -114,8 +112,6 @@ async def test_serializing_manifest(tmp_path: Path) -> None:
     assert new_manifest.dict() == {
         "clusters": [
             {
-                "name": "cluster",
-                "namespace": "flux-system",
                 "path": "./example",
                 "kustomizations": [],
             },
