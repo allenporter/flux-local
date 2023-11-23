@@ -35,6 +35,9 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Verify Flux CLI
+      run:
+        flux --version || (echo "Could not find flux CLI, add https://fluxcd.io/flux/flux-gh-action/" && exit 1)
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
