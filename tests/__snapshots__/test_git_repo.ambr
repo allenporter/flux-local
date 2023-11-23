@@ -181,6 +181,11 @@
             'path': 'tests/testdata/cluster/infrastructure/controllers',
           }),
         ]),
+        'path': 'tests/testdata/cluster',
+      }),
+    ]),
+  })
+# ---
 # name: test_helm_release_visitor
   dict({
     'clusters': list([
