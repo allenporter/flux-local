@@ -407,6 +407,11 @@ async def kustomization_traversal(
                     f"Error building Fluxtomization in '{root_path_selector.root}' "
                     f"path '{path}': {err} - {detail}"
                 )
+        unique = {ks.namespaced_name for ks in docs}
+        if len(unique) != len(docs):
+            raise FluxException(
+                "Detected multiple Fluxtomizations with the same name indicating a multi-cluster setup. Please run with a more strict path"
+            )
 
         visited_paths |= set({path})
 
@@ -448,46 +453,6 @@ def node_name(ks: Kustomization) -> str:
     repository since we support multi-cluster.
     """
     return f"{ks.namespaced_name} @ {ks.id_name}"
-
-
-async def get_clusters(
-    path_selector: PathSelector,
-    cluster_selector: MetadataSelector,
-    kustomization_selector: MetadataSelector,
-) -> list[Cluster]:
-    """Load Cluster objects from the specified path."""
-    try:
-        roots = await get_fluxtomizations(
-            path_selector.root,
-            path_selector.relative_path,
-            build=False,
-            sources=path_selector.sources or [],
-        )
-    except FluxException as err:
-        raise FluxException(
-            f"Error building Fluxtomization in '{path_selector.root}' path "
-            f"'{path_selector.relative_path}': {err}"
-            f"Try specifying another path within the git repo?"
-        )
-    _LOGGER.debug("roots=%s", roots)
-    names = {ks.namespaced_name for ks in roots}
-    if len(names) != len(roots):
-        raise FluxException(
-            "Detected multiple Fluxtomizations with the same name indicating a multi-cluster setup. Please run with a more strict path"
-        )
-    results = await kustomization_traversal(
-        path_selector,
-        PathSelector(path=path_selector.relative_path, sources=path_selector.sources),
-        build=False,
-    )
-    return [
-        Cluster(
-            path=str(path_selector.relative_path),
-            kustomizations=[
-                ks for ks in results if kustomization_selector.predicate(ks)
-            ],
-        )
-    ]
 
 
 async def build_kustomization(
@@ -593,9 +558,21 @@ async def build_manifest(
         return Manifest(clusters=[])
 
     with trace_context(f"Traversing Cluster '{str(selector.path.path)}'"):
-        clusters = await get_clusters(
-            selector.path, selector.cluster, selector.kustomization
+        results = await kustomization_traversal(
+            selector.path,
+            PathSelector(
+                path=selector.path.relative_path, sources=selector.path.sources
+            ),
+            build=False,
         )
+        clusters = [
+            Cluster(
+                path=str(selector.path.relative_path),
+                kustomizations=[
+                    ks for ks in results if selector.kustomization.predicate(ks)
+                ],
+            )
+        ]
 
         async def update_kustomization(cluster: Cluster) -> None:
             build_tasks = []
