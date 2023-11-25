@@ -1,0 +1,20 @@
+# serializer version: 1
+# name: test_diagnostics
+  '''
+  [DIAGNOSTICS FAIL]: `example.yaml` expected dictionary but was list: ['foo']
+  
+  '''
+# ---
+# name: test_invalid_mapping[list]
+  '''
+  [DIAGNOSTICS FAIL]: `<<TEST_FILE>>` expected dictionary but was list: ['entry']
+  
+  '''
+# ---
+# name: test_invalid_mapping[scalar]
+  '''
+  [DIAGNOSTICS FAIL]: `<<TEST_FILE>>` was not a dictionary: <class 'str'>: entry
+  [DIAGNOSTICS FAIL]: `<<TEST_FILE>>` was not a dictionary: <class 'str'>: var
+  
+  '''
+# ---

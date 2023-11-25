@@ -10,6 +10,9 @@ import yaml
 
 _LOGGER = logging.getLogger(__name__)
 
+FAIL = "[DIAGNOSTICS FAIL]"
+OK = "[DIAGNOSTICS OK]"
+
 
 class DiagnosticsAction:
     """Flux-local diagnostics action."""
@@ -44,19 +47,33 @@ class DiagnosticsAction:
         """Async Action implementation."""
         path = kwargs.get("path") or "."
 
+        errors = []
         for root, dirs, files in os.walk(str(path)):
             for file in files:
                 if not (file.endswith(".yaml") or file.endswith(".yml")):
                     continue
+
                 full_path = pathlib.Path(root) / file
                 try:
                     doc = list(yaml.safe_load_all(full_path.read_text()))
                 except yaml.YAMLError as err:
-                    print(f"Filed `{full_path}` failed to parse as yaml: {err}")
+                    errors.append(f"`{full_path}` failed to parse as yaml: {err}")
+                    continue
 
                 for subdoc in doc:
                     if isinstance(subdoc, dict):
                         continue
-                    print(
-                        f"File `{full_path}` is not a yaml dictionary: {type(subdoc)}: {subdoc}"
+                    if isinstance(subdoc, list):
+                        errors.append(
+                            f"`{full_path}` expected dictionary but was list: {subdoc}"
+                        )
+                        break
+                    errors.append(
+                        f"`{full_path}` was not a dictionary: {type(subdoc)}: {subdoc}"
                     )
+
+        if errors:
+            for error in errors:
+                print(f"{FAIL}: {error}")
+        else:
+            print(OK)
