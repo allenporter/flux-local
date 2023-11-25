@@ -2,7 +2,6 @@
 
 import pathlib
 import tempfile
-from typing import Any
 
 from syrupy.assertion import SnapshotAssertion
 import yaml
@@ -18,20 +17,19 @@ async def test_diagnostics(snapshot: SnapshotAssertion) -> None:
 
 
 @pytest.mark.parametrize(
-    ("data"),
+    ("contents"),
     [
-        ([["entry"]]),
-        (["entry", "var"]),
+        (yaml.dump_all([["entry"]]).encode()),
+        (yaml.dump_all(["entry", "var"]).encode()),
+        (b"\x00\x00\x00"),
     ],
-    ids=["list", "scalar"],
+    ids=["list", "scalar", "not-yaml"],
 )
-async def test_invalid_mapping(data: Any, snapshot: SnapshotAssertion) -> None:
+async def test_invalid_mapping(contents: bytes, snapshot: SnapshotAssertion) -> None:
     """Test test get ks commands."""
     with tempfile.TemporaryDirectory() as tmp_dir:
-        contents = yaml.dump_all(data)
-
         example_file = pathlib.Path(tmp_dir) / "example.yaml"
-        example_file.write_text(contents)
+        example_file.write_bytes(contents)
 
         result = await run_command(["diagnostics", "--path", tmp_dir])
         result = result.replace(str(example_file), "<<TEST_FILE>>")

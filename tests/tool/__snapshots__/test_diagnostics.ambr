@@ -11,6 +11,13 @@
   
   '''
 # ---
+# name: test_invalid_mapping[not-yaml]
+  '''
+  [DIAGNOSTICS FAIL]: `<<TEST_FILE>>` failed to parse as yaml: unacceptable character #x0000: special characters are not allowed
+    in "<unicode string>", position 0
+  
+  '''
+# ---
 # name: test_invalid_mapping[scalar]
   '''
   [DIAGNOSTICS FAIL]: `<<TEST_FILE>>` was not a dictionary: <class 'str'>: entry
