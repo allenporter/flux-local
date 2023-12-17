@@ -2,7 +2,9 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:base"
+    "regexManagers:dockerfileVersions",
   ],
+  "timezone": "America/Los_Angeles",
   "assignees": ["allenporter"],
   "packageRules": [
     {
@@ -10,6 +12,15 @@
       "automerge": true,
       "automergeType": "branch",
       "matchUpdateTypes": ["minor", "patch"]
+    }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": [".+\\.yaml$"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+?) depName=(?<depName>[^\\s]+?)(?: (lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: registryUrl=(?<registryUrl>[^\\s]+?))?\\s.+?_version: (?<currentValue>.+?)\\s"
+      ],
+      "extractVersionTemplate": "^v?(?<version>.*)$",
     }
   ],
   "pre-commit": {
