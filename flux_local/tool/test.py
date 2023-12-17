@@ -18,6 +18,7 @@ import nest_asyncio
 import pytest
 
 from flux_local import git_repo, kustomize
+from flux_local.exceptions import FluxException
 from flux_local.helm import Helm, Options
 from flux_local.manifest import (
     Manifest,
@@ -271,6 +272,7 @@ class ManifestPlugin:
         self.manifest: Manifest | None = None
         self.test_config = test_config
         self.test_filter = test_filter
+        self.init_error: Exception | None = None
 
     def pytest_sessionstart(self, session: pytest.Session) -> None:
         nest_asyncio.apply()
@@ -279,17 +281,25 @@ class ManifestPlugin:
     async def async_pytest_sessionstart(self, session: pytest.Session) -> None:
         """Run the Kustomizations test."""
         _LOGGER.debug("async_pytest_sessionstart")
-        manifest = await git_repo.build_manifest(
-            selector=self.selector,
-            options=self.test_config.options,
-        )
+        try:
+            manifest = await git_repo.build_manifest(
+                selector=self.selector,
+                options=self.test_config.options,
+            )
+        except FluxException as err:
+            _LOGGER.error("Failed to build manifest: %s", err)
+            self.init_error = err
+            return
+
         self.manifest = manifest
         _LOGGER.debug("async_pytest_sessionstart ended")
 
     def pytest_collection(self, session: pytest.Session) -> None:
         _LOGGER.debug("pytest_collection:%s", session)
-        if not self.manifest:
-            raise ValueError("ManifestPlugin not initialized properly")
+        if self.init_error or self.manifest is None:
+            raise pytest.UsageError(
+                self.init_error or "ManifestPlugin not initialized properly"
+            ) from self.init_error
         manifest_collector = ManifestCollector.from_parent(
             parent=session,
             manifest=self.manifest,
