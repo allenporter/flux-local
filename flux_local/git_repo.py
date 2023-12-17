@@ -345,7 +345,10 @@ def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
         )
         return None
 
-    return Path(doc.path)
+    path = Path(doc.path)
+    if path.is_absolute():
+        return path.relative_to("/")
+    return path
 
 
 async def kustomization_traversal(selector: PathSelector) -> list[Kustomization]:
