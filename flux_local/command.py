@@ -96,7 +96,7 @@ class Command(Task):
                 errors.append(out.decode("utf-8"))
             if err:
                 errors.append(err.decode("utf-8"))
-            _LOGGER.error("\n".join(errors))
+            _LOGGER.debug("\n".join(errors))
             raise self.exc("\n".join(errors))
         return out
 

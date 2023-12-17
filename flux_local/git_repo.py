@@ -43,7 +43,7 @@ from typing import Any, Generator
 import git
 
 from . import kustomize
-from .exceptions import FluxException
+from .exceptions import FluxException, KustomizePathException
 from .manifest import (
     CRD_KIND,
     FLUXTOMIZE_DOMAIN,
@@ -370,19 +370,22 @@ async def kustomization_traversal(selector: PathSelector) -> list[Kustomization]
                 cmd = kustomize.flux_build(visit_ks, selector.root / path).grep(
                     f"kind={CLUSTER_KUSTOMIZE_KIND}"
                 )
+            cmd = cmd.grep(GREP_SOURCE_REF_KIND)
 
             try:
-                docs = await cmd.grep(GREP_SOURCE_REF_KIND).objects()
+                docs = await cmd.objects()
+            except KustomizePathException as err:
+                raise FluxException(err) from err
             except FluxException as err:
                 if visit_ks is None:
                     raise FluxException(
                         f"Error building Fluxtomization in '{selector.root}' "
-                        f"path '{path}': {err} - {ERROR_DETAIL_BAD_PATH}"
-                    )
+                        f"path '{path}': {ERROR_DETAIL_BAD_PATH} {err}"
+                    ) from err
                 raise FluxException(
-                    f"Error building Fluxtomization '{visit_ks.name}' "
-                    f"path '{path}': {err} - {ERROR_DETAIL_BAD_PATH}"
-                )
+                    f"Error building Fluxtomization '{visit_ks.namespaced_name}' "
+                    f"path '{path}': {ERROR_DETAIL_BAD_KS} {err}"
+                ) from err
 
         kustomizations = list(
             filter(

@@ -23,6 +23,10 @@ class KustomizeException(CommandException):
     """Raised when there is a failure running a kustomize command."""
 
 
+class KustomizePathException(CommandException):
+    """Raised a Kustomization points to a path that does not exist."""
+
+
 class HelmException(CommandException):
     """Raised when there is a failure running a helm command."""
 

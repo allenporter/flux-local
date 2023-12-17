@@ -48,6 +48,7 @@ from .exceptions import (
     InputException,
     KustomizeException,
     KyvernoException,
+    KustomizePathException,
 )
 from .manifest import Kustomization
 
@@ -201,7 +202,9 @@ class FluxBuild(Task):
         if stdin is not None:
             raise InputException("Invalid stdin cannot be passed to build command")
         if not await isdir(self._path):
-            raise InputException(f"Specified path is not a directory: {self._path}")
+            raise KustomizePathException(
+                f"Kustomization '{self._ks.namespaced_name}' path field '{self._ks.path or ''}' is not a directory: {self._path}"
+            )
 
         args = [
             FLUX_BIN,
