@@ -138,11 +138,8 @@ class KustomizationTest(pytest.Item):
 
     async def async_runtest(self) -> None:
         """Run the Kustomizations test."""
-        kustomize_flags = []
-        if self.test_config.options:
-            kustomize_flags = self.test_config.options.kustomize_flags
-        cmd = await kustomize.build(
-            Path(self.kustomization.path), kustomize_flags
+        cmd = await kustomize.flux_build(
+            self.kustomization, Path(self.kustomization.path)
         ).stash()
         await cmd.objects()
         await cmd.validate_policies(self.cluster.cluster_policies)

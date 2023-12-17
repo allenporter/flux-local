@@ -305,43 +305,20 @@ class ResourceSelector:
     """ClusterPolicy objects to return."""
 
 
-async def grep_fluxtomizations(
-    root: Path,
-    relative_path: Path,
-) -> list[Kustomization]:
-    """Find all flux Kustomizations in the specified path."""
-    try:
-        docs = (
-            await kustomize.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}", root / relative_path)
-            .grep(GREP_SOURCE_REF_KIND)
-            .objects()
-        )
-    except FluxException as err:
-        raise FluxException(
-            f"Error building Fluxtomization in '{root}' "
-            f"path '{relative_path}': {err} - {ERROR_DETAIL_BAD_PATH}"
-        )
-    kustomizations = [
-        Kustomization.parse_doc(doc) for doc in filter(FLUXTOMIZE_DOMAIN_FILTER, docs)
-    ]
-    unique = {ks.namespaced_name for ks in kustomizations}
-    if len(unique) != len(kustomizations):
-        raise FluxException(
-            "Detected multiple Fluxtomizations with the same name indicating a multi-cluster setup. Please run with a more strict path"
-        )
-    return kustomizations
-
-
-def is_allowed_source(doc: Kustomization, sources: list[Source]) -> bool:
+def is_allowed_source(sources: list[Source]) -> Callable[[Kustomization], bool]:
     """Return true if this Kustomization is from an allowed source."""
-    if not sources:
-        return True
-    for source in sources:
-        if source.name == doc.source_name and (
-            source.namespace is None or source.namespace == doc.source_namespace
-        ):
+
+    def _filter(doc: Kustomization) -> bool:
+        if not sources:
             return True
-    return False
+        for source in sources:
+            if source.name == doc.source_name and (
+                source.namespace is None or source.namespace == doc.source_namespace
+            ):
+                return True
+        return False
+
+    return _filter
 
 
 def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
@@ -374,48 +351,80 @@ def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
 async def kustomization_traversal(selector: PathSelector) -> list[Kustomization]:
     """Search for kustomizations in the specified path."""
 
-    kustomizations: list[Kustomization] = []
+    response_kustomizations: list[Kustomization] = []
     visited_paths: set[Path] = set()  # Relative paths within the cluster
     visited_ks: set[str] = set()
 
-    path_queue: queue.Queue[Path] = queue.Queue()
-    path_queue.put(selector.relative_path)
+    path_queue: queue.Queue[tuple[Path, Kustomization | None]] = queue.Queue()
+    path_queue.put((selector.relative_path, None))
     while not path_queue.empty():
-        path = path_queue.get()
+        (path, visit_ks) = path_queue.get()
         _LOGGER.debug("Visiting path (%s) %s", selector.path, path)
         with trace_context(f"Traversing Kustomization '{str(path)}'"):
-            docs = await grep_fluxtomizations(selector.root, path)
-            docs = [
-                doc for doc in docs if is_allowed_source(doc, selector.sources or [])
-            ]
+            cmd: kustomize.Kustomize
+            if visit_ks is None:
+                cmd = kustomize.grep(
+                    f"kind={CLUSTER_KUSTOMIZE_KIND}", selector.root / path
+                )
+            else:
+                cmd = kustomize.flux_build(visit_ks, selector.root / path).grep(
+                    f"kind={CLUSTER_KUSTOMIZE_KIND}"
+                )
+
+            try:
+                docs = await cmd.grep(GREP_SOURCE_REF_KIND).objects()
+            except FluxException as err:
+                if visit_ks is None:
+                    raise FluxException(
+                        f"Error building Fluxtomization in '{selector.root}' "
+                        f"path '{path}': {err} - {ERROR_DETAIL_BAD_PATH}"
+                    )
+                raise FluxException(
+                    f"Error building Fluxtomization '{visit_ks.name}' "
+                    f"path '{path}': {err} - {ERROR_DETAIL_BAD_PATH}"
+                )
+
+        kustomizations = list(
+            filter(
+                is_allowed_source(selector.sources or []),
+                [
+                    Kustomization.parse_doc(doc)
+                    for doc in filter(FLUXTOMIZE_DOMAIN_FILTER, docs)
+                ],
+            )
+        )
+
+        unique = {ks.namespaced_name for ks in kustomizations}
+        if len(unique) != len(kustomizations):
+            raise FluxException(
+                "Detected multiple Fluxtomizations with the same name indicating a multi-cluster setup. Please run with a more strict path"
+            )
 
         visited_paths |= set({path})
+        kustomizations = [
+            ks for ks in kustomizations if ks.namespaced_name not in visited_ks
+        ]
+        visited_ks |= set({ks.namespaced_name for ks in kustomizations})
+        _LOGGER.debug("Found %s new Kustomizations", len(kustomizations))
 
-        orig_len = len(docs)
-        docs = [doc for doc in docs if doc.namespaced_name not in visited_ks]
-        visited_ks |= set({doc.namespaced_name for doc in docs})
-        new_len = len(docs)
-        _LOGGER.debug("Found %s Kustomizations (%s unique)", orig_len, new_len)
-
-        result_docs = []
-        for doc in docs:
+        for ks in kustomizations:
             _LOGGER.debug(
                 "Kustomization '%s' sourceRef.kind '%s' of '%s'",
-                doc.name,
-                doc.source_kind,
-                doc.source_name,
+                ks.name,
+                ks.source_kind,
+                ks.source_name,
             )
-            if not (doc_path := adjust_ks_path(doc, selector)):
+            if not (ks_path := adjust_ks_path(ks, selector)):
                 continue
-            doc.path = str(doc_path)
-            if doc_path not in visited_paths:
-                path_queue.put(doc_path)
+            ks.path = str(ks_path)
+            if ks_path not in visited_paths:
+                path_queue.put((ks_path, ks))
             else:
-                _LOGGER.debug("Already visited %s", doc_path)
-            result_docs.append(doc)
-        kustomizations.extend(result_docs)
-    kustomizations.sort(key=lambda x: (x.namespace, x.name))
-    return kustomizations
+                _LOGGER.debug("Already visited %s", ks_path)
+            response_kustomizations.append(ks)
+
+    response_kustomizations.sort(key=lambda x: (x.namespace, x.name))
+    return response_kustomizations
 
 
 def node_name(ks: Kustomization) -> str:
@@ -447,7 +456,7 @@ async def build_kustomization(
         return ([], [], [])
 
     with trace_context(f"Build Kustomization '{kustomization.namespaced_name}'"):
-        cmd = kustomize.build(root / kustomization.path, kustomize_flags)
+        cmd = kustomize.flux_build(kustomization, root / kustomization.path)
         skips = []
         if kustomization_selector.skip_crds:
             skips.append(CRD_KIND)

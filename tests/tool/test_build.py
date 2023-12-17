@@ -11,6 +11,8 @@ from . import run_command
     ("args"),
     [
         (["tests/testdata/cluster/"]),
+        (["tests/testdata/cluster2/"]),
+        (["tests/testdata/cluster3/"]),
         (["tests/testdata/cluster6/"]),
         (["--enable-helm", "--skip-crds", "tests/testdata/cluster/"]),
         (
@@ -23,7 +25,14 @@ from . import run_command
             ]
         ),
     ],
-    ids=["build", "build-cluster6", "build-helm-cluster", "build-helm-cluster6"],
+    ids=[
+        "build",
+        "build-cluster2",
+        "build-cluster3",
+        "build-cluster6",
+        "build-helm-cluster",
+        "build-helm-cluster6",
+    ],
 )
 async def test_build(args: list[str], snapshot: SnapshotAssertion) -> None:
     """Test build commands."""

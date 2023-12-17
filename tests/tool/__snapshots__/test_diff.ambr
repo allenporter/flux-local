@@ -5,7 +5,7 @@
   
   +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps ConfigMap: podinfo/podinfo-config
   
-  @@ -1,9 +0,0 @@
+  @@ -1,12 +0,0 @@
   
   ----
   -apiVersion: v1
@@ -13,6 +13,9 @@
   -  foo: bar
   -kind: ConfigMap
   -metadata:
+  -  labels:
+  -    kustomize.toolkit.fluxcd.io/name: apps
+  -    kustomize.toolkit.fluxcd.io/namespace: flux-system
   -  name: podinfo-config
   -  namespace: podinfo
   -
