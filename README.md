@@ -250,6 +250,8 @@ This example will run `flux-local test` against the cluster in `clusters/prod` w
 helm release expansion enabled.
 
 ```yaml
+- name: Setup Flux CLI
+  uses: fluxcd/flux2/action@v2
 - uses: allenporter/flux-local/test@2.0.0
   with:
     path: clusters/prod
@@ -267,6 +269,8 @@ clusters showing you the final output.
 This is an example that diffs a `HelmRelease`:
 
 ```yaml
+- name: Setup Flux CLI
+  uses: fluxcd/flux2/action@v2
 - uses: allenporter/flux-local/action/diff@2.0.0
   id: diff
   with:
