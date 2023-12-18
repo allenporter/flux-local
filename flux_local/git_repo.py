@@ -363,7 +363,8 @@ async def kustomization_traversal(selector: PathSelector) -> list[Kustomization]
     while not path_queue.empty():
         (path, visit_ks) = path_queue.get()
         _LOGGER.debug("Visiting path (%s) %s", selector.path, path)
-        with trace_context(f"Traversing Kustomization '{str(path)}'"):
+        label = visit_ks.namespaced_name if visit_ks else str(path)
+        with trace_context(f"Kustomization '{label}'"):
             cmd: kustomize.Kustomize
             if visit_ks is None:
                 cmd = kustomize.grep(
@@ -461,7 +462,7 @@ async def build_kustomization(
     ):
         return ([], [], [])
 
-    with trace_context(f"Build Kustomization '{kustomization.namespaced_name}'"):
+    with trace_context(f"Build '{kustomization.namespaced_name}'"):
         cmd = kustomize.flux_build(kustomization, root / kustomization.path)
         skips = []
         if kustomization_selector.skip_crds:
@@ -544,7 +545,7 @@ async def build_manifest(
     if not selector.cluster.enabled:
         return Manifest(clusters=[])
 
-    with trace_context(f"Traversing Cluster '{str(selector.path.path)}'"):
+    with trace_context(f"Cluster '{str(selector.path.path)}'"):
         results = await kustomization_traversal(selector.path)
         clusters = [
             Cluster(
