@@ -41,7 +41,7 @@ RUN mkdir -p /src && \
 RUN kyverno version
 
 # renovate: datasource=github-releases depName=fluxcd/flux2 extractVersion=^v(?<version>.+)$
-ARG FLUX_CLI_VERSION=2.1.2
+ARG FLUX_CLI_VERSION=2.2.1
 RUN mkdir -p /src && \
     cd /src && \
     curl -OL https://github.com/fluxcd/flux2/releases/download/v${FLUX_CLI_VERSION}/flux_${FLUX_CLI_VERSION}_linux_amd64.tar.gz && \

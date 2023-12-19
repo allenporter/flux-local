@@ -30,7 +30,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Setup Flux CLI
-      uses: fluxcd/flux2/action@v2.1.2
+      uses: fluxcd/flux2/action@v2.2.1
     - uses: ./action/diff
       id: diff
       with:
