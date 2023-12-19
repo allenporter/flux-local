@@ -30,7 +30,7 @@ RUN mkdir -p /src && \
 RUN helm version
 
 # renovate: datasource=github-releases depName=kyverno/kyverno
-ARG KYVERNO_VERSION=v1.10.0
+ARG KYVERNO_VERSION=v1.11.1
 RUN mkdir -p /src && \
     cd /src && \
     curl -OL https://github.com/kyverno/kyverno/releases/download/${KYVERNO_VERSION}/kyverno-cli_${KYVERNO_VERSION}_linux_x86_64.tar.gz && \
