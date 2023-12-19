@@ -20,7 +20,7 @@ RUN cd /usr/local/bin/ && \
 RUN kustomize version
 
 # renovate: datasource=github-releases depName=helm/helm
-ARG HELM_CLI_VERSION=v3.12.1
+ARG HELM_CLI_VERSION=v3.13.3
 RUN mkdir -p /src && \
     cd /src && \
     curl -OL https://get.helm.sh/helm-${HELM_CLI_VERSION}-linux-amd64.tar.gz && \
