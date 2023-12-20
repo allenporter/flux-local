@@ -46,7 +46,7 @@ runs:
         cache: pip
     - name: Install flux-local and requirements
       run: |
-        pip install -r ${{ github.action_path }}/requirements.txt
+        pip install -r ${{ github.action_path }}/../../requirements.txt
         pip install -e ${{ github.action_path }}/../../
       shell: bash
     - uses: supplypike/setup-bin@v3
