@@ -529,35 +529,30 @@
     "Cluster 'tests/testdata/cluster2'": dict({
       "Build 'flux-system/cluster'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster2/flux (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster2/apps (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-ingress-nginx'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster2/apps/networking/ingress-nginx/app (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-ingress-nginx-certificates'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster2/apps/networking/ingress-nginx/certificates (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
@@ -611,14 +606,12 @@
     "Cluster 'tests/testdata/cluster3'": dict({
       "Build 'flux-system/namespaces'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster3/namespaces/overlays/cluster3 (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/tenants'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster3/tenants/overlays/cluster3 (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
@@ -651,21 +644,18 @@
     "Cluster 'tests/testdata/cluster4'": dict({
       "Build 'flux-system/cluster'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster4/flux (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster4/apps (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster4/apps/monitoring/kubernetes-dashboard (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
@@ -705,7 +695,6 @@
     "Cluster 'tests/testdata/cluster5'": dict({
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster5/clusters/prod (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
@@ -731,14 +720,12 @@
     "Cluster 'tests/testdata/cluster6'": dict({
       "Build 'flux-system/apps'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster6/apps (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster6/cluster (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
@@ -771,21 +758,18 @@
     "Cluster 'tests/testdata/cluster7'": dict({
       "Build 'flux-system/apps'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster7/flux/apps (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/charts'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster7/flux/charts (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster7/clusters/home (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
@@ -825,28 +809,24 @@
     "Cluster 'tests/testdata/cluster'": dict({
       "Build 'flux-system/apps'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster/apps/prod (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster/clusters/prod (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/infra-configs'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster/infrastructure/configs (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/infra-controllers'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster/infrastructure/controllers (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
         ]),
