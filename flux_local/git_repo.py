@@ -32,7 +32,6 @@ import asyncio
 import contextlib
 from dataclasses import dataclass, field
 import logging
-from functools import lru_cache
 import os
 import tempfile
 from collections.abc import Callable, Awaitable, Iterable
@@ -439,7 +438,7 @@ async def kustomization_traversal(selector: PathSelector, builder: CachableBuild
             (path, visit_ks) = path_queue.get()
 
             if path in visited_paths:
-                _LOGGER.debug("Already visited %s", ks_path)
+                _LOGGER.debug("Already visited %s", path)
                 continue
             visited_paths.add(path)
     
