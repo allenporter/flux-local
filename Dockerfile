@@ -53,5 +53,6 @@ RUN flux version --client
 COPY . /src/
 WORKDIR /src/
 RUN pip3 install -r /src/requirements.txt
+RUN pip3 install -e /src/
 
 SHELL ["/bin/bash", "-c"]

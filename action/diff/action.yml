@@ -58,9 +58,10 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
-    - name: Install flux-local
+        cache: pip
+    - name: Install flux-local and requirements
       run: |
-        python -m pip install --upgrade pip
+        pip install -r ${{ github.action_path }}/../../requirements.txt
         pip install -e ${{ github.action_path }}/../../
       shell: bash
     - name: Checkout PR branch
