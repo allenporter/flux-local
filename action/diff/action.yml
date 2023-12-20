@@ -59,13 +59,10 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache: pip
-    - name: Install requirements
+    - name: Install flux-local and requirements
       run: |
-        pip install -r requirements.txt
-      shell: bash
-    - name: Install flux-local
-      run: |
-        pip install -e .
+        pip install -r ${{ github.action_path }}/requirements.txt
+        pip install -e ${{ github.action_path }}/../../
       shell: bash
     - name: Checkout PR branch
       uses: actions/checkout@v4
