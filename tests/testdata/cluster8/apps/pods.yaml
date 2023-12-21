@@ -17,3 +17,15 @@ spec:
           name: task-pv-storage
       command: ["/bin/sh"]
       args: ["-c", "sleep 500000"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sleep
+  namespace: home
+spec:
+  initContainers:
+    - name: sleep
+      image: busybox
+      command: ["/bin/sh"]
+      args: ["-c", "sleep 500000"]

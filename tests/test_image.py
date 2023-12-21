@@ -18,7 +18,7 @@ CWD = Path.cwd()
     [
         (
             CWD / "tests/testdata/cluster8",
-            {"flux-system/apps": {"alpine"}},
+            {"flux-system/apps": {"alpine", "busybox"}},
         ),
         (
             CWD / "tests/testdata/cluster7",
