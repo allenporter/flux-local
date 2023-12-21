@@ -57,7 +57,7 @@ class BaseManifest(BaseModel):
 
     _COMPACT_EXCLUDE_FIELDS: dict[str, Any] = {}
 
-    def compact_dict(self, exclude: dict[str, Any] | None = None, include: dict[str, Any] | None = None) -> dict[str, Any]:
+    def compact_dict(self, exclude: dict[str, Any] | None = None) -> dict[str, Any]:
         """Return a compact dictionary representation of the object.
 
         This is similar to `dict()` but with a specific implementation for serializing
@@ -143,6 +143,9 @@ class HelmRelease(BaseManifest):
     values: Optional[dict[str, Any]] = None
     """The values to install in the chart."""
 
+    images: list[str] = Field(default_factory=list)
+    """The list of images referenced in the HelmRelease."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "HelmRelease":
         """Parse a HelmRelease from a kubernetes resource object."""
@@ -170,6 +173,11 @@ class HelmRelease(BaseManifest):
     def repo_name(self) -> str:
         """Identifier for the HelmRepository identified in the HelmChart."""
         return f"{self.chart.repo_namespace}-{self.chart.repo_name}"
+
+    @property
+    def namespaced_name(self) -> str:
+        """Return the namespace and name concatenated as an id."""
+        return f"{self.namespace}/{self.name}"
 
     _COMPACT_EXCLUDE_FIELDS = {
         "values": True,
@@ -329,9 +337,9 @@ class Kustomization(BaseManifest):
         return f"{self.path}"
 
     @property
-    def namespaced_name(self, sep: str = "/") -> str:
+    def namespaced_name(self) -> str:
         """Return the namespace and name concatenated as an id."""
-        return f"{self.namespace}{sep}{self.name}"
+        return f"{self.namespace}/{self.name}"
 
     _COMPACT_EXCLUDE_FIELDS = {
         "helm_releases": {

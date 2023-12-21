@@ -62,28 +62,79 @@
   
   '''
 # ---
-# name: test_get_cluster[yaml-cluster8-images]
+# name: test_get_cluster[yaml-cluster-images]
   '''
   ---
   clusters:
-  - path: tests/testdata/cluster8
+  - path: tests/testdata/cluster
     kustomizations:
     - name: apps
       namespace: flux-system
-      path: tests/testdata/cluster8/apps
+      path: tests/testdata/cluster/apps/prod
       helm_repos: []
-      helm_releases: []
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.3.2
+        - public.ecr.aws/docker/library/redis:7.0.6
       cluster_policies: []
     - name: flux-system
       namespace: flux-system
-      path: tests/testdata/cluster8/cluster
+      path: tests/testdata/cluster/clusters/prod
       helm_repos: []
       helm_releases: []
+      cluster_policies: []
+    - name: infra-configs
+      namespace: flux-system
+      path: tests/testdata/cluster/infrastructure/configs
+      helm_repos:
+      - name: bitnami
+        namespace: flux-system
+        url: https://charts.bitnami.com/bitnami
+        repo_type: default
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      - name: weave-charts
+        namespace: flux-system
+        url: oci://ghcr.io/weaveworks/charts
+        repo_type: oci
+      helm_releases: []
+      cluster_policies:
+      - name: test-allow-policy
+    - name: infra-controllers
+      namespace: flux-system
+      path: tests/testdata/cluster/infrastructure/controllers
+      helm_repos: []
+      helm_releases:
+      - name: metallb
+        namespace: metallb
+        chart:
+          name: metallb
+          repo_name: bitnami
+          repo_namespace: flux-system
+        images:
+        - docker.io/bitnami/metallb-speaker:0.13.7-debian-11-r28
+        - docker.io/bitnami/metallb-controller:0.13.7-debian-11-r29
+      - name: weave-gitops
+        namespace: flux-system
+        chart:
+          name: weave-gitops
+          repo_name: weave-charts
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/weaveworks/wego-app:v0.24.0
       cluster_policies: []
   
   '''
 # ---
-# name: test_get_cluster[yaml]
+# name: test_get_cluster[yaml-cluster-no-images]
   '''
   ---
   clusters:
@@ -143,6 +194,51 @@
           name: weave-gitops
           repo_name: weave-charts
           repo_namespace: flux-system
+      cluster_policies: []
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster8-images]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster8
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster8/apps
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+      images:
+      - busybox
+      - alpine
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster8/cluster
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster8-no-images]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster8
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster8/apps
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster8/cluster
+      helm_repos: []
+      helm_releases: []
       cluster_policies: []
   
   '''
