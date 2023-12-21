@@ -353,12 +353,14 @@ def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
 
 class CachableBuilder:
     """Wrappwr around flux_build that caches contents."""
-    
+
     def __init__(self) -> None:
         """Initialize CachableBuilder."""
         self._cache: dict[str, kustomize.Kustomize] = {}
 
-    async def build(self, kustomization: Kustomization, path: Path) -> kustomize.Kustomize:
+    async def build(
+        self, kustomization: Kustomization, path: Path
+    ) -> kustomize.Kustomize:
         key = f"{kustomization.namespaced_name} @ {path}"
         if cmd := self._cache.get(key):
             return cmd
@@ -367,11 +369,12 @@ class CachableBuilder:
         self._cache[key] = cmd
         return cmd
 
+
 async def visit_kustomization(
     selector: PathSelector,
     builder: CachableBuilder,
     path: Path,
-    visit_ks: Kustomization | None
+    visit_ks: Kustomization | None,
 ) -> list[Kustomization]:
     """Visit a path and return a list of Kustomizations."""
 
@@ -380,14 +383,10 @@ async def visit_kustomization(
     with trace_context(f"Kustomization '{label}'"):
         cmd: kustomize.Kustomize
         if visit_ks is None:
-            cmd = kustomize.grep(
-                f"kind={CLUSTER_KUSTOMIZE_KIND}", selector.root / path
-            )
+            cmd = kustomize.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}", selector.root / path)
         else:
             cmd = await builder.build(visit_ks, selector.root / path)
-            cmd = cmd.grep(
-                f"kind={CLUSTER_KUSTOMIZE_KIND}"
-            )
+            cmd = cmd.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}")
         cmd = cmd.grep(GREP_SOURCE_REF_KIND)
 
         try:
@@ -421,7 +420,9 @@ async def visit_kustomization(
     return kustomizations
 
 
-async def kustomization_traversal(selector: PathSelector, builder: CachableBuilder) -> list[Kustomization]:
+async def kustomization_traversal(
+    selector: PathSelector, builder: CachableBuilder
+) -> list[Kustomization]:
     """Search for kustomizations in the specified path."""
 
     response_kustomizations: list[Kustomization] = []
@@ -431,7 +432,6 @@ async def kustomization_traversal(selector: PathSelector, builder: CachableBuild
     path_queue: queue.Queue[tuple[Path, Kustomization | None]] = queue.Queue()
     path_queue.put((selector.relative_path, None))
     while not path_queue.empty():
-
         # Fully empty the queue, running all tasks in parallel
         tasks = []
         while not path_queue.empty():
@@ -441,7 +441,7 @@ async def kustomization_traversal(selector: PathSelector, builder: CachableBuild
                 _LOGGER.debug("Already visited %s", path)
                 continue
             visited_paths.add(path)
-    
+
             tasks.append(visit_kustomization(selector, builder, path, visit_ks))
 
         # Find new kustomizations

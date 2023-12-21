@@ -16,7 +16,7 @@ from flux_local.git_repo import (
     Source,
     PathSelector,
     is_allowed_source,
-    adjust_ks_path
+    adjust_ks_path,
 )
 from flux_local.kustomize import Kustomize, Stash
 from flux_local.command import Task, run_piped
@@ -25,6 +25,7 @@ from flux_local.context import trace
 
 TESTDATA = Path("tests/testdata/cluster")
 TESTDATA_FULL_PATH = Path.cwd() / TESTDATA
+
 
 async def test_build_manifest(snapshot: SnapshotAssertion) -> None:
     """Tests for building the manifest."""
@@ -268,8 +269,8 @@ async def test_internal_commands(
         ("kubernetes/apps/example", "kubernetes/apps/example"),
         ("./kubernetes/apps/example", "kubernetes/apps/example"),
         ("/kubernetes/apps/example", "kubernetes/apps/example"),
-        ("", str(TESTDATA))
-    ]
+        ("", str(TESTDATA)),
+    ],
 )
 def test_adjust_ks_path(path: str, expected_path: str) -> None:
     """Test adjusting the Kustomization path relative directory."""
