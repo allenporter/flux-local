@@ -4,6 +4,6 @@
 	"name": "Kubernetes - Local Configuration",
 	"build": {
 		"context": "..",
-		"dockerfile": "../Dockerfile"
+		"dockerfile": "./Dockerfile"
 	}
 }
