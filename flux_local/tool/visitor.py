@@ -153,6 +153,7 @@ def strip_attrs(metadata: dict[str, Any], strip_attributes: list[str]) -> None:
                 del metadata[attr_key]
                 break
 
+
 class ImageOutput(ResourceOutput):
     """Resource visitor that builds outputs for objects within the kustomization."""
 
@@ -171,22 +172,22 @@ class ImageOutput(ResourceOutput):
         cmd: Kustomize | None,
     ) -> None:
         """Visitor function invoked to build and record resource objects."""
-        if cmd:
+        if cmd and isinstance(doc, HelmRelease):
             objects = await cmd.objects()
-            name = doc.namespaced_name
             for obj in objects:
                 if obj.get("kind") in self.repo_visitor.kinds:
-                    #_LOGGER.debug("Looking for image  %s", doc)
+                    # _LOGGER.debug("Looking for image  %s", doc)
                     self.repo_visitor.func(doc.namespaced_name, obj)
-
 
     def update_manifest(self, manifest: Manifest) -> None:
         """Update the manifest with the images found in the repo."""
-        #_LOGGER.debug(self.image_visitor.images)
+        # _LOGGER.debug(self.image_visitor.images)
         for cluster in manifest.clusters:
             for kustomization in cluster.kustomizations:
                 for helm_release in kustomization.helm_releases:
-                    if images := self.image_visitor.images.get(f"{helm_release.namespace}/{helm_release.name}"):
+                    if images := self.image_visitor.images.get(
+                        f"{helm_release.namespace}/{helm_release.name}"
+                    ):
                         helm_release.images = list(images)
 
 

@@ -1,18 +1,21 @@
 """Flux-local get action."""
 
 import logging
-from argparse import ArgumentParser, BooleanOptionalAction, _SubParsersAction as SubParsersAction
+from argparse import (
+    ArgumentParser,
+    BooleanOptionalAction,
+    _SubParsersAction as SubParsersAction,
+)
 from typing import cast, Any
 import sys
 import pathlib
 import tempfile
-import yaml
 
 from flux_local import git_repo, image, helm
 
 from .format import PrintFormatter, YamlFormatter
 from . import selector
-from .visitor import HelmVisitor, ObjectOutput, ImageOutput
+from .visitor import HelmVisitor, ImageOutput
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -207,7 +210,9 @@ class GetClusterAction:
             if helm_content:
                 with tempfile.TemporaryDirectory() as helm_cache_dir:
                     await helm_visitor.inflate(
-                        pathlib.Path(helm_cache_dir), helm_content.visitor(), helm.Options(),
+                        pathlib.Path(helm_cache_dir),
+                        helm_content.visitor(),
+                        helm.Options(),
                     )
                     helm_content.update_manifest(manifest)
 
