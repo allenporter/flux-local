@@ -59,6 +59,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache: pip
+        cache-dependency-path: ${{ github.action_path }}/../../requirements.txt
     - name: Install flux-local and requirements
       run: |
         pip install -r ${{ github.action_path }}/../../requirements.txt
