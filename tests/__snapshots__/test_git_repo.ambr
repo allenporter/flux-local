@@ -20,8 +20,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
@@ -33,8 +31,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
@@ -43,7 +39,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -67,8 +62,6 @@
                 'repo_type': 'oci',
                 'url': 'oci://ghcr.io/weaveworks/charts',
               }),
-            ]),
-            'images': list([
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
@@ -99,8 +92,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/controllers',
@@ -129,8 +120,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
@@ -142,8 +131,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
@@ -152,7 +139,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -177,8 +163,6 @@
                 'url': 'oci://ghcr.io/weaveworks/charts',
               }),
             ]),
-            'images': list([
-            ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/configs',
@@ -189,8 +173,6 @@
             'helm_releases': list([
             ]),
             'helm_repos': list([
-            ]),
-            'images': list([
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
@@ -223,8 +205,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
@@ -236,8 +216,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
@@ -246,7 +224,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -270,8 +247,6 @@
                 'repo_type': 'oci',
                 'url': 'oci://ghcr.io/weaveworks/charts',
               }),
-            ]),
-            'images': list([
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
@@ -301,8 +276,6 @@
               }),
             ]),
             'helm_repos': list([
-            ]),
-            'images': list([
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
@@ -357,8 +330,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
@@ -370,8 +341,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
@@ -380,14 +349,11 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
-            ]),
-            'images': list([
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
@@ -417,8 +383,6 @@
               }),
             ]),
             'helm_repos': list([
-            ]),
-            'images': list([
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
@@ -451,8 +415,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
@@ -464,8 +426,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
@@ -474,7 +434,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -498,8 +457,6 @@
                 'repo_type': 'oci',
                 'url': 'oci://ghcr.io/weaveworks/charts',
               }),
-            ]),
-            'images': list([
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
@@ -529,8 +486,6 @@
               }),
             ]),
             'helm_repos': list([
-            ]),
-            'images': list([
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
@@ -940,8 +895,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
@@ -953,8 +906,6 @@
             ]),
             'helm_repos': list([
             ]),
-            'images': list([
-            ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
@@ -963,7 +914,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -987,8 +937,6 @@
                 'repo_type': 'oci',
                 'url': 'oci://ghcr.io/weaveworks/charts',
               }),
-            ]),
-            'images': list([
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
@@ -1018,8 +966,6 @@
               }),
             ]),
             'helm_repos': list([
-            ]),
-            'images': list([
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
