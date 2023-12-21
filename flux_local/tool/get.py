@@ -1,11 +1,11 @@
 """Flux-local get action."""
 
 import logging
-from argparse import ArgumentParser, _SubParsersAction as SubParsersAction
+from argparse import ArgumentParser, BooleanOptionalAction, _SubParsersAction as SubParsersAction
 from typing import cast, Any
 import sys
 
-from flux_local import git_repo
+from flux_local import git_repo, image
 
 from .format import PrintFormatter, YamlFormatter
 from . import selector
@@ -152,6 +152,9 @@ class GetClusterAction:
         selector.add_cluster_selector_flags(args)
         args.add_argument(
             "--enable-images",
+            type=str,
+            default=False,
+            action=BooleanOptionalAction,
             help="Output container images when traversing the cluster",
         )
         args.add_argument(
@@ -173,6 +176,8 @@ class GetClusterAction:
         """Async Action implementation."""
         query = selector.build_cluster_selector(**kwargs)
         query.helm_release.enabled = output == "yaml"
+
+        image_visitor: image.ImageVisitor | None = None
         if enable_images:
             if output != "yaml":
                 print(
@@ -180,10 +185,15 @@ class GetClusterAction:
                     file=sys.stderr,
                 )
                 return
+            image_visitor = image.ImageVisitor()
+            query.doc_visitor = image_visitor.repo_visitor()
+
         manifest = await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
         )
         if output == "yaml":
+            if image_visitor:
+                image_visitor.update_manifest(manifest)
             YamlFormatter().print([manifest.compact_dict()])
             return
 

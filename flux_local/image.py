@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from . import git_repo
+from . import git_repo, manifest
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,9 +57,18 @@ class ImageVisitor:
             Updates the image set with the images found in the document.
             """
             images = _extract_images(doc)
+            if not images:
+                return
             if name in self.images:
                 self.images[name].update(images)
             else:
                 self.images[name] = set(images)
 
         return git_repo.DocumentVisitor(kinds=KINDS, func=add_image)
+
+    def update_manifest(self, manifest: manifest.Manifest) -> None:
+        """Update the manifest with the images found in the repo."""
+        for cluster in manifest.clusters:
+            for kustomization in cluster.kustomizations:
+                if images := self.images.get(kustomization.namespaced_name):
+                    kustomization.images = list(images)

@@ -27,7 +27,7 @@ from . import run_command
         (["--path", "tests/testdata/cluster7"]),
         (["--all-namespaces", "--path", "tests/testdata/cluster/"]),
         (["--path", "tests/testdata/cluster", "-o", "yaml"]),
-        (["--path", "tests/testdata/cluster7", "-o", "yaml"]),
+        (["--path", "tests/testdata/cluster8", "-o", "yaml"]),
     ],
     ids=[
         "cluster",
@@ -40,7 +40,7 @@ from . import run_command
         "cluster7",
         "all-namespaces",
         "yaml",
-        "yaml-cluster7-images"
+        "yaml-cluster8-images"
     ],
 )
 async def test_get_cluster(args: list[str], snapshot: SnapshotAssertion) -> None:

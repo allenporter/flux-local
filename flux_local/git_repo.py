@@ -568,10 +568,9 @@ async def build_kustomization(
         docs = await cmd.grep(regexp).objects(
             target_namespace=kustomization.target_namespace
         )
-
+        
         if selector.doc_visitor:
             doc_kinds = set(selector.doc_visitor.kinds)
-            _LOGGER.debug(doc_kinds)
             for doc in docs:
                 if doc.get("kind") not in doc_kinds:
                     continue
