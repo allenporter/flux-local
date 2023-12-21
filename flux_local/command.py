@@ -106,7 +106,10 @@ async def _run_piped_with_sem(cmds: Sequence[Task]) -> str:
     stdin = None
     out = None
     for cmd in cmds:
-        out = await asyncio.wait_for(cmd.run(stdin), _TIMEOUT)
+        try:
+            out = await asyncio.wait_for(cmd.run(stdin), _TIMEOUT)
+        except asyncio.exceptions.TimeoutError as err:
+            raise cmd.exc(f"Command '{cmd}' timed out") from err
         stdin = out
     return out.decode("utf-8") if out else ""
 
