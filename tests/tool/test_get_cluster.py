@@ -27,7 +27,9 @@ from . import run_command
         (["--path", "tests/testdata/cluster7"]),
         (["--all-namespaces", "--path", "tests/testdata/cluster/"]),
         (["--path", "tests/testdata/cluster", "-o", "yaml"]),
+        (["--path", "tests/testdata/cluster", "-o", "yaml", "--enable-images"]),
         (["--path", "tests/testdata/cluster8", "-o", "yaml"]),
+        (["--path", "tests/testdata/cluster8", "-o", "yaml", "--enable-images"]),
     ],
     ids=[
         "cluster",
@@ -39,7 +41,9 @@ from . import run_command
         "cluster6",
         "cluster7",
         "all-namespaces",
-        "yaml",
+        "yaml-cluster-no-images",
+        "yaml-cluster-images",
+        "yaml-cluster8-no-images",
         "yaml-cluster8-images"
     ],
 )

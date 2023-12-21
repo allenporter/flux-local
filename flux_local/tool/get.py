@@ -1,14 +1,21 @@
 """Flux-local get action."""
 
 import logging
-from argparse import ArgumentParser, BooleanOptionalAction, _SubParsersAction as SubParsersAction
+from argparse import (
+    ArgumentParser,
+    BooleanOptionalAction,
+    _SubParsersAction as SubParsersAction,
+)
 from typing import cast, Any
 import sys
+import pathlib
+import tempfile
 
-from flux_local import git_repo, image
+from flux_local import git_repo, image, helm
 
 from .format import PrintFormatter, YamlFormatter
 from . import selector
+from .visitor import HelmVisitor, ImageOutput
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -178,6 +185,7 @@ class GetClusterAction:
         query.helm_release.enabled = output == "yaml"
 
         image_visitor: image.ImageVisitor | None = None
+        helm_content: ImageOutput | None = None
         if enable_images:
             if output != "yaml":
                 print(
@@ -188,24 +196,27 @@ class GetClusterAction:
             image_visitor = image.ImageVisitor()
             query.doc_visitor = image_visitor.repo_visitor()
 
+            helm_content = ImageOutput()
+            helm_visitor = HelmVisitor()
+            query.helm_repo.visitor = helm_visitor.repo_visitor()
+            query.helm_release.visitor = helm_visitor.release_visitor()
+
         manifest = await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
         )
         if output == "yaml":
-            include: dict[str, Any] | None = None
             if image_visitor:
                 image_visitor.update_manifest(manifest)
-                include = {
-                    "clusters": {
-                        "__all__": {
-                            "kustomizations": {
-                                "__all__": True,
-                                #"images": True,
-                            }
-                        }
-                    }
-                }
-            YamlFormatter().print([manifest.compact_dict(include=include)])
+            if helm_content:
+                with tempfile.TemporaryDirectory() as helm_cache_dir:
+                    await helm_visitor.inflate(
+                        pathlib.Path(helm_cache_dir),
+                        helm_content.visitor(),
+                        helm.Options(),
+                    )
+                    helm_content.update_manifest(manifest)
+
+            YamlFormatter().print([manifest.compact_dict()])
             return
 
         cols = ["path", "kustomizations"]

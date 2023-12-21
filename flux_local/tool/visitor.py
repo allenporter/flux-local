@@ -9,7 +9,7 @@ import tempfile
 import yaml
 from typing import Any
 
-from flux_local import git_repo
+from flux_local import git_repo, image
 from flux_local.helm import Helm, Options
 from flux_local.kustomize import Kustomize
 from flux_local.manifest import (
@@ -17,6 +17,7 @@ from flux_local.manifest import (
     Kustomization,
     HelmRepository,
     ClusterPolicy,
+    Manifest,
 )
 
 
@@ -151,6 +152,42 @@ def strip_attrs(metadata: dict[str, Any], strip_attributes: list[str]) -> None:
             if not val:
                 del metadata[attr_key]
                 break
+
+
+class ImageOutput(ResourceOutput):
+    """Resource visitor that builds outputs for objects within the kustomization."""
+
+    def __init__(self) -> None:
+        """Initialize ObjectOutput."""
+        # Map of kustomizations to the map of built objects as lines of the yaml string
+        self.content: dict[ResourceKey, dict[ResourceKey, list[str]]] = {}
+        self.image_visitor = image.ImageVisitor()
+        self.repo_visitor = self.image_visitor.repo_visitor()
+
+    async def call_async(
+        self,
+        cluster_path: pathlib.Path,
+        kustomization_path: pathlib.Path,
+        doc: ResourceType,
+        cmd: Kustomize | None,
+    ) -> None:
+        """Visitor function invoked to build and record resource objects."""
+        if cmd and isinstance(doc, HelmRelease):
+            objects = await cmd.objects()
+            for obj in objects:
+                if obj.get("kind") in self.repo_visitor.kinds:
+                    self.repo_visitor.func(doc.namespaced_name, obj)
+
+    def update_manifest(self, manifest: Manifest) -> None:
+        """Update the manifest with the images found in the repo."""
+        for cluster in manifest.clusters:
+            for kustomization in cluster.kustomizations:
+                for helm_release in kustomization.helm_releases:
+                    if images := self.image_visitor.images.get(
+                        helm_release.namespaced_name
+                    ):
+                        helm_release.images = list(images)
+                        helm_release.images.sort()
 
 
 class ObjectOutput(ResourceOutput):
