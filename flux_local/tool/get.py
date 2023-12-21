@@ -1,10 +1,11 @@
 """Flux-local get action."""
 
 import logging
-from argparse import ArgumentParser, _SubParsersAction as SubParsersAction
+from argparse import ArgumentParser, BooleanOptionalAction, _SubParsersAction as SubParsersAction
 from typing import cast, Any
+import sys
 
-from flux_local import git_repo
+from flux_local import git_repo, image
 
 from .format import PrintFormatter, YamlFormatter
 from . import selector
@@ -150,6 +151,13 @@ class GetClusterAction:
         )
         selector.add_cluster_selector_flags(args)
         args.add_argument(
+            "--enable-images",
+            type=str,
+            default=False,
+            action=BooleanOptionalAction,
+            help="Output container images when traversing the cluster",
+        )
+        args.add_argument(
             "--output",
             "-o",
             choices=["diff", "yaml"],
@@ -162,16 +170,42 @@ class GetClusterAction:
     async def run(  # type: ignore[no-untyped-def]
         self,
         output: str,
+        enable_images: bool,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
         query = selector.build_cluster_selector(**kwargs)
         query.helm_release.enabled = output == "yaml"
+
+        image_visitor: image.ImageVisitor | None = None
+        if enable_images:
+            if output != "yaml":
+                print(
+                    "Flag --enable-images only works with --output yaml",
+                    file=sys.stderr,
+                )
+                return
+            image_visitor = image.ImageVisitor()
+            query.doc_visitor = image_visitor.repo_visitor()
+
         manifest = await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
         )
         if output == "yaml":
-            YamlFormatter().print([manifest.compact_dict()])
+            include: dict[str, Any] | None = None
+            if image_visitor:
+                image_visitor.update_manifest(manifest)
+                include = {
+                    "clusters": {
+                        "__all__": {
+                            "kustomizations": {
+                                "__all__": True,
+                                #"images": True,
+                            }
+                        }
+                    }
+                }
+            YamlFormatter().print([manifest.compact_dict(include=include)])
             return
 
         cols = ["path", "kustomizations"]

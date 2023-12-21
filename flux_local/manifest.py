@@ -57,7 +57,7 @@ class BaseManifest(BaseModel):
 
     _COMPACT_EXCLUDE_FIELDS: dict[str, Any] = {}
 
-    def compact_dict(self, exclude: dict[str, Any] | None = None) -> dict[str, Any]:
+    def compact_dict(self, exclude: dict[str, Any] | None = None, include: dict[str, Any] | None = None) -> dict[str, Any]:
         """Return a compact dictionary representation of the object.
 
         This is similar to `dict()` but with a specific implementation for serializing
@@ -65,7 +65,7 @@ class BaseManifest(BaseModel):
         """
         if exclude is None:
             exclude = self._COMPACT_EXCLUDE_FIELDS
-        return self.dict(exclude=exclude)  # type: ignore[arg-type]
+        return self.dict(exclude=exclude, exclude_unset=True, exclude_none=True, exclude_defaults=True)  # type: ignore[arg-type]
 
     @classmethod
     def parse_yaml(cls, content: str) -> "BaseManifest":
@@ -292,6 +292,9 @@ class Kustomization(BaseManifest):
 
     contents: dict[str, Any] | None = None
     """Contents of the raw Kustomization document."""
+
+    images: list[str] = Field(default_factory=list)
+    """The list of images referenced in the kustomization."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":

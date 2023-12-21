@@ -39,7 +39,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -140,7 +139,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -226,7 +224,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -352,7 +349,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -438,7 +434,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
@@ -919,7 +914,6 @@
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
-                'namespace': None,
               }),
             ]),
             'helm_releases': list([
