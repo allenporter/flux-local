@@ -163,7 +163,7 @@ class Helm:
             self._repos.append(repo)
 
     async def update(self) -> None:
-        """Return command line arguments to update the local repo.
+        """Run the update command to update the local repo.
 
         Typically the repository must be updated before doing any chart templating.
         """
@@ -185,11 +185,9 @@ class Helm:
         release: HelmRelease,
         options: Options | None = None,
     ) -> Kustomize:
-        """Return command line arguments to template the specified chart.
+        """Return command to evaluate the template of the specified chart.
 
-        The default values will come from the `HelmRelease`, though you can
-        also specify values directory if not present in cluster manifest
-        e.g. it came from a truncated yaml.
+        The values will come from the `HelmRelease` object.
         """
         if options is None:
             options = Options()
