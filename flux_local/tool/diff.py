@@ -162,11 +162,10 @@ def perform_yaml_diff(
 
 def get_helm_release_diff_keys(
     a: ObjectOutput, b: ObjectOutput
-) -> dict[str, list[ResourceKey]]:
+) -> list[ResourceKey]:
     """Return HelmRelease resource keys with diffs, by cluster."""
-    result: dict[str, list[ResourceKey]] = {}
+    results: list[ResourceKey] = []
     for kustomization_key in _unique_keys(a.content, b.content):
-        cluster_path = kustomization_key.cluster_path
         _LOGGER.debug("Diffing results for Kustomization %s", kustomization_key)
         a_resources = a.content.get(kustomization_key, {})
         b_resources = b.content.get(kustomization_key, {})
@@ -174,8 +173,8 @@ def get_helm_release_diff_keys(
             if resource_key.kind != "HelmRelease":
                 continue
             if a_resources.get(resource_key) != b_resources.get(resource_key):
-                result[cluster_path] = result.get(cluster_path, []) + [resource_key]
-    return result
+                results.append(resource_key)
+    return results
 
 
 def add_diff_flags(args: ArgumentParser) -> None:
@@ -370,31 +369,20 @@ class DiffHelmReleaseAction:
         # This avoid building unnecessary resources and churn from things like
         # random secret generation.
         diff_resource_keys = get_helm_release_diff_keys(orig_content, content)
-        cluster_paths = {
-            kustomization_key.cluster_path
-            for kustomization_key in set(orig_content.content.keys())
-            | set(content.content.keys())
+        diff_names = {
+            f"{resource_key.namespace}/{resource_key.name}"
+            for resource_key in diff_resource_keys
         }
-        for cluster_path in cluster_paths:
-            diff_keys = diff_resource_keys.get(cluster_path, [])
-            diff_names = {
-                f"{resource_key.namespace}/{resource_key.name}"
-                for resource_key in diff_keys
-            }
-            if cluster_path in helm_visitor.releases:
-                releases = [
-                    release
-                    for release in helm_visitor.releases[cluster_path]
-                    if f"{release.namespace}/{release.name}" in diff_names
-                ]
-                helm_visitor.releases[cluster_path] = releases
-            if cluster_path in orig_helm_visitor.releases:
-                releases = [
-                    release
-                    for release in orig_helm_visitor.releases[cluster_path]
-                    if f"{release.namespace}/{release.name}" in diff_names
-                ]
-                orig_helm_visitor.releases[cluster_path] = releases
+        helm_visitor.releases = [
+            release
+            for release in helm_visitor.releases
+            if release.namespaced_name in diff_names
+        ]
+        orig_helm_visitor.releases = [
+            release
+            for release in orig_helm_visitor.releases
+            if release.namespaced_name in diff_names
+        ]
 
         helm_content = ObjectOutput(strip_attrs)
         orig_helm_content = ObjectOutput(strip_attrs)

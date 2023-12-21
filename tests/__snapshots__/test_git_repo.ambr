@@ -290,19 +290,16 @@
 # name: test_helm_release_visitor.1
   list([
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/apps/prod',
       'podinfo',
       'podinfo',
     ),
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/controllers',
       'flux-system',
       'weave-gitops',
     ),
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/controllers',
       'metallb',
       'metallb',
@@ -500,19 +497,16 @@
 # name: test_helm_repo_visitor.1
   list([
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/configs',
       'flux-system',
       'bitnami',
     ),
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/configs',
       'flux-system',
       'podinfo',
     ),
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/configs',
       'flux-system',
       'weave-charts',
@@ -980,25 +974,21 @@
 # name: test_kustomization_visitor.1
   list([
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/apps/prod',
       'flux-system',
       'apps',
     ),
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/clusters/prod',
       'flux-system',
       'flux-system',
     ),
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/configs',
       'flux-system',
       'infra-configs',
     ),
     tuple(
-      'tests/testdata/cluster',
       'tests/testdata/cluster/infrastructure/controllers',
       'flux-system',
       'infra-controllers',
