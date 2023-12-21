@@ -160,9 +160,7 @@ def perform_yaml_diff(
         yield yaml.dump(diffs, sort_keys=False, explicit_start=True, default_style=None)
 
 
-def get_helm_release_diff_keys(
-    a: ObjectOutput, b: ObjectOutput
-) -> list[ResourceKey]:
+def get_helm_release_diff_keys(a: ObjectOutput, b: ObjectOutput) -> list[ResourceKey]:
     """Return HelmRelease resource keys with diffs, by cluster."""
     results: list[ResourceKey] = []
     for kustomization_key in _unique_keys(a.content, b.content):
@@ -370,8 +368,7 @@ class DiffHelmReleaseAction:
         # random secret generation.
         diff_resource_keys = get_helm_release_diff_keys(orig_content, content)
         diff_names = {
-            f"{resource_key.namespace}/{resource_key.name}"
-            for resource_key in diff_resource_keys
+            resource_key.namespaced_name for resource_key in diff_resource_keys
         }
         helm_visitor.releases = [
             release
