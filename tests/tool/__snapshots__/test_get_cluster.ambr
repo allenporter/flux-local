@@ -120,8 +120,8 @@
           repo_name: bitnami
           repo_namespace: flux-system
         images:
-        - docker.io/bitnami/metallb-speaker:0.13.7-debian-11-r28
         - docker.io/bitnami/metallb-controller:0.13.7-debian-11-r29
+        - docker.io/bitnami/metallb-speaker:0.13.7-debian-11-r28
       - name: weave-gitops
         namespace: flux-system
         chart:
@@ -211,8 +211,8 @@
       helm_releases: []
       cluster_policies: []
       images:
-      - busybox
       - alpine
+      - busybox
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster8/cluster
