@@ -39,6 +39,7 @@ HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
 CLUSTER_POLICY_DOMAIN = "kyverno.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
+DEFAULT_NAMESPACE = "flux-system"
 
 REPO_TYPE_DEFAULT = "default"
 REPO_TYPE_OCI = "oci"
@@ -89,7 +90,7 @@ class HelmChart(BaseManifest):
     """The version of the chart."""
 
     repo_name: str
-    """The name of the HelmRepository."""
+    """The short name of the HelmRepository."""
 
     repo_namespace: str
     """The namespace of the HelmRepository."""
@@ -121,9 +122,14 @@ class HelmChart(BaseManifest):
         )
 
     @property
+    def repo_full_name(self) -> str:
+        """Identifier for the HelmRepository."""
+        return f"{self.repo_namespace}-{self.repo_name}"
+
+    @property
     def chart_name(self) -> str:
         """Identifier for the HelmChart."""
-        return f"{self.repo_namespace}-{self.repo_name}/{self.name}"
+        return f"{self.repo_full_name}/{self.name}"
 
     _COMPACT_EXCLUDE_FIELDS = {"version": True}
 

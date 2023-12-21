@@ -41,7 +41,7 @@ class ResourceKey:
 
     kustomization_path: str
     kind: str
-    namespace: str
+    namespace: str | None
     name: str
 
     def __post_init__(self) -> None:
@@ -62,15 +62,14 @@ class ResourceKey:
         return "".join(parts)
 
     @property
-    def compact_label(self) -> str:
-        parts = []
-        parts.append(self.kind)
-        parts.append(": ")
+    def namespaced_name(self) -> str:
         if self.namespace:
-            parts.append(self.namespace)
-            parts.append("/")
-        parts.append(self.name)
-        return "".join(parts)
+            return f"{self.namespace}/{self.name}"
+        return self.name
+
+    @property
+    def compact_label(self) -> str:
+        return f"{self.kind}: {self.namespaced_name}"
 
 
 class ResourceOutput(ABC):
@@ -101,8 +100,8 @@ class ResourceOutput(ABC):
         return ResourceKey(
             kustomization_path=str(kustomization_path),
             kind=resource.__class__.__name__,
-            namespace=resource.namespace or "",
-            name=resource.name or "",
+            namespace=resource.namespace,
+            name=resource.name,
         )
 
 
@@ -224,9 +223,7 @@ class ObjectOutput(ResourceOutput):
                 lines = content.split("\n")
                 lines.insert(0, "---")
                 contents[resource_key] = lines
-            self.content[
-                self.key_func(kustomization_path, doc)
-            ] = contents
+            self.content[self.key_func(kustomization_path, doc)] = contents
 
 
 async def inflate_release(
@@ -252,14 +249,9 @@ class HelmVisitor:
     def active_repos(self) -> list[HelmRepository]:
         """Return HelpRepositories referenced by a HelmRelease."""
         repo_keys: set[str] = {
-            f"{release.chart.repo_namespace}-{release.chart.repo_name}"
-            for release in self.releases
+            release.chart.repo_full_name for release in self.releases
         }
-        return [
-            repo
-            for repo in self.repos
-            if repo.repo_name in repo_keys
-        ]
+        return [repo for repo in self.repos if repo.repo_name in repo_keys]
 
     def repo_visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
