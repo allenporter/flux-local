@@ -8,14 +8,12 @@
 # name: test_diff_ks[yaml-empty-sources]
   '''
   ---
-  - cluster_path: tests/testdata/cluster
-    kustomization_path: tests/testdata/cluster/apps/prod
+  - kustomization_path: tests/testdata/cluster/apps/prod
     kind: Kustomization
     namespace: flux-system
     name: apps
     diffs:
-    - cluster_path: tests/testdata/cluster
-      kustomization_path: tests/testdata/cluster/apps/prod
+    - kustomization_path: tests/testdata/cluster/apps/prod
       kind: Namespace
       namespace: flux-system
       name: podinfo
@@ -35,8 +33,7 @@
         -    kustomize.toolkit.fluxcd.io/namespace: flux-system
         -  name: podinfo
         -
-    - cluster_path: tests/testdata/cluster
-      kustomization_path: tests/testdata/cluster/apps/prod
+    - kustomization_path: tests/testdata/cluster/apps/prod
       kind: HelmRelease
       namespace: podinfo
       name: podinfo
@@ -84,8 +81,7 @@
         -      repository: public.ecr.aws/docker/library/redis
         -      tag: 7.0.6
         -
-    - cluster_path: tests/testdata/cluster
-      kustomization_path: tests/testdata/cluster/apps/prod
+    - kustomization_path: tests/testdata/cluster/apps/prod
       kind: ConfigMap
       namespace: podinfo
       name: podinfo-config

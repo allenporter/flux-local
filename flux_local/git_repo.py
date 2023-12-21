@@ -201,7 +201,6 @@ class ResourceVisitor:
     func: Callable[
         [
             Path,
-            Path,
             Kustomization | HelmRelease | HelmRepository | ClusterPolicy,
             kustomize.Kustomize | None,
         ],
@@ -546,7 +545,6 @@ async def build_kustomization(
 
         if kustomization_selector.visitor:
             await kustomization_selector.visitor.func(
-                cluster_path,
                 Path(kustomization.path),
                 kustomization,
                 cmd,
@@ -675,7 +673,6 @@ async def build_manifest(
                 for kustomization in cluster.kustomizations:
                     for helm_repo in kustomization.helm_repos:
                         await selector.helm_repo.visitor.func(
-                            Path(cluster.path),
                             Path(kustomization.path),
                             helm_repo,
                             None,
@@ -685,7 +682,6 @@ async def build_manifest(
                 for kustomization in cluster.kustomizations:
                     for helm_release in kustomization.helm_releases:
                         await selector.helm_release.visitor.func(
-                            Path(cluster.path),
                             Path(kustomization.path),
                             helm_release,
                             None,
@@ -695,7 +691,6 @@ async def build_manifest(
                 for kustomization in cluster.kustomizations:
                     for cluster_policy in kustomization.cluster_policies:
                         await selector.cluster_policy.visitor.func(
-                            Path(cluster.path),
                             Path(kustomization.path),
                             cluster_policy,
                             None,

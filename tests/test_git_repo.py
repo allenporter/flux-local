@@ -87,8 +87,8 @@ async def test_kustomization_visitor(snapshot: SnapshotAssertion) -> None:
     stream = io.StringIO()
     visits: list[tuple[str, str, str, str]] = []
 
-    async def write(w: Path, x: Path, y: Any, cmd: Kustomize | None) -> None:
-        visits.append((str(w), str(x), y.namespace, y.name))
+    async def write(x: Path, y: Any, cmd: Kustomize | None) -> None:
+        visits.append((str(x), y.namespace, y.name))
         if cmd:
             stream.write(await cmd.run())
 
@@ -114,8 +114,8 @@ async def test_helm_repo_visitor(snapshot: SnapshotAssertion) -> None:
 
     visits: list[tuple[str, str, str, str]] = []
 
-    async def append(w: Path, x: Path, y: Any, z: Any) -> None:
-        visits.append((str(w), str(x), y.namespace, y.name))
+    async def append(x: Path, y: Any, z: Any) -> None:
+        visits.append((str(x), y.namespace, y.name))
 
     query.helm_repo.visitor = ResourceVisitor(func=append)
 
@@ -134,8 +134,8 @@ async def test_helm_release_visitor(snapshot: SnapshotAssertion) -> None:
 
     visits: list[tuple[str, str, str, str]] = []
 
-    async def append(w: Path, x: Path, y: Any, z: Any) -> None:
-        visits.append((str(w), str(x), y.namespace, y.name))
+    async def append(x: Path, y: Any, z: Any) -> None:
+        visits.append((str(x), y.namespace, y.name))
 
     query.helm_release.visitor = ResourceVisitor(
         func=append,
