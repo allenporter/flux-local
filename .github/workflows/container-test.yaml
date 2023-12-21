@@ -9,6 +9,7 @@ on:
 
 jobs:
   test:
+    if: ${{ github.event.pull_request.head.repo.full_name == 'allenporter/flux-local' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
