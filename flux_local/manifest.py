@@ -293,6 +293,9 @@ class Kustomization(BaseManifest):
     contents: dict[str, Any] | None = None
     """Contents of the raw Kustomization document."""
 
+    images: list[str] = Field(default_factory=list)
+    """The list of images referenced in the kustomization."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":
         """Parse a partial Kustomization from a kubernetes resource."""

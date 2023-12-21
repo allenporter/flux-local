@@ -50,9 +50,7 @@ RUN mkdir -p /src && \
     rm -fr /src
 RUN flux version --client
 
-COPY . /src/
-WORKDIR /src/
-RUN pip3 install -r /src/requirements.txt
-RUN pip3 install -e /src/
+RUN pip3 install -r /workspaces/flux-local/requirements.txt
+RUN pip3 install -e /workspaces/flux-local/
 
 SHELL ["/bin/bash", "-c"]

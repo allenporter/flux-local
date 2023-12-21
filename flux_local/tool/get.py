@@ -3,6 +3,7 @@
 import logging
 from argparse import ArgumentParser, _SubParsersAction as SubParsersAction
 from typing import cast, Any
+import sys
 
 from flux_local import git_repo
 
@@ -150,6 +151,10 @@ class GetClusterAction:
         )
         selector.add_cluster_selector_flags(args)
         args.add_argument(
+            "--enable-images",
+            help="Output container images when traversing the cluster",
+        )
+        args.add_argument(
             "--output",
             "-o",
             choices=["diff", "yaml"],
@@ -162,11 +167,19 @@ class GetClusterAction:
     async def run(  # type: ignore[no-untyped-def]
         self,
         output: str,
+        enable_images: bool,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
         query = selector.build_cluster_selector(**kwargs)
         query.helm_release.enabled = output == "yaml"
+        if enable_images:
+            if output != "yaml":
+                print(
+                    "Flag --enable-images only works with --output yaml",
+                    file=sys.stderr,
+                )
+                return
         manifest = await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
         )

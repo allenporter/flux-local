@@ -62,6 +62,46 @@
   
   '''
 # ---
+# name: test_get_cluster[yaml-cluster7-images]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster7
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster7/flux/apps
+      helm_repos: []
+      helm_releases:
+      - name: postgresql
+        namespace: database
+        chart:
+          name: postgresql
+          repo_name: bitnami-charts
+          repo_namespace: flux-system
+      cluster_policies: []
+      images: []
+    - name: charts
+      namespace: flux-system
+      path: tests/testdata/cluster7/flux/charts
+      helm_repos:
+      - name: bitnami-charts
+        namespace: flux-system
+        url: oci://registry-1.docker.io/bitnamicharts
+        repo_type: oci
+      helm_releases: []
+      cluster_policies: []
+      images: []
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster7/clusters/home
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+      images: []
+  
+  '''
+# ---
 # name: test_get_cluster[yaml]
   '''
   ---
@@ -80,12 +120,14 @@
           repo_name: podinfo
           repo_namespace: flux-system
       cluster_policies: []
+      images: []
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster/clusters/prod
       helm_repos: []
       helm_releases: []
       cluster_policies: []
+      images: []
     - name: infra-configs
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/configs
@@ -106,6 +148,7 @@
       cluster_policies:
       - name: test-allow-policy
         namespace: null
+      images: []
     - name: infra-controllers
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/controllers
@@ -124,6 +167,7 @@
           repo_name: weave-charts
           repo_namespace: flux-system
       cluster_policies: []
+      images: []
   
   '''
 # ---

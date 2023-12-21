@@ -219,6 +219,26 @@ class ResourceVisitor:
 
 
 @dataclass
+class DocumentVisitor:
+    """Invoked when a document is visited so the caller can intercept.
+
+    This is similar to a resource visitor, but it visits the unparsed documents
+    since they may not have explicit schemas in this project.
+    """
+
+    kinds: list[str]
+    """The resource kinds of documents to visit."""
+
+    func: Callable[[str, dict[str, Any]], None]
+    """Function called with the resource and optional content.
+
+    The function arguments are:
+      - parent: The namespaced name of the Fluxtomization or HelmRelease
+      - doc: The resource object (e.g. Pod, ConfigMap, HelmRelease, etc)
+    """
+
+
+@dataclass
 class MetadataSelector:
     """A filter for objects to select from the cluster."""
 
@@ -303,6 +323,9 @@ class ResourceSelector:
 
     cluster_policy: MetadataSelector = field(default_factory=MetadataSelector)
     """ClusterPolicy objects to return."""
+
+    doc_visitor: DocumentVisitor | None = None
+    """Raw objects to visit."""
 
 
 def is_allowed_source(sources: list[Source]) -> Callable[[Kustomization], bool]:
@@ -484,20 +507,23 @@ def node_name(ks: Kustomization) -> str:
 async def build_kustomization(
     kustomization: Kustomization,
     cluster_path: Path,
-    root: Path,
-    kustomization_selector: MetadataSelector,
-    helm_release_selector: MetadataSelector,
-    helm_repo_selector: MetadataSelector,
-    cluster_policy_selector: MetadataSelector,
+    selector: ResourceSelector,
     kustomize_flags: list[str],
     builder: CachableBuilder,
 ) -> tuple[Iterable[HelmRepository], Iterable[HelmRelease], Iterable[ClusterPolicy]]:
     """Build helm objects for the Kustomization."""
+
+    root: Path = selector.path.root
+    kustomization_selector: MetadataSelector = selector.kustomization
+    helm_repo_selector: MetadataSelector = selector.helm_repo
+    helm_release_selector: MetadataSelector = selector.helm_release
+    cluster_policy_selector: MetadataSelector = selector.cluster_policy
     if (
         not kustomization_selector.enabled
-        and not helm_release_selector.enabled
         and not helm_repo_selector.enabled
+        and not helm_release_selector.enabled
         and not cluster_policy_selector.enabled
+        and not selector.doc_visitor
     ):
         return ([], [], [])
 
@@ -519,23 +545,38 @@ async def build_kustomization(
             ) from err
 
         if kustomization_selector.visitor:
-            if kustomization_selector.visitor:
-                await kustomization_selector.visitor.func(
-                    cluster_path,
-                    Path(kustomization.path),
-                    kustomization,
-                    cmd,
-                )
+            await kustomization_selector.visitor.func(
+                cluster_path,
+                Path(kustomization.path),
+                kustomization,
+                cmd,
+            )
 
-        if (
-            not helm_release_selector.enabled
-            and not helm_repo_selector.enabled
-            and not cluster_policy_selector.enabled
-        ):
+        kinds = []
+        if helm_repo_selector.enabled:
+            kinds.append(HELM_REPO_KIND)
+        if helm_release_selector.enabled:
+            kinds.append(HELM_RELEASE_KIND)
+        if cluster_policy_selector.enabled:
+            kinds.append(CLUSTER_POLICY_KIND)
+        if selector.doc_visitor:
+            kinds.extend(selector.doc_visitor.kinds)
+        if not kinds:
             return ([], [], [])
-        docs = await cmd.grep(
-            f"kind=^({HELM_REPO_KIND}|{HELM_RELEASE_KIND}|{CLUSTER_POLICY_KIND})$"
-        ).objects(target_namespace=kustomization.target_namespace)
+
+        regexp = f"kind=^({'|'.join(kinds)})$"
+        docs = await cmd.grep(regexp).objects(
+            target_namespace=kustomization.target_namespace
+        )
+
+        if selector.doc_visitor:
+            doc_kinds = set(selector.doc_visitor.kinds)
+            _LOGGER.debug(doc_kinds)
+            for doc in docs:
+                if doc.get("kind") not in doc_kinds:
+                    continue
+                selector.doc_visitor.func(kustomization.namespaced_name, doc)
+
         return (
             filter(
                 helm_repo_selector.predicate,
@@ -609,11 +650,7 @@ async def build_manifest(
                     build_kustomization(
                         kustomization,
                         Path(cluster.path),
-                        selector.path.root,
-                        selector.kustomization,
-                        selector.helm_release,
-                        selector.helm_repo,
-                        selector.cluster_policy,
+                        selector,
                         options.kustomize_flags,
                         builder,
                     )
