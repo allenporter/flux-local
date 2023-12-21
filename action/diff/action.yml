@@ -54,15 +54,23 @@ runs:
       run:
         flux --version || (echo "Could not find flux CLI, add https://fluxcd.io/flux/flux-gh-action/" && exit 1)
       shell: bash
+    - name: Copy requirements locally
+      id: copy-requirements
+      shell: bash
+      run: |
+        # `cache-dependency-path` seems to need to be within the current directory. Use a temporary directory
+        tempdir=$(mktemp --directory --tmpdir=. --suffix=-flux-local-diff-action)
+        cp ${{ github.action_path }}/../../requirements.txt $tempdir
+        echo "::set-output name=directory::${tempdir}"
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
         cache: pip
-        cache-dependency-path: ${{ github.action_path }}/../../requirements.txt
+        cache-dependency-path: ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
     - name: Install flux-local and requirements
       run: |
-        pip install -r ${{ github.action_path }}/../../requirements.txt
+        pip install -r ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
         pip install -e ${{ github.action_path }}/../../
       shell: bash
     - name: Checkout PR branch
