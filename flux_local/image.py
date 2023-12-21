@@ -72,3 +72,4 @@ class ImageVisitor:
             for kustomization in cluster.kustomizations:
                 if images := self.images.get(kustomization.namespaced_name):
                     kustomization.images = list(images)
+                    kustomization.images.sort()

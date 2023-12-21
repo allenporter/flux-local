@@ -176,19 +176,18 @@ class ImageOutput(ResourceOutput):
             objects = await cmd.objects()
             for obj in objects:
                 if obj.get("kind") in self.repo_visitor.kinds:
-                    # _LOGGER.debug("Looking for image  %s", doc)
                     self.repo_visitor.func(doc.namespaced_name, obj)
 
     def update_manifest(self, manifest: Manifest) -> None:
         """Update the manifest with the images found in the repo."""
-        # _LOGGER.debug(self.image_visitor.images)
         for cluster in manifest.clusters:
             for kustomization in cluster.kustomizations:
                 for helm_release in kustomization.helm_releases:
                     if images := self.image_visitor.images.get(
-                        f"{helm_release.namespace}/{helm_release.name}"
+                        helm_release.namespaced_name
                     ):
                         helm_release.images = list(images)
+                        helm_release.images.sort()
 
 
 class ObjectOutput(ResourceOutput):
