@@ -192,9 +192,20 @@ class GetClusterAction:
             selector=query, options=selector.options(**kwargs)
         )
         if output == "yaml":
+            include: dict[str, Any] | None = None
             if image_visitor:
                 image_visitor.update_manifest(manifest)
-            YamlFormatter().print([manifest.compact_dict()])
+                include = {
+                    "clusters": {
+                        "__all__": {
+                            "kustomizations": {
+                                "__all__": True,
+                                #"images": True,
+                            }
+                        }
+                    }
+                }
+            YamlFormatter().print([manifest.compact_dict(include=include)])
             return
 
         cols = ["path", "kustomizations"]
