@@ -47,6 +47,12 @@ class BuildAction:
             action=BooleanOptionalAction,
             help="Enable use of HelmRelease inflation",
         )
+        args.add_argument(
+            "--output-file",
+            type=str,
+            default="/dev/stdout",
+            help="Output file for the results of the command",
+        )
         # pylint: disable=duplicate-code
         selector.add_common_flags(args)
         selector.add_helm_options_flags(args)
@@ -59,6 +65,7 @@ class BuildAction:
         enable_helm: bool,
         skip_crds: bool,
         skip_secrets: bool,
+        output_file: str,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -97,14 +104,15 @@ class BuildAction:
                     helm_options,
                 )
 
-        keys = list(content.content)
-        keys.sort()
-        for key in keys:
-            for line in content.content[key]:
-                print(line)
+        with open(kwargs["output_file"], "w") as output_file:
+            keys = list(content.content)
+            keys.sort()
+            for key in keys:
+                for line in content.content[key]:
+                    print(line, file=output_file)
 
-        keys = list(helm_content.content)
-        keys.sort()
-        for key in keys:
-            for line in helm_content.content[key]:
-                print(line)
+            keys = list(helm_content.content)
+            keys.sort()
+            for key in keys:
+                for line in helm_content.content[key]:
+                    print(line, file=output_file)

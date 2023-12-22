@@ -249,6 +249,12 @@ class DiffKustomizationAction:
                 ),
             ),
         )
+        args.add_argument(
+            "--output-file",
+            type=str,
+            default="/dev/stdout",
+            help="Output file for the results of the command",
+        )
         selector.add_ks_selector_flags(args)
         add_diff_flags(args)
         args.set_defaults(cls=cls)
@@ -260,6 +266,7 @@ class DiffKustomizationAction:
         unified: int,
         strip_attrs: list[str] | None,
         limit_bytes: int,
+        output_file: str,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -285,19 +292,20 @@ class DiffKustomizationAction:
             return
 
         _LOGGER.debug("Diffing content")
-        if output == "yaml":
-            result = perform_yaml_diff(orig_content, content, unified, limit_bytes)
-            for line in result:
-                print(line)
-        elif external_diff := os.environ.get("DIFF"):
-            async for line in perform_external_diff(
-                shlex.split(external_diff), orig_content, content, limit_bytes
-            ):
-                print(line)
-        else:
-            result = perform_object_diff(orig_content, content, unified, limit_bytes)
-            for line in result:
-                print(line)
+        with open(output_file, "w") as file:
+            if output == "yaml":
+                result = perform_yaml_diff(orig_content, content, unified, limit_bytes)
+                for line in result:
+                    print(line, file=file)
+            elif external_diff := os.environ.get("DIFF"):
+                async for line in perform_external_diff(
+                    shlex.split(external_diff), orig_content, content, limit_bytes
+                ):
+                    print(line, file=file)
+            else:
+                result = perform_object_diff(orig_content, content, unified, limit_bytes)
+                for line in result:
+                    print(line, file=file)
 
 
 class DiffHelmReleaseAction:
@@ -320,6 +328,12 @@ class DiffHelmReleaseAction:
                 ),
             ),
         )
+        args.add_argument(
+            "--output-file",
+            type=str,
+            default="/dev/stdout",
+            help="Output file for the results of the command",
+        )
         selector.add_hr_selector_flags(args)
         selector.add_helm_options_flags(args)
         add_diff_flags(args)
@@ -332,6 +346,7 @@ class DiffHelmReleaseAction:
         unified: int,
         strip_attrs: list[str] | None,
         limit_bytes: int,
+        output_file: str,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -393,21 +408,22 @@ class DiffHelmReleaseAction:
                 ),
             )
 
-        if output == "yaml":
-            for line in perform_yaml_diff(
-                orig_helm_content, helm_content, unified, limit_bytes
-            ):
-                print(line)
-        elif external_diff := os.environ.get("DIFF"):
-            async for line in perform_external_diff(
-                shlex.split(external_diff), orig_helm_content, helm_content, limit_bytes
-            ):
-                print(line)
-        else:
-            for line in perform_object_diff(
-                orig_helm_content, helm_content, unified, limit_bytes
-            ):
-                print(line)
+        with open(output_file, "w") as file:
+            if output == "yaml":
+                for line in perform_yaml_diff(
+                    orig_helm_content, helm_content, unified, limit_bytes
+                ):
+                    print(line, file=file)
+            elif external_diff := os.environ.get("DIFF"):
+                async for line in perform_external_diff(
+                    shlex.split(external_diff), orig_helm_content, helm_content, limit_bytes
+                ):
+                    print(line, file=file)
+            else:
+                for line in perform_object_diff(
+                    orig_helm_content, helm_content, unified, limit_bytes
+                ):
+                    print(line, file=file)
 
 
 class DiffAction:
