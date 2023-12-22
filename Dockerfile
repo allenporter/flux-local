@@ -17,4 +17,5 @@ COPY --from=docker.io/bitnami/kubectl:1.28.5            /opt/bitnami/kubectl/bin
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.3.0  /app/kustomize                   /usr/local/bin/kustomize
 COPY --from=ghcr.io/kyverno/kyverno-cli:v1.10.7         /ko-app/kubectl-kyverno          /usr/local/bin/kyverno
 
+USER 1001
 ENTRYPOINT ["/usr/local/bin/flux-local"]
