@@ -104,15 +104,15 @@ class BuildAction:
                     helm_options,
                 )
 
-        with open(kwargs["output_file"], "w") as output_file:
+        with open(output_file, "w") as file:
             keys = list(content.content)
             keys.sort()
             for key in keys:
                 for line in content.content[key]:
-                    print(line, file=output_file)
+                    print(line, file=file)
 
             keys = list(helm_content.content)
             keys.sort()
             for key in keys:
                 for line in helm_content.content[key]:
-                    print(line, file=output_file)
+                    print(line, file=file)
