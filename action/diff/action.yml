@@ -106,6 +106,7 @@ runs:
             --sources "${{ inputs.sources }}" \
             --output-file diff.patch \
             ${extra_flags}
+      shell: bash
     - name: Generate Diff output
       id: flux_diff_output
       run: |
