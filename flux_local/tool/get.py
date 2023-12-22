@@ -171,12 +171,19 @@ class GetClusterAction:
             default="diff",
             help="Output format of the command",
         )
+        args.add_argument(
+            "--output-file",
+            type=str,
+            default="/dev/stdout",
+            help="Output file for the results of the command",
+        )
         args.set_defaults(cls=cls)
         return args
 
     async def run(  # type: ignore[no-untyped-def]
         self,
         output: str,
+        output_file: str,
         enable_images: bool,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
@@ -216,7 +223,8 @@ class GetClusterAction:
                     )
                     helm_content.update_manifest(manifest)
 
-            YamlFormatter().print([manifest.compact_dict()])
+            with open(output_file, "w") as file:
+                YamlFormatter().print([manifest.compact_dict()], file=file)
             return
 
         cols = ["path", "kustomizations"]
@@ -226,11 +234,15 @@ class GetClusterAction:
             value["kustomizations"] = len(cluster.kustomizations)
             results.append(value)
 
-        if not results:
-            print(selector.not_found("flux cluster Kustmization", query.cluster))
-            return
+        with open(output_file, "w") as file:
+            if not results:
+                print(
+                    selector.not_found("flux cluster Kustmization", query.cluster),
+                    file=file,
+                )
+                return
 
-        PrintFormatter(cols).print(results)
+            PrintFormatter(cols).print(results, file=file)
 
 
 class GetAction:

@@ -2,7 +2,10 @@
 
 from typing import Generator, Any
 
+import sys
+from typing import TextIO
 import yaml
+
 
 PADDING = 4
 
@@ -47,10 +50,10 @@ class PrintFormatter:
         for result in format_columns(cols, rows):
             yield result
 
-    def print(self, data: list[dict[str, Any]]) -> None:
+    def print(self, data: list[dict[str, Any]], file: TextIO = sys.stdout) -> None:
         """Output the data objects."""
         for result in self.format(data):
-            print(result)
+            print(result, file=file)
 
 
 class YamlFormatter:
@@ -63,6 +66,8 @@ class YamlFormatter:
         ):
             yield line
 
-    def print(self, data: list[dict[str, Any]]) -> None:
+    def print(self, data: list[dict[str, Any]], file: TextIO = sys.stdout) -> None:
         """Format the data objects."""
-        print(yaml.dump_all(data, sort_keys=False, explicit_start=True), end="")
+        print(
+            yaml.dump_all(data, sort_keys=False, explicit_start=True), end="", file=file
+        )
