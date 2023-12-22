@@ -72,3 +72,9 @@ and helm releases, however, there may still be smaller patterns that are reusabl
 The `pytransitions` library supports an `AsyncMachine` that may be useful for
 representing this problem. It may be useful to start small and try using this
 for a sub-problem that is currently somewhat hairy.
+
+## Alternatives
+
+An attactive option may be to rewrite the entire thing on golang so that it can
+reuse the actual flux libraries. This is worth exploring in more detail, or
+possibly prototyping.
