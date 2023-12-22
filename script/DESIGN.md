@@ -11,8 +11,8 @@ the next set of needs.
 
 Here are some goals for v5:
 
-- Increase paralellism: For example, operations that need helm templating
-  currently dont' start until all other helm operations have finished. This
+- Increase parallelism: For example, operations that need helm templating
+  currently don't start until all other helm operations have finished. This
   may be able to happen if we can use `dependsOn` to ensure all pre-requisites
   are built (e.g. a `HelmRepository` may be from another fluxtomization).
 - Unnecessary kustomization building: When building a single kustomization,
