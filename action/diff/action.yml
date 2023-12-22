@@ -82,11 +82,9 @@ runs:
       with:
         ref: ${{ inputs.live-branch }}
         path: live
-    - name: flux-local diff
+    - name: Diff Resources
       id: flux_diff
       run: |
-        delimiter="$(openssl rand -hex 8)"
-        echo "diff<<${delimiter}" >> $GITHUB_OUTPUT
         if [[ "${{ inputs.resource }}" == "helmrelease" ]]; then
           extra_flags="--api-versions=${{ inputs.api-versions}}"
         else
@@ -106,7 +104,13 @@ runs:
             --all-namespaces \
             --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
             --sources "${{ inputs.sources }}" \
-            ${extra_flags} \
-            >> $GITHUB_OUTPUT
+            --output-file diff.patch \
+            ${extra_flags}
+    - name: Generate Diff output
+      id: flux_diff_output
+      run: |
+        delimiter="$(openssl rand -hex 8)"
+        echo "diff<<${delimiter}" >> $GITHUB_OUTPUT
+        cat diff.patch >> $GITHUB_OUTPUT
         echo "${delimiter}" >> $GITHUB_OUTPUT
       shell: bash
