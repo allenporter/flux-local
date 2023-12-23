@@ -11,10 +11,7 @@ from typing import Any, Optional, cast
 import aiofiles
 import yaml
 
-try:
-    from pydantic.v1 import BaseModel, Field
-except ImportError:
-    from pydantic import BaseModel, Field  # type: ignore
+from pydantic import BaseModel, Field
 
 from .exceptions import InputException
 
@@ -56,8 +53,6 @@ def _check_version(doc: dict[str, Any], version: str) -> None:
 class BaseManifest(BaseModel):
     """Base class for all manifest objects."""
 
-    _COMPACT_EXCLUDE_FIELDS: dict[str, Any] = {}
-
     def compact_dict(self, exclude: dict[str, Any] | None = None) -> dict[str, Any]:
         """Return a compact dictionary representation of the object.
 
@@ -65,14 +60,19 @@ class BaseManifest(BaseModel):
         with variable fields removed.
         """
         if exclude is None:
-            exclude = self._COMPACT_EXCLUDE_FIELDS
-        return self.dict(exclude=exclude, exclude_unset=True, exclude_none=True, exclude_defaults=True)  # type: ignore[arg-type]
+            exclude = self.compact_exclude_fields()
+        return self.model_dump(exclude=exclude, exclude_unset=True, exclude_none=True)
+
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {}
 
     @classmethod
     def parse_yaml(cls, content: str) -> "BaseManifest":
         """Parse a serialized manifest."""
         doc = next(yaml.load_all(content, Loader=yaml.Loader), None)
-        return cls.parse_obj(doc)
+        return cls.model_validate(doc)
 
     def yaml(self, exclude: dict[str, Any] | None = None) -> str:
         """Return a YAML string representation of compact_dict."""
@@ -131,7 +131,10 @@ class HelmChart(BaseManifest):
         """Identifier for the HelmChart."""
         return f"{self.repo_full_name}/{self.name}"
 
-    _COMPACT_EXCLUDE_FIELDS = {"version": True}
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {"version": True}
 
 
 class HelmRelease(BaseManifest):
@@ -185,10 +188,10 @@ class HelmRelease(BaseManifest):
         """Return the namespace and name concatenated as an id."""
         return f"{self.namespace}/{self.name}"
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "values": True,
-        "chart": HelmChart._COMPACT_EXCLUDE_FIELDS,
-    }
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {"values": True, "chart": HelmChart.compact_exclude_fields()}
 
 
 class HelmRepository(BaseManifest):
@@ -258,9 +261,12 @@ class ClusterPolicy(BaseManifest):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
         return ClusterPolicy(name=name, namespace=namespace, doc=doc)
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "doc": True,
-    }
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "doc": True,
+        }
 
 
 class Kustomization(BaseManifest):
@@ -347,20 +353,23 @@ class Kustomization(BaseManifest):
         """Return the namespace and name concatenated as an id."""
         return f"{self.namespace}/{self.name}"
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "helm_releases": {
-            "__all__": HelmRelease._COMPACT_EXCLUDE_FIELDS,
-        },
-        "cluster_policies": {
-            "__all__": ClusterPolicy._COMPACT_EXCLUDE_FIELDS,
-        },
-        "source_path": True,
-        "source_name": True,
-        "source_namespace": True,
-        "source_kind": True,
-        "target_namespace": True,
-        "contents": True,
-    }
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "helm_releases": {
+                "__all__": HelmRelease.compact_exclude_fields(),
+            },
+            "cluster_policies": {
+                "__all__": ClusterPolicy.compact_exclude_fields(),
+            },
+            "source_path": True,
+            "source_name": True,
+            "source_namespace": True,
+            "source_kind": True,
+            "target_namespace": True,
+            "contents": True,
+        }
 
 
 class Cluster(BaseManifest):
@@ -408,11 +417,14 @@ class Cluster(BaseManifest):
             for policy in kustomization.cluster_policies
         ]
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "kustomizations": {
-            "__all__": Kustomization._COMPACT_EXCLUDE_FIELDS,
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "kustomizations": {
+                "__all__": Kustomization.compact_exclude_fields(),
+            }
         }
-    }
 
 
 class Manifest(BaseManifest):
@@ -421,11 +433,14 @@ class Manifest(BaseManifest):
     clusters: list[Cluster]
     """A list of Clusters represented in the repo."""
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "clusters": {
-            "__all__": Cluster._COMPACT_EXCLUDE_FIELDS,
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "clusters": {
+                "__all__": Cluster.compact_exclude_fields(),
+            }
         }
-    }
 
 
 async def read_manifest(manifest_path: Path) -> Manifest:

@@ -19,9 +19,6 @@ jobs:
         python-version:
         - "3.10"
         - "3.11"
-        pydantic-install:
-        - "echo"
-        - "pip3 install pydantic==1.10.11"
 
     steps:
     - uses: actions/checkout@v4
@@ -35,9 +32,6 @@ jobs:
       run: |
         pip install -r requirements.txt
         pip install -e .
-    - name: Install extra packages
-      run: |
-        ${{ matrix.pydantic-install }}
     - uses: supplypike/setup-bin@v3
       with:
         uri: https://github.com/kyverno/kyverno/releases/download/v1.9.0/kyverno-cli_v1.9.0_linux_x86_64.tar.gz
