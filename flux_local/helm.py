@@ -250,36 +250,42 @@ def _find_object(name: str, namespace: str, objects: Sequence[_T]) -> _T | None:
     return None
 
 
-def _decode_config_or_secret_value(name: str, string_data: str | None, binary_data: str | None) -> dict[str, str]:
+def _decode_config_or_secret_value(
+    name: str, string_data: dict[str, str] | None, binary_data: dict[str, str] | None
+) -> dict[str, str] | None:
     """Return the config or secret data."""
     if binary_data:
         try:
             return {
-                k: base64.b64decode(v).decode("utf-8")
-                for k, v in binary_data.items()
+                k: base64.b64decode(v).decode("utf-8") for k, v in binary_data.items()
             }
         except ValueError:
-            raise HelmException(
-                f"Unable to decode binary data for configmap {name}"
-            )
+            raise HelmException(f"Unable to decode binary data for configmap {name}")
     return string_data
 
 
-
-def _get_secret_data(name: str, namespace: str, ks: Kustomization) -> dict[str, str] | None:
+def _get_secret_data(
+    name: str, namespace: str, ks: Kustomization
+) -> dict[str, str] | None:
     """Find the secret value in the kustomization."""
     found: Secret | None = _find_object(name, namespace, ks.secrets)
     if not found:
         return None
-    return _decode_config_or_secret_value(f"{namespace}/{name}", found.string_data, found.data)
+    return _decode_config_or_secret_value(
+        f"{namespace}/{name}", found.string_data, found.data
+    )
 
 
-def _get_configmap_data(name: str, namespace: str, ks: Kustomization) -> dict[str, str] | None:
+def _get_configmap_data(
+    name: str, namespace: str, ks: Kustomization
+) -> dict[str, str] | None:
     """Find the configmap value in the kustomization."""
     found: ConfigMap | None = _find_object(name, namespace, ks.config_maps)
     if not found:
         return None
-    return _decode_config_or_secret_value(f"{namespace}/{name}", found.data, found.binary_data)
+    return _decode_config_or_secret_value(
+        f"{namespace}/{name}", found.data, found.binary_data
+    )
 
 
 def expand_value_references(
@@ -292,7 +298,7 @@ def expand_value_references(
     values = helm_release.values or {}
     for ref in helm_release.values_from:
         _LOGGER.debug("Expanding value reference %s", ref)
-        found_data: str | None = None
+        found_data: dict[str, str] | None = None
         if ref.kind == SECRET_KIND:
             found_data = _get_secret_data(
                 ref.name, helm_release.namespace, kustomization
@@ -309,11 +315,11 @@ def expand_value_references(
             )
             continue
 
-        if not found_data:
+        if found_data is None:
             if not ref.optional:
                 _LOGGER.warning(
                     "Unable to find %s %s/%s referenced in HelmRelease %s",
-                    ref.kind.
+                    ref.kind,
                     helm_release.namespace,
                     ref.name,
                     helm_release.namespaced_name,

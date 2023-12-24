@@ -150,7 +150,7 @@ class ValuesReference(BaseManifest):
     name: str
     """The name of the resource."""
 
-    values_key: str | None = Field(alias="valuesKey", default="values.yaml")
+    values_key: str = Field(alias="valuesKey", default="values.yaml")
     """The key in the resource that contains the values."""
 
     target_path: Optional[str] = Field(alias="targetPath", default=None)
@@ -195,9 +195,7 @@ class HelmRelease(BaseManifest):
         spec = doc["spec"]
         values_from: list[ValuesReference] | None = None
         if values_from_dict := spec.get("valuesFrom"):
-            values_from = [
-                ValuesReference(**subdoc) for subdoc in values_from_dict
-            ]
+            values_from = [ValuesReference(**subdoc) for subdoc in values_from_dict]
         return cls(
             name=name,
             namespace=namespace,
