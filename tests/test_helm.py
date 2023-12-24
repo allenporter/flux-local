@@ -8,6 +8,7 @@ from aiofiles.os import mkdir
 from syrupy.assertion import SnapshotAssertion
 
 from flux_local import kustomize
+from flux_local.exceptions import HelmException
 from flux_local.helm import Helm, expand_value_references
 from flux_local.manifest import (
     HelmRelease,
@@ -130,3 +131,40 @@ def test_values_references_with_values_key() -> None:
             "path": "example_value",
         },
     }
+
+
+def test_values_references_invalid_yaml() -> None:
+    """Test for expanding a value reference with a values key."""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values={"test": "test"},
+        values_from=[
+            ValuesReference(
+                kind="ConfigMap",
+                namespace="test",
+                name="test-values-configmap",
+            )
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+        config_maps=[
+            ConfigMap(
+                name="test-values-configmap",
+                namespace="test",
+                data={"values.yaml": "not-yaml"},
+            )
+        ],
+    )
+    with pytest.raises(HelmException, match=r"valid yaml"):
+        expand_value_references(hr, ks)
