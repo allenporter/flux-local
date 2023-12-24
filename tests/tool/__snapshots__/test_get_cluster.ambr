@@ -241,6 +241,7 @@
           repo_namespace: flux-system
         images:
         - ghcr.io/stefanprodan/podinfo:6.5.4
+        - public.ecr.aws/docker/library/redis:7.0.6
       cluster_policies: []
       config_maps:
       - name: podinfo-values
@@ -284,6 +285,7 @@
           repo_namespace: flux-system
         images:
         - ghcr.io/stefanprodan/podinfo:6.5.4
+        - public.ecr.aws/docker/library/redis:7.0.6
       cluster_policies: []
       config_maps:
       - name: podinfo-values

@@ -1055,6 +1055,41 @@
       name: flux-system
   
   ---
+  # Source: podinfo/templates/redis/config.yaml
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  data:
+    redis.conf: |
+      maxmemory 64mb
+      maxmemory-policy allkeys-lru
+      save ""
+      appendonly no
+  ---
+  # Source: podinfo/templates/redis/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo-redis
+    labels:
+      app: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    type: ClusterIP
+    selector:
+      app: podinfo-redis
+    ports:
+    - name: redis
+      port: 6379
+      protocol: TCP
+      targetPort: redis
+  ---
   # Source: podinfo/templates/service.yaml
   apiVersion: v1
   kind: Service
@@ -1066,8 +1101,8 @@
       app.kubernetes.io/version: "6.5.4"
       app.kubernetes.io/managed-by: Helm
     annotations:
-      config.kubernetes.io/index: '0'
-      internal.config.kubernetes.io/index: '0'
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
   spec:
     type: ClusterIP
     ports:
@@ -1093,8 +1128,8 @@
       app.kubernetes.io/version: "6.5.4"
       app.kubernetes.io/managed-by: Helm
     annotations:
-      config.kubernetes.io/index: '1'
-      internal.config.kubernetes.io/index: '1'
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
   spec:
     replicas: 1
     strategy:
@@ -1124,6 +1159,7 @@
           - --port-metrics=9797
           - --grpc-port=9999
           - --grpc-service-name=podinfo
+          - --cache-server=tcp://podinfo-redis:6379
           - --level=info
           - --random-delay=false
           - --random-error=false
@@ -1175,6 +1211,101 @@
         volumes:
         - name: data
           emptyDir: {}
+  ---
+  # Source: podinfo/templates/redis/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: podinfo-redis
+    labels:
+      app: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    strategy:
+      type: Recreate
+    selector:
+      matchLabels:
+        app: podinfo-redis
+    template:
+      metadata:
+        labels:
+          app: podinfo-redis
+        annotations:
+          checksum/config: "34c601c9d39797bbf53d1c7a278976609301f637ec11dc0253563729dfad4f8e"
+      spec:
+        containers:
+        - name: redis
+          image: "public.ecr.aws/docker/library/redis:7.0.6"
+          imagePullPolicy: IfNotPresent
+          command:
+          - redis-server
+          - "/redis-master/redis.conf"
+          ports:
+          - name: redis
+            containerPort: 6379
+            protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+              - redis-cli
+              - ping
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 32Mi
+          volumeMounts:
+          - mountPath: /var/lib/redis
+            name: data
+          - mountPath: /redis-master
+            name: config
+        volumes:
+        - name: data
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: podinfo-redis
+            items:
+            - key: redis.conf
+              path: redis.conf
+  ---
+  # Source: podinfo/templates/ingress.yaml
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.5.4
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.5.4"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    ingressClassName: nginx
+    rules:
+    - host: "podinfo.production"
+      http:
+        paths:
+        - path: /
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: podinfo
+              port:
+                number: 9898
   
   
   '''

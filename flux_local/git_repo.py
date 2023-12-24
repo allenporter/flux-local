@@ -42,7 +42,7 @@ from typing import Any, Generator
 
 import git
 
-from . import kustomize
+from . import kustomize, helm
 from .exceptions import FluxException, KustomizePathException
 from .manifest import (
     CRD_KIND,
@@ -694,12 +694,12 @@ async def build_manifest(
         await asyncio.gather(*kustomization_tasks)
 
         # Handle any HelmRelease value references
-        # for cluster in clusters:
-        #     for kustomization in cluster.kustomizations:
-        #         kustomization.helm_releases = [
-        #             expand_value_references(helm_release, kustomization)
-        #             for helm_release in kustomization.helm_releases
-        #         ]
+        for cluster in clusters:
+            for kustomization in cluster.kustomizations:
+                kustomization.helm_releases = [
+                    helm.expand_value_references(helm_release, kustomization)
+                    for helm_release in kustomization.helm_releases
+                ]
                   
 
         # Visit Helm resources
