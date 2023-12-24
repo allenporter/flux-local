@@ -947,7 +947,6 @@
     valuesFrom:
     - kind: ConfigMap
       name: podinfo-values
-      valuesKey: podinfo-values.yaml
     - kind: Secret
       name: podinfo-tls-values
       optional: true
@@ -956,18 +955,19 @@
   ---
   apiVersion: v1
   data:
-    ingress:
-      className: nginx
-      enabled: true
-      hosts:
-      - host: podinfo.production
-        paths:
-        - path: /
-          pathType: ImplementationSpecific
-    redis:
-      enabled: true
-      repository: public.ecr.aws/docker/library/redis
-      tag: 7.0.6
+    values.yaml: |-
+      redis:
+        enabled: true
+        repository: public.ecr.aws/docker/library/redis
+        tag: 7.0.6
+      ingress:
+        enabled: true
+        className: nginx
+        hosts:
+          - host: podinfo.production
+            paths:
+              - path: /
+                pathType: ImplementationSpecific
   kind: ConfigMap
   metadata:
     labels:
