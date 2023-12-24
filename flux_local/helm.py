@@ -317,7 +317,7 @@ def expand_value_references(
                 helm_release.namespaced_name,
             )
             continue
-        if ref.values_key not in found_data:
+        if (found_data := found_data.get(ref.values_key)) is None:
             _LOGGER.warning(
                 "Unable to find key %s in %s/%s referenced in HelmRelease %s",
                 ref.values_key,
@@ -327,9 +327,6 @@ def expand_value_references(
             )
             continue
 
-        found_data = found_data.get(ref.values_key)
-        if found_data is None:
-            continue
         if ref.target_path:
             _LOGGER.debug("Updating %s with %s", ref.target_path, found_data)
             parts = ref.target_path.split(".")
