@@ -207,8 +207,20 @@
     - name: apps
       namespace: flux-system
       path: tests/testdata/cluster8/apps
-      helm_repos: []
-      helm_releases: []
+      helm_repos:
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.5.4
       cluster_policies: []
       images:
       - alpine
@@ -231,8 +243,18 @@
     - name: apps
       namespace: flux-system
       path: tests/testdata/cluster8/apps
-      helm_repos: []
-      helm_releases: []
+      helm_repos:
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
       cluster_policies: []
     - name: flux-system
       namespace: flux-system
