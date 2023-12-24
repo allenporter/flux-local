@@ -168,3 +168,48 @@ def test_values_references_invalid_yaml() -> None:
     )
     with pytest.raises(HelmException, match=r"valid yaml"):
         expand_value_references(hr, ks)
+
+
+
+def test_values_reference_invalid_configmap_and_secret() -> None:
+    """Test a values reference to a config map and secret that do not exist."""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values={"test": "test"},
+        values_from=[
+            ValuesReference(
+                kind="ConfigMap",
+                namespace="test",
+                name="test-values-configmap",
+                optional=False,  # We just log
+            ),
+            ValuesReference(
+                kind="Secret",
+                namespace="test",
+                name="test-values-secret",
+                optional=False,  # We just log
+            ),
+            ValuesReference(
+                kind="UnknownKind",
+                namespace="test",
+                name="test-values-secret",
+            )
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+        config_maps=[],
+    )
+    updated_hr = expand_value_references(hr, ks)
+    # No changes to the values
+    assert updated_hr.values == {'test': 'test'}
