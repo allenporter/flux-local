@@ -55,6 +55,7 @@ from .manifest import (
     CONFIG_MAP_KIND,
     ConfigMap,
     Secret,
+    VALUE_PLACEHOLDER,
 )
 from .exceptions import HelmException
 
@@ -324,9 +325,13 @@ def expand_value_references(
                     ref.name,
                     helm_release.namespaced_name,
                 )
-            continue
-
-        if (found_value := found_data.get(ref.values_key)) is None:
+            if ref.target_path:
+                # When a target path is specified, the value is expected to be
+                # a simple value type. Create a synthetic placeholder value
+                found_value = VALUE_PLACEHOLDER
+            else:
+                continue
+        elif (found_value := found_data.get(ref.values_key)) is None:
             _LOGGER.warning(
                 "Unable to find key %s in %s/%s referenced in HelmRelease %s",
                 ref.values_key,
