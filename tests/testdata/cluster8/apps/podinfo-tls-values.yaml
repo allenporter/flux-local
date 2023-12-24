@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: podinfo-tls-values
+data:
+  crt: dmFsdWUtMg0KDQo=

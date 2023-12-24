@@ -5,3 +5,4 @@ resources:
   - pods.yaml
   - podinfo.yaml
   - podinfo-values.yaml
+  - podinfo-tls-values.yaml

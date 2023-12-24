@@ -269,6 +269,84 @@ class ClusterPolicy(BaseManifest):
         }
 
 
+class ConfigMap(BaseManifest):
+    """A ConfigMap is an API object used to store data in key-value pairs."""
+
+    name: str
+    """The name of the kustomization."""
+
+    namespace: str | None = None
+    """The namespace of the kustomization."""
+
+    data: dict[str, Any] | None = None
+    """The data in the ConfigMap."""
+
+    binaryData: dict[str, Any] | None = None
+    """The binary data in the ConfigMap."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "ConfigMap":
+        """Parse a config map object from a kubernetes resource."""
+        _check_version(doc, "v1")
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        namespace = metadata.get("namespace")
+        return ConfigMap(name=name, namespace=namespace, data=doc.get("data"), binaryData=doc.get("binaryData"))
+
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "data": True,
+            "binaryData": True,
+        }
+
+
+class Secret(BaseManifest):
+    """A Secret contains a small amount of sensitive data."""
+
+    name: str
+    """The name of the kustomization."""
+
+    namespace: str | None = None
+    """The namespace of the kustomization."""
+
+    data: dict[str, Any] | None = None
+    """The data in the Secret."""
+
+    stringData: dict[str, Any] | None = None
+    """The string data in the Secret."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "Secret":
+        """Parse a secret object from a kubernetes resource."""
+        _check_version(doc, "v1")
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        namespace = metadata.get("namespace")
+        # While secrets are not typically stored in the cluster, we replace with
+        # placeholder values anyway.
+        if data := doc.get("data"):
+            for key, value in data.items():
+                data[key] = "**PLACEHOLDER**"
+        if stringData := doc.get("stringData"):
+            for key, value in stringData.items():
+                data[key] = "**PLACEHOLDER**"
+        return Secret(name=name, namespace=namespace, data=data, stringData=stringData)
+
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "data": True,
+            "stringData": True,
+        }
+
+
 class Kustomization(BaseManifest):
     """A Kustomization is a set of declared cluster artifacts.
 
@@ -294,6 +372,12 @@ class Kustomization(BaseManifest):
 
     cluster_policies: list[ClusterPolicy] = Field(default_factory=list)
     """The set of ClusterPolicies represented in this kustomization."""
+
+    config_maps: list[str] = Field(default_factory=list)
+    """The list of config maps referenced in the kustomization."""
+
+    secrets: list[str] = Field(default_factory=list)
+    """The list of secrets referenced in the kustomization."""
 
     source_path: str | None = None
     """Optional source path for this Kustomization, relative to the build path."""
@@ -362,6 +446,12 @@ class Kustomization(BaseManifest):
             },
             "cluster_policies": {
                 "__all__": ClusterPolicy.compact_exclude_fields(),
+            },
+            "config_maps": {
+                "__all__": ConfigMap.compact_exclude_fields(),
+            },
+            "secrets": {
+                "__all__": Secret.compact_exclude_fields(),
             },
             "source_path": True,
             "source_name": True,

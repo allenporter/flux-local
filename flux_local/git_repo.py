@@ -54,6 +54,8 @@ from .manifest import (
     HelmRepository,
     Kustomization,
     Manifest,
+    ConfigMap,
+    Secret,
     SECRET_KIND,
 )
 from .exceptions import InputException
@@ -73,6 +75,8 @@ CLUSTER_KUSTOMIZE_KIND = "Kustomization"
 KUSTOMIZE_KIND = "Kustomization"
 HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
+CONFIG_MAP_KIND = "ConfigMap"
+SECRET_KIND = "Secret"
 CLUSTER_POLICY_KIND = "ClusterPolicy"
 GIT_REPO_KIND = "GitRepository"
 OCI_REPO_KIND = "OCIRepository"
@@ -509,7 +513,7 @@ async def build_kustomization(
     selector: ResourceSelector,
     kustomize_flags: list[str],
     builder: CachableBuilder,
-) -> tuple[Iterable[HelmRepository], Iterable[HelmRelease], Iterable[ClusterPolicy]]:
+) -> tuple[Iterable[HelmRepository], Iterable[HelmRelease], Iterable[ClusterPolicy], Iterable[ConfigMap], Iterable[Secret]]:
     """Build helm objects for the Kustomization."""
 
     root: Path = selector.path.root
@@ -555,6 +559,9 @@ async def build_kustomization(
             kinds.append(HELM_REPO_KIND)
         if helm_release_selector.enabled:
             kinds.append(HELM_RELEASE_KIND)
+            # Needed for expanding value references
+            kinds.append(CONFIG_MAP_KIND)
+            kinds.append(SECRET_KIND)
         if cluster_policy_selector.enabled:
             kinds.append(CLUSTER_POLICY_KIND)
         if selector.doc_visitor:
@@ -599,6 +606,16 @@ async def build_kustomization(
                     if doc.get("kind") == CLUSTER_POLICY_KIND
                 ],
             ),
+            [
+                ConfigMap.parse_doc(doc)
+                for doc in docs
+                if doc.get("kind") == CONFIG_MAP_KIND
+            ],
+            [
+                Secret.parse_doc(doc)
+                for doc in docs
+                if doc.get("kind") == SECRET_KIND
+            ],
         )
 
 
@@ -653,13 +670,15 @@ async def build_manifest(
                     )
                 )
             results = list(await asyncio.gather(*build_tasks))
-            for kustomization, (helm_repos, helm_releases, cluster_policies) in zip(
+            for kustomization, (helm_repos, helm_releases, cluster_policies, config_maps, secrets) in zip(
                 cluster.kustomizations,
                 results,
             ):
                 kustomization.helm_repos = list(helm_repos)
                 kustomization.helm_releases = list(helm_releases)
                 kustomization.cluster_policies = list(cluster_policies)
+                kustomization.config_maps = list(config_maps)
+                kustomization.secrets = list(secrets)
 
         kustomization_tasks = []
         # Expand and visit Kustomizations
