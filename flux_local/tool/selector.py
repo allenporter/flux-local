@@ -219,6 +219,8 @@ def build_cluster_selector(  # type: ignore[no-untyped-def]
     if kwargs.get("all_namespaces"):
         selector.cluster.namespace = None
         selector.kustomization.namespace = None
+    selector.kustomization.skip_crds = kwargs["skip_crds"]
+    selector.kustomization.skip_secrets = kwargs["skip_secrets"]
     return selector
 
 

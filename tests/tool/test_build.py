@@ -24,7 +24,7 @@ from . import run_command
                 "batch/v1/CronJob",
             ]
         ),
-        (["--enable-helm", "tests/testdata/cluster8/"]),
+        (["--enable-helm", "--no-skip-secrets", "tests/testdata/cluster8/"]),
     ],
     ids=[
         "build",

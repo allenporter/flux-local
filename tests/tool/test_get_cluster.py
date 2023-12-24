@@ -29,7 +29,7 @@ from . import run_command
         (["--path", "tests/testdata/cluster", "-o", "yaml"]),
         (["--path", "tests/testdata/cluster", "-o", "yaml", "--enable-images"]),
         (["--path", "tests/testdata/cluster8", "-o", "yaml"]),
-        (["--path", "tests/testdata/cluster8", "-o", "yaml", "--enable-images"]),
+        (["--path", "tests/testdata/cluster8", "-o", "yaml", "--enable-images", "--no-skip-secrets"]),
     ],
     ids=[
         "cluster",

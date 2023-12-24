@@ -978,6 +978,19 @@
     annotations:
       config.kubernetes.io/index: '4'
       internal.config.kubernetes.io/index: '4'
+  ---
+  apiVersion: v1
+  data:
+    crt: dmFsdWUtMg0KDQo=
+  kind: Secret
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo-tls-values
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
   
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
