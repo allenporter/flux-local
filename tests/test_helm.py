@@ -116,7 +116,7 @@ def test_values_references_with_values_key() -> None:
                 namespace="test",
                 name="test-binary-data-configmap",
                 valuesKey="some-key",
-            )
+            ),
         ],
     )
     ks = Kustomization(
@@ -133,8 +133,12 @@ def test_values_references_with_values_key() -> None:
             ConfigMap(
                 name="test-binary-data-configmap",
                 namespace="test",
-                binary_data={"some-key": base64.b64encode("encoded_key: encoded_value".encode("utf-8"))},
-            )
+                binary_data={
+                    "some-key": base64.b64encode(
+                        "encoded_key: encoded_value".encode("utf-8")
+                    )
+                },
+            ),
         ],
     )
     updated_hr = expand_value_references(hr, ks)
@@ -225,7 +229,6 @@ def test_values_references_invalid_yaml() -> None:
         expand_value_references(hr, ks)
 
 
-
 def test_values_references_invalid_binary_data() -> None:
     """Test for expanding a value reference with an invalid binary data key."""
     hr = HelmRelease(
@@ -263,7 +266,6 @@ def test_values_references_invalid_binary_data() -> None:
         expand_value_references(hr, ks)
 
 
-
 def test_values_reference_invalid_target_path() -> None:
     """Test for expanding a value reference with a values key."""
     hr = HelmRelease(
@@ -299,7 +301,8 @@ def test_values_reference_invalid_target_path() -> None:
             ConfigMap(
                 name="test-values-configmap",
                 namespace="test",
-                data={"some-key": "example_value"},            )
+                data={"some-key": "example_value"},
+            )
         ],
     )
     with pytest.raises(HelmException, match=r"values to be a dict"):
@@ -335,7 +338,7 @@ def test_values_reference_invalid_configmap_and_secret() -> None:
                 kind="UnknownKind",
                 namespace="test",
                 name="test-values-secret",
-            )
+            ),
         ],
     )
     ks = Kustomization(
@@ -347,8 +350,7 @@ def test_values_reference_invalid_configmap_and_secret() -> None:
     )
     updated_hr = expand_value_references(hr, ks)
     # No changes to the values
-    assert updated_hr.values == {'test': 'test'}
-
+    assert updated_hr.values == {"test": "test"}
 
 
 def test_values_references_secret() -> None:
@@ -377,7 +379,7 @@ def test_values_references_secret() -> None:
                 name="test-string-values-secret",
                 valuesKey="some-key2",
                 targetPath="target.path2",
-            )
+            ),
         ],
     )
     ks = Kustomization(
@@ -418,7 +420,7 @@ def test_values_references_secret() -> None:
     assert updated_hr.values == {
         "test": "test",
         "target": {
-            "path1": "****PLACEHOLDER**",
-            "path2": "****PLACEHOLDER**",
-        }
+            "path1": "**PLACEHOLDER**",
+            "path2": "**PLACEHOLDER**",
+        },
     }
