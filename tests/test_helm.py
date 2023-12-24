@@ -225,6 +225,44 @@ def test_values_references_invalid_yaml() -> None:
 
 
 
+def test_values_references_invalid_binary_data() -> None:
+    """Test for expanding a value reference with an invalid binary data key."""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values={"test": "test"},
+        values_from=[
+            ValuesReference(
+                kind="ConfigMap",
+                namespace="test",
+                name="test-values-configmap",
+            )
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+        config_maps=[
+            ConfigMap(
+                name="test-values-configmap",
+                namespace="test",
+                binary_data={"values.yaml": "this is not base64 data"},
+            )
+        ],
+    )
+    with pytest.raises(HelmException, match=r"Unable to decode binary data"):
+        expand_value_references(hr, ks)
+
+
+
 def test_values_reference_invalid_target_path() -> None:
     """Test for expanding a value reference with a values key."""
     hr = HelmRelease(
