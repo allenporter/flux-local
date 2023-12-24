@@ -7,6 +7,12 @@
           dict({
             'cluster_policies': list([
             ]),
+            'config_maps': list([
+              dict({
+                'name': 'podinfo-config',
+                'namespace': 'podinfo',
+              }),
+            ]),
             'helm_releases': list([
               dict({
                 'chart': dict({
@@ -23,9 +29,13 @@
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -34,12 +44,16 @@
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
               }),
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -66,9 +80,13 @@
             'name': 'infra-configs',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/configs',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
               dict({
@@ -95,6 +113,8 @@
             'name': 'infra-controllers',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/controllers',
+            'secrets': list([
+            ]),
           }),
         ]),
         'path': 'tests/testdata/cluster',
@@ -116,6 +136,8 @@
           dict({
             'cluster_policies': list([
             ]),
+            'config_maps': list([
+            ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
@@ -123,9 +145,13 @@
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -134,12 +160,16 @@
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
               }),
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -166,9 +196,13 @@
             'name': 'infra-configs',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/configs',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -177,6 +211,8 @@
             'name': 'infra-controllers',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/controllers',
+            'secrets': list([
+            ]),
           }),
         ]),
         'path': 'tests/testdata/cluster',
@@ -191,6 +227,12 @@
         'kustomizations': list([
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
+              dict({
+                'name': 'podinfo-config',
+                'namespace': 'podinfo',
+              }),
             ]),
             'helm_releases': list([
               dict({
@@ -208,9 +250,13 @@
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -219,12 +265,16 @@
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
               }),
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -251,9 +301,13 @@
             'name': 'infra-configs',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/configs',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
               dict({
@@ -280,6 +334,8 @@
             'name': 'infra-controllers',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/controllers',
+            'secrets': list([
+            ]),
           }),
         ]),
         'path': 'tests/testdata/cluster',
@@ -314,6 +370,12 @@
           dict({
             'cluster_policies': list([
             ]),
+            'config_maps': list([
+              dict({
+                'name': 'podinfo-config',
+                'namespace': 'podinfo',
+              }),
+            ]),
             'helm_releases': list([
               dict({
                 'chart': dict({
@@ -330,9 +392,13 @@
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -341,12 +407,16 @@
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
               }),
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -355,9 +425,13 @@
             'name': 'infra-configs',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/configs',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
               dict({
@@ -384,6 +458,8 @@
             'name': 'infra-controllers',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/controllers',
+            'secrets': list([
+            ]),
           }),
         ]),
         'path': 'tests/testdata/cluster',
@@ -398,6 +474,12 @@
         'kustomizations': list([
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
+              dict({
+                'name': 'podinfo-config',
+                'namespace': 'podinfo',
+              }),
             ]),
             'helm_releases': list([
               dict({
@@ -415,9 +497,13 @@
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -426,12 +512,16 @@
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
               }),
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -458,9 +548,13 @@
             'name': 'infra-configs',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/configs',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
               dict({
@@ -487,6 +581,8 @@
             'name': 'infra-controllers',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/controllers',
+            'secrets': list([
+            ]),
           }),
         ]),
         'path': 'tests/testdata/cluster',
@@ -519,31 +615,31 @@
       "Build 'flux-system/cluster'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-ingress-nginx'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-ingress-nginx-certificates'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/cluster'": dict({
@@ -596,13 +692,13 @@
       "Build 'flux-system/namespaces'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/tenants'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/namespaces'": dict({
@@ -634,19 +730,19 @@
       "Build 'flux-system/cluster'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/cluster'": dict({
@@ -685,7 +781,7 @@
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/flux-system'": dict({
@@ -710,13 +806,13 @@
       "Build 'flux-system/apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/apps'": dict({
@@ -748,19 +844,19 @@
       "Build 'flux-system/apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/charts'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/apps'": dict({
@@ -799,25 +895,25 @@
       "Build 'flux-system/apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/infra-configs'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/infra-controllers'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/apps'": dict({
@@ -876,6 +972,12 @@
           dict({
             'cluster_policies': list([
             ]),
+            'config_maps': list([
+              dict({
+                'name': 'podinfo-config',
+                'namespace': 'podinfo',
+              }),
+            ]),
             'helm_releases': list([
               dict({
                 'chart': dict({
@@ -892,9 +994,13 @@
             'name': 'apps',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/apps/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -903,12 +1009,16 @@
             'name': 'flux-system',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/clusters/prod',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
               dict({
                 'name': 'test-allow-policy',
               }),
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
             ]),
@@ -935,9 +1045,13 @@
             'name': 'infra-configs',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/configs',
+            'secrets': list([
+            ]),
           }),
           dict({
             'cluster_policies': list([
+            ]),
+            'config_maps': list([
             ]),
             'helm_releases': list([
               dict({
@@ -964,6 +1078,8 @@
             'name': 'infra-controllers',
             'namespace': 'flux-system',
             'path': 'tests/testdata/cluster/infrastructure/controllers',
+            'secrets': list([
+            ]),
           }),
         ]),
         'path': 'tests/testdata/cluster',

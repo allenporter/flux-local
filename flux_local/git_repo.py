@@ -693,6 +693,15 @@ async def build_manifest(
             kustomization_tasks.append(update_kustomization(cluster))
         await asyncio.gather(*kustomization_tasks)
 
+        # Handle any HelmRelease value references
+        # for cluster in clusters:
+        #     for kustomization in cluster.kustomizations:
+        #         kustomization.helm_releases = [
+        #             expand_value_references(helm_release, kustomization)
+        #             for helm_release in kustomization.helm_releases
+        #         ]
+                  
+
         # Visit Helm resources
         for cluster in clusters:
             if selector.helm_repo.visitor:
