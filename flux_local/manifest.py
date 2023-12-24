@@ -147,13 +147,13 @@ class ValuesReference(BaseManifest):
     name: str
     """The name of the resource."""
 
-    values_key: str | None = Field(alias="valuesKey")
+    values_key: str | None = Field(alias="valuesKey", default="values.yaml")
     """The key in the resource that contains the values."""
 
-    target_path: str | None = Field(alias="targetPath")
+    target_path: Optional[str] = Field(alias="targetPath", default=None)
     """The path in the HelmRelease values to store the values."""
 
-    optional: bool
+    optional: bool = False
     """Whether the reference is optional."""
 
 
@@ -193,7 +193,7 @@ class HelmRelease(BaseManifest):
         values_from: list[ValuesReference] | None = None
         if values_from_dict := spec.get("valuesFrom"):
             values_from = [
-                ValuesReference.model_construct(**subdoc) for subdoc in values_from_dict
+                ValuesReference(**subdoc) for subdoc in values_from_dict
             ]
         return cls(
             name=name,

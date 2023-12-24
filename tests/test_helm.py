@@ -9,7 +9,14 @@ from syrupy.assertion import SnapshotAssertion
 
 from flux_local import kustomize
 from flux_local.helm import Helm, expand_value_references
-from flux_local.manifest import HelmRelease, HelmRepository
+from flux_local.manifest import (
+    HelmRelease,
+    HelmRepository,
+    ValuesReference,
+    ConfigMap,
+    Kustomization,
+    HelmChart,
+)
 from flux_local.git_repo import ResourceSelector, PathSelector, build_manifest
 
 REPO_DIR = Path("tests/testdata/cluster/infrastructure/configs")
@@ -67,7 +74,7 @@ async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None
 
 
 async def test_value_references(snapshot: SnapshotAssertion) -> None:
-    """Test for expanding value references.""" 
+    """Test for expanding value references."""
     path = Path("tests/testdata/cluster8")
     selector = ResourceSelector(path=PathSelector(path=path))
     manifest = await build_manifest(selector=selector)
@@ -78,7 +85,48 @@ async def test_value_references(snapshot: SnapshotAssertion) -> None:
     assert len(ks.helm_releases) == 1
     hr = ks.helm_releases[0]
     assert hr.name == "podinfo"
-    assert not hr.values
+    assert hr.values == snapshot
 
+
+def test_values_references_with_values_key() -> None:
+    """Test for expanding a value reference with a values key."""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values={"test": "test"},
+        values_from=[
+            ValuesReference(
+                kind="ConfigMap",
+                namespace="test",
+                name="test-values-configmap",
+                valuesKey="some-key",
+                targetPath="target.path",
+            )
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+        config_maps=[
+            ConfigMap(
+                name="test-values-configmap",
+                namespace="test",
+                data={"some-key": "example_value"},
+            )
+        ],
+    )
     updated_hr = expand_value_references(hr, ks)
-    assert updated_hr.values == snapshot
+    assert updated_hr.values == {
+        "test": "test",
+        "target": {
+            "path": "example_value",
+        },
+    }

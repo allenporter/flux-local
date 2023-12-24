@@ -5,15 +5,16 @@ metadata:
   namespace: podinfo
   name: podinfo-values
 data:
-  redis:
-    enabled: true
-    repository: public.ecr.aws/docker/library/redis
-    tag: 7.0.6
-  ingress:
-    enabled: true
-    className: nginx
-    hosts:
-      - host: podinfo.production
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
+  values.yaml: |-
+    redis:
+      enabled: true
+      repository: public.ecr.aws/docker/library/redis
+      tag: 7.0.6
+    ingress:
+      enabled: true
+      className: nginx
+      hosts:
+        - host: podinfo.production
+          paths:
+            - path: /
+              pathType: ImplementationSpecific

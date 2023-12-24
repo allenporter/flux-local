@@ -30,7 +30,6 @@ spec:
   valuesFrom:
     - kind: ConfigMap
       name: podinfo-values
-      valuesKey: podinfo-values.yaml
     - kind: Secret
       name: podinfo-tls-values
       valuesKey: crt

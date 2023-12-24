@@ -51,6 +51,8 @@ from .manifest import (
     REPO_TYPE_OCI,
     Kustomization,
     CONFIG_MAP_KIND,
+    ConfigMap,
+    Secret,
 )
 from .exceptions import HelmException
 
@@ -235,8 +237,41 @@ class Helm:
         return cmd
 
 
+def _find_object(name: str, namespace: str, objects: list[ConfigMap | Secret]) -> dict[str, Any] | None:
+    """Find the object in the list of objects."""
+    return next(
+        filter(
+            lambda obj: obj.name == name
+            and obj.namespace == namespace,
+            objects,
+        ),
+        None,
+    )
+
+
+
+def _get_secret_data(name: str, namespace: str, ks: Kustomization) -> dict[str, Any] | None:
+    """Find the secret value in the kustomization."""
+    found = _find_object(name, namespace, ks.secrets)
+    if not found:
+        return None
+    if found.string_data:
+        return found.string_data
+    return found.data
+
+
+def _get_configmap_data(name: str, namespace: str, ks: Kustomization) -> dict[str, Any] | None:
+    """Find the configmap value in the kustomization."""
+    found = _find_object(name, namespace, ks.config_maps)
+    if not found:
+        return None
+    if found.binary_data:
+        return found.binary_data
+    return found.data
+
+
 def expand_value_references(
-    helm_release: HelmRelease, ks: Kustomization
+    helm_release: HelmRelease, kustomization: Kustomization
 ) -> HelmRelease:
     """Expand value references in the HelmRelease."""
     if not helm_release.values_from:
@@ -244,45 +279,66 @@ def expand_value_references(
 
     values = helm_release.values or {}
     for ref in helm_release.values_from:
+        _LOGGER.debug("Expanding value reference %s", ref)
+        found_data: dict[str, Any] | None = None
         if ref.kind == SECRET_KIND:
-            found_secret = next(
-                filter(lambda secret: secret.name == ref.name, ks.secrets), None
-            )
-            if found_secret:
-                if found_secret.data:
-                    values.update(found_secret.data)
-                if found_secret.string_data:
-                    values.update(found_secret.string_data)
-            else:
+            found_data = _get_secret_data(ref.name, helm_release.namespace, kustomization)
+            if not found_data:
                 if not ref.optional:
                     _LOGGER.warning(
-                        "Unable to find secret %s referenced in HelmRelease %s",
+                        "Unable to find secret %s/%s referenced in HelmRelease %s",
+                        hr.namespace,
                         ref.name,
-                        helm_release.name,
+                        helm_release.namespaced_name,
                     )
                 continue
         elif ref.kind == CONFIG_MAP_KIND:
-            found_configmap = next(
-                filter(lambda configmap: configmap.name == ref.name, ks.config_maps),
-                None,
-            )
-            if found_configmap:
-                if found_configmap.data:
-                    values.update(found_configmap.data)
-                if found_configmap.binary_data:
-                    values.update(found_configmap.binary_data)
-            else:
+            found_data = _get_configmap_data(ref.name, helm_release.namespace, kustomization)
+            if not found_data:
                 if not ref.optional:
                     _LOGGER.warning(
-                        "Unable to find configmap %s referenced in HelmRelease %s",
+                        "Unable to find configmap %s/%s referenced in HelmRelease %s",
+                        hr.namespace,
                         ref.name,
-                        helm_release.name,
+                        helm_release.namespaced_name,
                     )
                 continue
         else:
             _LOGGER.warning(
                 "Unsupported valueFrom kind %s in HelmRelease %s",
                 ref.kind,
-                helm_release.name,
+                helm_release.namespaced_name,
             )
+            continue
+        if ref.values_key not in found_data:
+            _LOGGER.warning(
+                "Unable to find key %s in %s/%s referenced in HelmRelease %s",
+                ref.values_key,
+                helm_release.namespace,
+                ref.name,
+                helm_release.namespaced_name,
+            )
+            continue
+
+        found_data = found_data.get(ref.values_key)
+        if found_data is None:
+            continue
+        if ref.target_path:
+            _LOGGER.debug("Updating %s with %s", ref.target_path, found_data)
+            parts = ref.target_path.split(".")
+            inner_values = values
+            for part in parts[:-1]:
+                if part not in inner_values:
+                    inner_values[part] = {}
+                elif not isinstance(inner_values[part], dict):
+                    raise ValueError(
+                        f"Expected '{ref.target_path}' values to be a dict, found {type(values)}"
+                    )
+                inner_values = inner_values[part]
+
+            inner_values[parts[-1]] = found_data
+        else:
+            obj = yaml.load(found_data, Loader=yaml.SafeLoader)
+            values.update(obj)
+
     return helm_release.model_copy(update={"values": values})
