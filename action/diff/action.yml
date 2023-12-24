@@ -110,6 +110,7 @@ runs:
     - name: Generate Diff output
       id: flux_diff_output
       run: |
+        wc -l diff.patch
         delimiter="$(openssl rand -hex 8)"
         echo "diff<<${delimiter}" >> $GITHUB_OUTPUT
         cat diff.patch >> $GITHUB_OUTPUT
