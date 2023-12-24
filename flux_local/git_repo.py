@@ -700,7 +700,6 @@ async def build_manifest(
                     helm.expand_value_references(helm_release, kustomization)
                     for helm_release in kustomization.helm_releases
                 ]
-                  
 
         # Visit Helm resources
         for cluster in clusters:

@@ -303,7 +303,9 @@ class DiffKustomizationAction:
                 ):
                     print(line, file=file)
             else:
-                result = perform_object_diff(orig_content, content, unified, limit_bytes)
+                result = perform_object_diff(
+                    orig_content, content, unified, limit_bytes
+                )
                 for line in result:
                     print(line, file=file)
 
@@ -416,7 +418,10 @@ class DiffHelmReleaseAction:
                     print(line, file=file)
             elif external_diff := os.environ.get("DIFF"):
                 async for line in perform_external_diff(
-                    shlex.split(external_diff), orig_helm_content, helm_content, limit_bytes
+                    shlex.split(external_diff),
+                    orig_helm_content,
+                    helm_content,
+                    limit_bytes,
                 ):
                     print(line, file=file)
             else:
