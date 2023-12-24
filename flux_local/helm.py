@@ -255,7 +255,7 @@ def _decode_config_or_secret_value(name: str, string_data: str | None, binary_da
     if binary_data:
         try:
             return {
-                k: base64.b64decode(v)
+                k: base64.b64decode(v).decode("utf-8")
                 for k, v in binary_data.items()
             }
         except ValueError:

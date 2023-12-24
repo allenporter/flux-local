@@ -5,6 +5,7 @@ serialized and stored and checked into the cluster for use in other applications
 e.g. such as writing management plan for resources.
 """
 
+import base64
 from pathlib import Path
 from typing import Any, Optional, cast
 
@@ -371,10 +372,10 @@ class Secret(BaseManifest):
         # placeholder values anyway.
         if data := doc.get("data"):
             for key, value in data.items():
-                data[key] = "**PLACEHOLDER**"
+                data[key] = base64.b64encode("**PLACEHOLDER**".encode())
         if string_data := doc.get("stringData"):
             for key, value in string_data.items():
-                data[key] = "**PLACEHOLDER**"
+                string_data[key] = "**PLACEHOLDER**"
         return Secret(
             name=name, namespace=namespace, data=data, string_data=string_data
         )

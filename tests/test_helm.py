@@ -15,6 +15,7 @@ from flux_local.manifest import (
     HelmRelease,
     HelmRepository,
     ValuesReference,
+    Secret,
     ConfigMap,
     Kustomization,
     HelmChart,
@@ -347,3 +348,77 @@ def test_values_reference_invalid_configmap_and_secret() -> None:
     updated_hr = expand_value_references(hr, ks)
     # No changes to the values
     assert updated_hr.values == {'test': 'test'}
+
+
+
+def test_values_references_secret() -> None:
+    """Test for expanding a value reference for a secret."""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values={"test": "test"},
+        values_from=[
+            ValuesReference(
+                kind="Secret",
+                namespace="test",
+                name="test-values-secret",
+                valuesKey="some-key1",
+                targetPath="target.path1",
+            ),
+            ValuesReference(
+                kind="Secret",
+                namespace="test",
+                name="test-string-values-secret",
+                valuesKey="some-key2",
+                targetPath="target.path2",
+            )
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+        secrets=[
+            Secret.parse_doc(
+                {
+                    "apiVersion": "v1",
+                    "kind": "Secret",
+                    "metadata": {
+                        "name": "test-values-secret",
+                        "namespace": "test",
+                    },
+                    "data": {
+                        "some-key1": base64.b64encode("example-value".encode("utf-8")),
+                    },
+                }
+            ),
+            Secret.parse_doc(
+                {
+                    "apiVersion": "v1",
+                    "kind": "Secret",
+                    "metadata": {
+                        "name": "test-string-values-secret",
+                        "namespace": "test",
+                    },
+                    "stringData": {
+                        "some-key2": "example-string-value",
+                    },
+                }
+            ),
+        ],
+    )
+    updated_hr = expand_value_references(hr, ks)
+    assert updated_hr.values == {
+        "test": "test",
+        "target": {
+            "path1": "****PLACEHOLDER**",
+            "path2": "****PLACEHOLDER**",
+        }
+    }
