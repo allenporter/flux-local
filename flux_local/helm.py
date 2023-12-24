@@ -32,6 +32,7 @@ for object in objects:
 ```
 """
 
+import base64
 from collections.abc import Sequence
 import datetime
 from dataclasses import dataclass
@@ -269,7 +270,15 @@ def _get_configmap_data(
     if not found:
         return None
     if found.binary_data:
-        return found.binary_data
+        try:
+            return {
+                k: base64.b64decode(v)
+                for k, v in found.binary_data.items()
+            }
+        except ValueError:
+            raise HelmException(
+                f"Unable to decode binary data for configmap {namespace}/{name}"
+            )
     return found.data
 
 

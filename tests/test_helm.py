@@ -1,5 +1,6 @@
 """Tests for helm library."""
 
+import base64
 from pathlib import Path
 from typing import Any, Generator
 
@@ -108,6 +109,12 @@ def test_values_references_with_values_key() -> None:
                 name="test-values-configmap",
                 valuesKey="some-key",
                 targetPath="target.path",
+            ),
+            ValuesReference(
+                kind="ConfigMap",
+                namespace="test",
+                name="test-binary-data-configmap",
+                valuesKey="some-key",
             )
         ],
     )
@@ -121,6 +128,11 @@ def test_values_references_with_values_key() -> None:
                 name="test-values-configmap",
                 namespace="test",
                 data={"some-key": "example_value"},
+            ),
+            ConfigMap(
+                name="test-binary-data-configmap",
+                namespace="test",
+                binary_data={"some-key": base64.b64encode("encoded_key: encoded_value".encode("utf-8"))},
             )
         ],
     )
@@ -130,6 +142,7 @@ def test_values_references_with_values_key() -> None:
         "target": {
             "path": "example_value",
         },
+        "encoded_key": "encoded_value",
     }
 
 
