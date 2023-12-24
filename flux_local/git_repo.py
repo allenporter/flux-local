@@ -57,6 +57,7 @@ from .manifest import (
     ConfigMap,
     Secret,
     SECRET_KIND,
+    CONFIG_MAP_KIND,
 )
 from .exceptions import InputException
 from .context import trace_context
@@ -76,7 +77,6 @@ KUSTOMIZE_KIND = "Kustomization"
 HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
 CONFIG_MAP_KIND = "ConfigMap"
-SECRET_KIND = "Secret"
 CLUSTER_POLICY_KIND = "ClusterPolicy"
 GIT_REPO_KIND = "GitRepository"
 OCI_REPO_KIND = "OCIRepository"

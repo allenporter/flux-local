@@ -36,6 +36,7 @@ HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
 CLUSTER_POLICY_DOMAIN = "kyverno.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
+CONFIG_MAP_KIND = "ConfigMap"
 DEFAULT_NAMESPACE = "flux-system"
 
 REPO_TYPE_DEFAULT = "default"
@@ -137,6 +138,25 @@ class HelmChart(BaseManifest):
         return {"version": True}
 
 
+class ValuesReference(BaseManifest):
+    """A reference to a resource containing values for a HelmRelease."""
+
+    kind: str
+    """The kind of resource."""
+
+    name: str
+    """The name of the resource."""
+
+    values_key: str | None = Field(alias="valuesKey")
+    """The key in the resource that contains the values."""
+
+    target_path: str | None = Field(alias="targetPath")
+    """The path in the HelmRelease values to store the values."""
+
+    optional: bool
+    """Whether the reference is optional."""
+
+
 class HelmRelease(BaseManifest):
     """A representation of a Flux HelmRelease."""
 
@@ -152,6 +172,9 @@ class HelmRelease(BaseManifest):
     values: Optional[dict[str, Any]] = None
     """The values to install in the chart."""
 
+    values_from: Optional[list[ValuesReference]]
+    """A list of values to reference from an ConfigMap or Secret."""
+
     images: list[str] = Field(default_factory=list)
     """The list of images referenced in the HelmRelease."""
 
@@ -166,11 +189,19 @@ class HelmRelease(BaseManifest):
         if not (namespace := metadata.get("namespace")):
             raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
         chart = HelmChart.parse_doc(doc, namespace)
+        spec = doc["spec"]
+        values_from: list[ValuesReference] | None = None
+        if values_from_dict := spec.get("valuesFrom"):
+            values_from = [
+                ValuesReference.model_construct(**subdoc)
+                for subdoc in values_from_dict
+            ]
         return cls(
             name=name,
             namespace=namespace,
             chart=chart,
-            values=doc["spec"].get("values"),
+            values=spec.get("values"),
+            values_from=values_from,
         )
 
     @property
@@ -191,7 +222,7 @@ class HelmRelease(BaseManifest):
     @classmethod
     def compact_exclude_fields(cls) -> dict[str, Any]:
         """Return a dictionary of fields to exclude from compact_dict."""
-        return {"values": True, "chart": HelmChart.compact_exclude_fields()}
+        return {"values": True, "values_from": True, "chart": HelmChart.compact_exclude_fields()}
 
 
 class HelmRepository(BaseManifest):
@@ -281,7 +312,7 @@ class ConfigMap(BaseManifest):
     data: dict[str, Any] | None = None
     """The data in the ConfigMap."""
 
-    binaryData: dict[str, Any] | None = None
+    binary_data: dict[str, Any] | None = None
     """The binary data in the ConfigMap."""
 
     @classmethod

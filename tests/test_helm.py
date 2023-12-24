@@ -5,10 +5,12 @@ from typing import Any, Generator
 
 import pytest
 from aiofiles.os import mkdir
+from syrupy.assertion import SnapshotAssertion
 
 from flux_local import kustomize
-from flux_local.helm import Helm
+from flux_local.helm import Helm, expand_value_references
 from flux_local.manifest import HelmRelease, HelmRepository
+from flux_local.git_repo import ResourceSelector, PathSelector, build_manifest
 
 REPO_DIR = Path("tests/testdata/cluster/infrastructure/configs")
 RELEASE_DIR = Path("tests/testdata/cluster/infrastructure/controllers")
@@ -62,3 +64,21 @@ async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None
     docs = await obj.grep("kind=ServiceAccount").objects()
     names = [doc.get("metadata", {}).get("name") for doc in docs]
     assert names == ["metallb-controller", "metallb-speaker"]
+
+
+async def test_value_references(snapshot: SnapshotAssertion) -> None:
+    """Test for expanding value references.""" 
+    path = Path("tests/testdata/cluster8")
+    selector = ResourceSelector(path=PathSelector(path=path))
+    manifest = await build_manifest(selector=selector)
+    assert len(manifest.clusters) == 1
+    assert len(manifest.clusters[0].kustomizations) == 2
+    ks = manifest.clusters[0].kustomizations[0]
+    assert ks.name == "apps"
+    assert len(ks.helm_releases) == 1
+    hr = ks.helm_releases[0]
+    assert hr.name == "podinfo"
+    assert not hr.values
+
+    updated_hr = expand_value_references(hr, ks)
+    assert updated_hr.values == snapshot

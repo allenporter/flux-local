@@ -43,7 +43,7 @@ import yaml
 
 from . import command
 from .kustomize import Kustomize
-from .manifest import HelmRelease, HelmRepository, CRD_KIND, SECRET_KIND, REPO_TYPE_OCI
+from .manifest import HelmRelease, HelmRepository, CRD_KIND, SECRET_KIND, REPO_TYPE_OCI, Kustomization, CONFIG_MAP_KIND, SECRET_KIND
 from .exceptions import HelmException
 
 __all__ = [
@@ -225,3 +225,48 @@ class Helm:
         if options.skip_resources:
             cmd = cmd.skip_resources(options.skip_resources)
         return cmd
+
+def expand_value_references(helm_release: HelmRelease, ks: Kustomization) -> HelmRelease:
+    """Expand value references in the HelmRelease."""
+    if not helm_release.values_from:
+        return helm_release
+
+    values = helm_release.values or {}
+    for ref in helm_release.values_from:
+        if ref.kind == SECRET_KIND:
+            found_secret = next(filter(lambda secret: secret.name == ref.name, ks.secrets), None)
+            if found_secret:
+                if found_secret.data:
+                    values.update(found_secret.data)
+                if found_secret.string_data:
+                    values.update(found_secret.string_data)
+            else:
+                if not ref.optional:
+                    _LOGGER.warning(
+                        "Unable to find secret %s referenced in HelmRelease %s",
+                        ref.name,
+                        helm_release.name,
+                    )
+                continue
+        elif ref.kind == CONFIG_MAP_KIND:
+            found_configmap = next(filter(lambda configmap: configmap.name == ref.name, ks.config_maps), None)
+            if found_configmap:
+                if found_configmap.data:
+                    values.update(found_configmap.data)
+                if found_configmap.binary_data:
+                    values.update(found_configmap.binary_data)
+            else:
+                if not ref.optional:
+                    _LOGGER.warning(
+                        "Unable to find configmap %s referenced in HelmRelease %s",
+                        ref.name,
+                        helm_release.name,
+                    )
+                continue
+        else:
+            _LOGGER.warning(
+                "Unsupported valueFrom kind %s in HelmRelease %s",
+                ref.kind,
+                helm_release.name,
+            )
+    return helm_release.model_copy(update={"values": values})
