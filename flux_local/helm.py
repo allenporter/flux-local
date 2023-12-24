@@ -250,7 +250,7 @@ def _find_object(name: str, namespace: str, objects: Sequence[_T]) -> _T | None:
     return None
 
 
-def _decode_config_or_secret_value(name: str, string_data: str | None, binary_data: str | None) -> str:
+def _decode_config_or_secret_value(name: str, string_data: str | None, binary_data: str | None) -> dict[str, str]:
     """Return the config or secret data."""
     if binary_data:
         try:
@@ -266,9 +266,7 @@ def _decode_config_or_secret_value(name: str, string_data: str | None, binary_da
 
 
 
-def _get_secret_data(
-    name: str, namespace: str, ks: Kustomization
-) -> dict[str, Any] | None:
+def _get_secret_data(name: str, namespace: str, ks: Kustomization) -> dict[str, str] | None:
     """Find the secret value in the kustomization."""
     found: Secret | None = _find_object(name, namespace, ks.secrets)
     if not found:
@@ -276,9 +274,7 @@ def _get_secret_data(
     return _decode_config_or_secret_value(f"{namespace}/{name}", found.string_data, found.data)
 
 
-def _get_configmap_data(
-    name: str, namespace: str, ks: Kustomization
-) -> dict[str, Any] | None:
+def _get_configmap_data(name: str, namespace: str, ks: Kustomization) -> dict[str, str] | None:
     """Find the configmap value in the kustomization."""
     found: ConfigMap | None = _find_object(name, namespace, ks.config_maps)
     if not found:
@@ -296,33 +292,15 @@ def expand_value_references(
     values = helm_release.values or {}
     for ref in helm_release.values_from:
         _LOGGER.debug("Expanding value reference %s", ref)
-        found_data: dict[str, Any] | None = None
+        found_data: str | None = None
         if ref.kind == SECRET_KIND:
             found_data = _get_secret_data(
                 ref.name, helm_release.namespace, kustomization
             )
-            if not found_data:
-                if not ref.optional:
-                    _LOGGER.warning(
-                        "Unable to find secret %s/%s referenced in HelmRelease %s",
-                        helm_release.namespace,
-                        ref.name,
-                        helm_release.namespaced_name,
-                    )
-                continue
         elif ref.kind == CONFIG_MAP_KIND:
             found_data = _get_configmap_data(
                 ref.name, helm_release.namespace, kustomization
             )
-            if not found_data:
-                if not ref.optional:
-                    _LOGGER.warning(
-                        "Unable to find configmap %s/%s referenced in HelmRelease %s",
-                        helm_release.namespace,
-                        ref.name,
-                        helm_release.namespaced_name,
-                    )
-                continue
         else:
             _LOGGER.warning(
                 "Unsupported valueFrom kind %s in HelmRelease %s",
@@ -330,7 +308,19 @@ def expand_value_references(
                 helm_release.namespaced_name,
             )
             continue
-        if (found_data := found_data.get(ref.values_key)) is None:
+
+        if not found_data:
+            if not ref.optional:
+                _LOGGER.warning(
+                    "Unable to find %s %s/%s referenced in HelmRelease %s",
+                    ref.kind.
+                    helm_release.namespace,
+                    ref.name,
+                    helm_release.namespaced_name,
+                )
+            continue
+
+        if (found_value := found_data.get(ref.values_key)) is None:
             _LOGGER.warning(
                 "Unable to find key %s in %s/%s referenced in HelmRelease %s",
                 ref.values_key,
@@ -341,7 +331,6 @@ def expand_value_references(
             continue
 
         if ref.target_path:
-            _LOGGER.debug("Updating %s with %s", ref.target_path, found_data)
             parts = ref.target_path.split(".")
             inner_values = values
             for part in parts[:-1]:
@@ -353,9 +342,9 @@ def expand_value_references(
                     )
                 inner_values = inner_values[part]
 
-            inner_values[parts[-1]] = found_data
+            inner_values[parts[-1]] = found_value
         else:
-            obj = yaml.load(found_data, Loader=yaml.SafeLoader)
+            obj = yaml.load(found_value, Loader=yaml.SafeLoader)
             if not obj or not isinstance(obj, dict):
                 raise HelmException(
                     f"While building HelmRelease '{helm_release.namespaced_name}': Expected '{ref.name}' field '{ref.target_path}' values to be valid yaml, found {type(values)}"

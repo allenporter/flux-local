@@ -39,6 +39,8 @@ CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
 CONFIG_MAP_KIND = "ConfigMap"
 DEFAULT_NAMESPACE = "flux-system"
+VALUE_PLACEHOLDER = "**PLACEHOLDER**"
+VALUE_B64_PLACEHOLDER = base64.b64encode(VALUE_PLACEHOLDER.encode())
 
 REPO_TYPE_DEFAULT = "default"
 REPO_TYPE_OCI = "oci"
@@ -372,10 +374,10 @@ class Secret(BaseManifest):
         # placeholder values anyway.
         if data := doc.get("data"):
             for key, value in data.items():
-                data[key] = base64.b64encode("**PLACEHOLDER**".encode())
+                data[key] = VALUE_B64_PLACEHOLDER
         if string_data := doc.get("stringData"):
             for key, value in string_data.items():
-                string_data[key] = "**PLACEHOLDER**"
+                string_data[key] = VALUE_PLACEHOLDER
         return Secret(
             name=name, namespace=namespace, data=data, string_data=string_data
         )
