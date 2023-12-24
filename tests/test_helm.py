@@ -171,6 +171,48 @@ def test_values_references_invalid_yaml() -> None:
 
 
 
+def test_values_reference_invalid_target_path() -> None:
+    """Test for expanding a value reference with a values key."""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values={
+            "test": "test",
+            "target": ["a", "b", "c"],
+        },
+        values_from=[
+            ValuesReference(
+                kind="ConfigMap",
+                namespace="test",
+                name="test-values-configmap",
+                valuesKey="some-key",
+                # Target above is a list
+                targetPath="target.path",
+            )
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+        config_maps=[
+            ConfigMap(
+                name="test-values-configmap",
+                namespace="test",
+                data={"some-key": "example_value"},            )
+        ],
+    )
+    with pytest.raises(HelmException, match=r"values to be a dict"):
+        expand_value_references(hr, ks)
+
+
 def test_values_reference_invalid_configmap_and_secret() -> None:
     """Test a values reference to a config map and secret that do not exist."""
     hr = HelmRelease(

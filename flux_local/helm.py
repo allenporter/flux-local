@@ -339,7 +339,7 @@ def expand_value_references(
                     inner_values[part] = {}
                 elif not isinstance(inner_values[part], dict):
                     raise HelmException(
-                        f"While building '{helm_release.namespaced_name}': Expected '{ref.name}' field '{ref.target_path}' values to be a dict, found {type(values)}"
+                        f"While building HelmRelease '{helm_release.namespaced_name}': Expected '{ref.name}' field '{ref.target_path}' values to be a dict, found {type(inner_values[part])}"
                     )
                 inner_values = inner_values[part]
 
@@ -348,7 +348,7 @@ def expand_value_references(
             obj = yaml.load(found_data, Loader=yaml.SafeLoader)
             if not obj or not isinstance(obj, dict):
                 raise HelmException(
-                    f"While building '{helm_release.namespaced_name}': Expected '{ref.name}' field '{ref.target_path}' values to be valid yaml, found {type(values)}"
+                    f"While building HelmRelease '{helm_release.namespaced_name}': Expected '{ref.name}' field '{ref.target_path}' values to be valid yaml, found {type(values)}"
                 )
             values.update(obj)
 
