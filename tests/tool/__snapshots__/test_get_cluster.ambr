@@ -218,7 +218,7 @@
   
   '''
 # ---
-# name: test_get_cluster[yaml-cluster8-images]
+# name: test_get_cluster[yaml-cluster8-images-allow-secrets]
   '''
   ---
   clusters:
@@ -247,6 +247,48 @@
         namespace: podinfo
       secrets:
       - name: podinfo-tls-values
+      images:
+      - alpine
+      - busybox
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster8/cluster
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+      config_maps: []
+      secrets: []
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster8-images]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster8
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster8/apps
+      helm_repos:
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.5.4
+      cluster_policies: []
+      config_maps:
+      - name: podinfo-values
+        namespace: podinfo
+      secrets: []
       images:
       - alpine
       - busybox
