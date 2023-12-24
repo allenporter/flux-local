@@ -76,7 +76,6 @@ CLUSTER_KUSTOMIZE_KIND = "Kustomization"
 KUSTOMIZE_KIND = "Kustomization"
 HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
-CONFIG_MAP_KIND = "ConfigMap"
 CLUSTER_POLICY_KIND = "ClusterPolicy"
 GIT_REPO_KIND = "GitRepository"
 OCI_REPO_KIND = "OCIRepository"
@@ -513,7 +512,13 @@ async def build_kustomization(
     selector: ResourceSelector,
     kustomize_flags: list[str],
     builder: CachableBuilder,
-) -> tuple[Iterable[HelmRepository], Iterable[HelmRelease], Iterable[ClusterPolicy], Iterable[ConfigMap], Iterable[Secret]]:
+) -> tuple[
+    Iterable[HelmRepository],
+    Iterable[HelmRelease],
+    Iterable[ClusterPolicy],
+    Iterable[ConfigMap],
+    Iterable[Secret],
+]:
     """Build helm objects for the Kustomization."""
 
     root: Path = selector.path.root
@@ -528,7 +533,7 @@ async def build_kustomization(
         and not cluster_policy_selector.enabled
         and not selector.doc_visitor
     ):
-        return ([], [], [])
+        return ([], [], [], [], [])
 
     with trace_context(f"Build '{kustomization.namespaced_name}'"):
         cmd = await builder.build(kustomization, root / kustomization.path)
@@ -567,7 +572,7 @@ async def build_kustomization(
         if selector.doc_visitor:
             kinds.extend(selector.doc_visitor.kinds)
         if not kinds:
-            return ([], [], [])
+            return ([], [], [], [], [])
 
         regexp = f"kind=^({'|'.join(kinds)})$"
         docs = await cmd.grep(regexp).objects(
@@ -611,11 +616,7 @@ async def build_kustomization(
                 for doc in docs
                 if doc.get("kind") == CONFIG_MAP_KIND
             ],
-            [
-                Secret.parse_doc(doc)
-                for doc in docs
-                if doc.get("kind") == SECRET_KIND
-            ],
+            [Secret.parse_doc(doc) for doc in docs if doc.get("kind") == SECRET_KIND],
         )
 
 
@@ -670,7 +671,13 @@ async def build_manifest(
                     )
                 )
             results = list(await asyncio.gather(*build_tasks))
-            for kustomization, (helm_repos, helm_releases, cluster_policies, config_maps, secrets) in zip(
+            for kustomization, (
+                helm_repos,
+                helm_releases,
+                cluster_policies,
+                config_maps,
+                secrets,
+            ) in zip(
                 cluster.kustomizations,
                 results,
             ):

@@ -43,7 +43,15 @@ import yaml
 
 from . import command
 from .kustomize import Kustomize
-from .manifest import HelmRelease, HelmRepository, CRD_KIND, SECRET_KIND, REPO_TYPE_OCI, Kustomization, CONFIG_MAP_KIND, SECRET_KIND
+from .manifest import (
+    HelmRelease,
+    HelmRepository,
+    CRD_KIND,
+    SECRET_KIND,
+    REPO_TYPE_OCI,
+    Kustomization,
+    CONFIG_MAP_KIND,
+)
 from .exceptions import HelmException
 
 __all__ = [
@@ -226,7 +234,10 @@ class Helm:
             cmd = cmd.skip_resources(options.skip_resources)
         return cmd
 
-def expand_value_references(helm_release: HelmRelease, ks: Kustomization) -> HelmRelease:
+
+def expand_value_references(
+    helm_release: HelmRelease, ks: Kustomization
+) -> HelmRelease:
     """Expand value references in the HelmRelease."""
     if not helm_release.values_from:
         return helm_release
@@ -234,7 +245,9 @@ def expand_value_references(helm_release: HelmRelease, ks: Kustomization) -> Hel
     values = helm_release.values or {}
     for ref in helm_release.values_from:
         if ref.kind == SECRET_KIND:
-            found_secret = next(filter(lambda secret: secret.name == ref.name, ks.secrets), None)
+            found_secret = next(
+                filter(lambda secret: secret.name == ref.name, ks.secrets), None
+            )
             if found_secret:
                 if found_secret.data:
                     values.update(found_secret.data)
@@ -249,7 +262,10 @@ def expand_value_references(helm_release: HelmRelease, ks: Kustomization) -> Hel
                     )
                 continue
         elif ref.kind == CONFIG_MAP_KIND:
-            found_configmap = next(filter(lambda configmap: configmap.name == ref.name, ks.config_maps), None)
+            found_configmap = next(
+                filter(lambda configmap: configmap.name == ref.name, ks.config_maps),
+                None,
+            )
             if found_configmap:
                 if found_configmap.data:
                     values.update(found_configmap.data)

@@ -193,8 +193,7 @@ class HelmRelease(BaseManifest):
         values_from: list[ValuesReference] | None = None
         if values_from_dict := spec.get("valuesFrom"):
             values_from = [
-                ValuesReference.model_construct(**subdoc)
-                for subdoc in values_from_dict
+                ValuesReference.model_construct(**subdoc) for subdoc in values_from_dict
             ]
         return cls(
             name=name,
@@ -222,7 +221,11 @@ class HelmRelease(BaseManifest):
     @classmethod
     def compact_exclude_fields(cls) -> dict[str, Any]:
         """Return a dictionary of fields to exclude from compact_dict."""
-        return {"values": True, "values_from": True, "chart": HelmChart.compact_exclude_fields()}
+        return {
+            "values": True,
+            "values_from": True,
+            "chart": HelmChart.compact_exclude_fields(),
+        }
 
 
 class HelmRepository(BaseManifest):
@@ -324,7 +327,12 @@ class ConfigMap(BaseManifest):
         if not (name := metadata.get("name")):
             raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
         namespace = metadata.get("namespace")
-        return ConfigMap(name=name, namespace=namespace, data=doc.get("data"), binaryData=doc.get("binaryData"))
+        return ConfigMap(
+            name=name,
+            namespace=namespace,
+            data=doc.get("data"),
+            binaryData=doc.get("binaryData"),
+        )
 
     @classmethod
     def compact_exclude_fields(cls) -> dict[str, Any]:
@@ -347,7 +355,7 @@ class Secret(BaseManifest):
     data: dict[str, Any] | None = None
     """The data in the Secret."""
 
-    stringData: dict[str, Any] | None = None
+    string_data: dict[str, Any] | None = None
     """The string data in the Secret."""
 
     @classmethod
@@ -364,10 +372,12 @@ class Secret(BaseManifest):
         if data := doc.get("data"):
             for key, value in data.items():
                 data[key] = "**PLACEHOLDER**"
-        if stringData := doc.get("stringData"):
-            for key, value in stringData.items():
+        if string_data := doc.get("stringData"):
+            for key, value in string_data.items():
                 data[key] = "**PLACEHOLDER**"
-        return Secret(name=name, namespace=namespace, data=data, stringData=stringData)
+        return Secret(
+            name=name, namespace=namespace, data=data, string_data=string_data
+        )
 
     @classmethod
     def compact_exclude_fields(cls) -> dict[str, Any]:
@@ -404,10 +414,10 @@ class Kustomization(BaseManifest):
     cluster_policies: list[ClusterPolicy] = Field(default_factory=list)
     """The set of ClusterPolicies represented in this kustomization."""
 
-    config_maps: list[str] = Field(default_factory=list)
+    config_maps: list[ConfigMap] = Field(default_factory=list)
     """The list of config maps referenced in the kustomization."""
 
-    secrets: list[str] = Field(default_factory=list)
+    secrets: list[Secret] = Field(default_factory=list)
     """The list of secrets referenced in the kustomization."""
 
     source_path: str | None = None
