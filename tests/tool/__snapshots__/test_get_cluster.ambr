@@ -83,12 +83,18 @@
         - ghcr.io/stefanprodan/podinfo:6.3.2
         - public.ecr.aws/docker/library/redis:7.0.6
       cluster_policies: []
+      config_maps:
+      - name: podinfo-config
+        namespace: podinfo
+      secrets: []
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster/clusters/prod
       helm_repos: []
       helm_releases: []
       cluster_policies: []
+      config_maps: []
+      secrets: []
     - name: infra-configs
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/configs
@@ -108,6 +114,8 @@
       helm_releases: []
       cluster_policies:
       - name: test-allow-policy
+      config_maps: []
+      secrets: []
     - name: infra-controllers
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/controllers
@@ -131,6 +139,8 @@
         images:
         - ghcr.io/weaveworks/wego-app:v0.24.0
       cluster_policies: []
+      config_maps: []
+      secrets: []
   
   '''
 # ---
@@ -152,12 +162,18 @@
           repo_name: podinfo
           repo_namespace: flux-system
       cluster_policies: []
+      config_maps:
+      - name: podinfo-config
+        namespace: podinfo
+      secrets: []
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster/clusters/prod
       helm_repos: []
       helm_releases: []
       cluster_policies: []
+      config_maps: []
+      secrets: []
     - name: infra-configs
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/configs
@@ -177,6 +193,8 @@
       helm_releases: []
       cluster_policies:
       - name: test-allow-policy
+      config_maps: []
+      secrets: []
     - name: infra-controllers
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/controllers
@@ -195,6 +213,52 @@
           repo_name: weave-charts
           repo_namespace: flux-system
       cluster_policies: []
+      config_maps: []
+      secrets: []
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster8-images-allow-secrets]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster8
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster8/apps
+      helm_repos:
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.5.4
+        - public.ecr.aws/docker/library/redis:7.0.6
+      cluster_policies: []
+      config_maps:
+      - name: podinfo-values
+        namespace: podinfo
+      secrets:
+      - name: podinfo-tls-values
+      images:
+      - alpine
+      - busybox
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster8/cluster
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+      config_maps: []
+      secrets: []
   
   '''
 # ---
@@ -207,9 +271,26 @@
     - name: apps
       namespace: flux-system
       path: tests/testdata/cluster8/apps
-      helm_repos: []
-      helm_releases: []
+      helm_repos:
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.5.4
+        - public.ecr.aws/docker/library/redis:7.0.6
       cluster_policies: []
+      config_maps:
+      - name: podinfo-values
+        namespace: podinfo
+      secrets: []
       images:
       - alpine
       - busybox
@@ -219,6 +300,8 @@
       helm_repos: []
       helm_releases: []
       cluster_policies: []
+      config_maps: []
+      secrets: []
   
   '''
 # ---
@@ -231,15 +314,31 @@
     - name: apps
       namespace: flux-system
       path: tests/testdata/cluster8/apps
-      helm_repos: []
-      helm_releases: []
+      helm_repos:
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
       cluster_policies: []
+      config_maps:
+      - name: podinfo-values
+        namespace: podinfo
+      secrets: []
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster8/cluster
       helm_repos: []
       helm_releases: []
       cluster_policies: []
+      config_maps: []
+      secrets: []
   
   '''
 # ---

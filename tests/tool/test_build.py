@@ -24,6 +24,7 @@ from . import run_command
                 "batch/v1/CronJob",
             ]
         ),
+        (["--enable-helm", "--no-skip-secrets", "tests/testdata/cluster8/"]),
     ],
     ids=[
         "build",
@@ -32,6 +33,7 @@ from . import run_command
         "build-cluster6",
         "build-helm-cluster",
         "build-helm-cluster6",
+        "build-helm-cluster8-valuesFrom"
     ],
 )
 async def test_build(args: list[str], snapshot: SnapshotAssertion) -> None:

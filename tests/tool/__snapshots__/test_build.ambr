@@ -852,6 +852,464 @@
   
   '''
 # ---
+# name: test_build[build-helm-cluster8-valuesFrom]
+  '''
+  ---
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: mnt-pod
+    namespace: home
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    containers:
+    - args:
+      - -c
+      - sleep 500000
+      command:
+      - /bin/sh
+      image: alpine
+      name: task-pv-container
+      volumeMounts:
+      - mountPath: /data
+        name: task-pv-storage
+    volumes:
+    - name: task-pv-storage
+      persistentVolumeClaim:
+        claimName: some-pod-datadir
+  ---
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: sleep
+    namespace: home
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    initContainers:
+    - args:
+      - -c
+      - sleep 500000
+      command:
+      - /bin/sh
+      image: busybox
+      name: sleep
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 5m
+    type: oci
+    url: oci://ghcr.io/stefanprodan/charts
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    chart:
+      spec:
+        chart: podinfo
+        sourceRef:
+          kind: HelmRepository
+          name: podinfo
+          namespace: flux-system
+    install:
+      remediation:
+        retries: 3
+    interval: 50m
+    releaseName: podinfo
+    valuesFrom:
+    - kind: ConfigMap
+      name: podinfo-values
+    - kind: Secret
+      name: podinfo-tls-values
+      optional: true
+      targetPath: tls.crt
+      valuesKey: crt
+  ---
+  apiVersion: v1
+  data:
+    values.yaml: |-
+      redis:
+        enabled: true
+        repository: public.ecr.aws/docker/library/redis
+        tag: 7.0.6
+      ingress:
+        enabled: true
+        className: nginx
+        hosts:
+          - host: podinfo.production
+            paths:
+              - path: /
+                pathType: ImplementationSpecific
+  kind: ConfigMap
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo-values
+    namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  ---
+  apiVersion: v1
+  data:
+    crt: dmFsdWUtMg0KDQo=
+  kind: Secret
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo-tls-values
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: apps
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    dependsOn:
+    - name: infra-configs
+    interval: 10m0s
+    path: ./tests/testdata/cluster8/apps
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    timeout: 5m0s
+    wait: true
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 1m0s
+    ref:
+      branch: main
+    secretRef:
+      name: flux-system
+    url: ssh://git@github.com/allenporter/flux-local
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 10m0s
+    path: ./tests/testdata/cluster8/cluster/
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  
+  ---
+  # Source: podinfo/templates/redis/config.yaml
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  data:
+    redis.conf: |
+      maxmemory 64mb
+      maxmemory-policy allkeys-lru
+      save ""
+      appendonly no
+  ---
+  # Source: podinfo/templates/redis/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo-redis
+    labels:
+      app: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    type: ClusterIP
+    selector:
+      app: podinfo-redis
+    ports:
+    - name: redis
+      port: 6379
+      protocol: TCP
+      targetPort: redis
+  ---
+  # Source: podinfo/templates/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.5.4
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.5.4"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    type: ClusterIP
+    ports:
+    - port: 9898
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9999
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    selector:
+      app.kubernetes.io/name: podinfo
+  ---
+  # Source: podinfo/templates/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.5.4
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.5.4"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    replicas: 1
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: podinfo
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: podinfo
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9898"
+      spec:
+        terminationGracePeriodSeconds: 30
+        containers:
+        - name: podinfo
+          image: "ghcr.io/stefanprodan/podinfo:6.5.4"
+          imagePullPolicy: IfNotPresent
+          command:
+          - ./podinfo
+          - --port=9898
+          - --cert-path=/data/cert
+          - --port-metrics=9797
+          - --grpc-port=9999
+          - --grpc-service-name=podinfo
+          - --cache-server=tcp://podinfo-redis:6379
+          - --level=info
+          - --random-delay=false
+          - --random-error=false
+          env:
+          - name: PODINFO_UI_COLOR
+            value: "#34577c"
+          ports:
+          - name: http
+            containerPort: 9898
+            protocol: TCP
+          - name: http-metrics
+            containerPort: 9797
+            protocol: TCP
+          - name: grpc
+            containerPort: 9999
+            protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/healthz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/readyz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          volumeMounts:
+          - name: data
+            mountPath: /data
+          resources:
+            limits: null
+            requests:
+              cpu: 1m
+              memory: 16Mi
+        volumes:
+        - name: data
+          emptyDir: {}
+  ---
+  # Source: podinfo/templates/redis/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: podinfo-redis
+    labels:
+      app: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    strategy:
+      type: Recreate
+    selector:
+      matchLabels:
+        app: podinfo-redis
+    template:
+      metadata:
+        labels:
+          app: podinfo-redis
+        annotations:
+          checksum/config: "34c601c9d39797bbf53d1c7a278976609301f637ec11dc0253563729dfad4f8e"
+      spec:
+        containers:
+        - name: redis
+          image: "public.ecr.aws/docker/library/redis:7.0.6"
+          imagePullPolicy: IfNotPresent
+          command:
+          - redis-server
+          - "/redis-master/redis.conf"
+          ports:
+          - name: redis
+            containerPort: 6379
+            protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+              - redis-cli
+              - ping
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 32Mi
+          volumeMounts:
+          - mountPath: /var/lib/redis
+            name: data
+          - mountPath: /redis-master
+            name: config
+        volumes:
+        - name: data
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: podinfo-redis
+            items:
+            - key: redis.conf
+              path: redis.conf
+  ---
+  # Source: podinfo/templates/ingress.yaml
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.5.4
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.5.4"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    ingressClassName: nginx
+    rules:
+    - host: "podinfo.production"
+      http:
+        paths:
+        - path: /
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: podinfo
+              port:
+                number: 9898
+  
+  
+  '''
+# ---
 # name: test_build[build-helm-cluster]
   '''
   ---

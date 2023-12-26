@@ -5,6 +5,7 @@ serialized and stored and checked into the cluster for use in other applications
 e.g. such as writing management plan for resources.
 """
 
+import base64
 from pathlib import Path
 from typing import Any, Optional, cast
 
@@ -36,7 +37,10 @@ HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
 CLUSTER_POLICY_DOMAIN = "kyverno.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
+CONFIG_MAP_KIND = "ConfigMap"
 DEFAULT_NAMESPACE = "flux-system"
+VALUE_PLACEHOLDER = "**PLACEHOLDER**"
+VALUE_B64_PLACEHOLDER = base64.b64encode(VALUE_PLACEHOLDER.encode())
 
 REPO_TYPE_DEFAULT = "default"
 REPO_TYPE_OCI = "oci"
@@ -137,6 +141,25 @@ class HelmChart(BaseManifest):
         return {"version": True}
 
 
+class ValuesReference(BaseManifest):
+    """A reference to a resource containing values for a HelmRelease."""
+
+    kind: str
+    """The kind of resource."""
+
+    name: str
+    """The name of the resource."""
+
+    values_key: str = Field(alias="valuesKey", default="values.yaml")
+    """The key in the resource that contains the values."""
+
+    target_path: Optional[str] = Field(alias="targetPath", default=None)
+    """The path in the HelmRelease values to store the values."""
+
+    optional: bool = False
+    """Whether the reference is optional."""
+
+
 class HelmRelease(BaseManifest):
     """A representation of a Flux HelmRelease."""
 
@@ -152,6 +175,9 @@ class HelmRelease(BaseManifest):
     values: Optional[dict[str, Any]] = None
     """The values to install in the chart."""
 
+    values_from: Optional[list[ValuesReference]]
+    """A list of values to reference from an ConfigMap or Secret."""
+
     images: list[str] = Field(default_factory=list)
     """The list of images referenced in the HelmRelease."""
 
@@ -166,11 +192,16 @@ class HelmRelease(BaseManifest):
         if not (namespace := metadata.get("namespace")):
             raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
         chart = HelmChart.parse_doc(doc, namespace)
+        spec = doc["spec"]
+        values_from: list[ValuesReference] | None = None
+        if values_from_dict := spec.get("valuesFrom"):
+            values_from = [ValuesReference(**subdoc) for subdoc in values_from_dict]
         return cls(
             name=name,
             namespace=namespace,
             chart=chart,
-            values=doc["spec"].get("values"),
+            values=spec.get("values"),
+            values_from=values_from,
         )
 
     @property
@@ -191,7 +222,11 @@ class HelmRelease(BaseManifest):
     @classmethod
     def compact_exclude_fields(cls) -> dict[str, Any]:
         """Return a dictionary of fields to exclude from compact_dict."""
-        return {"values": True, "chart": HelmChart.compact_exclude_fields()}
+        return {
+            "values": True,
+            "values_from": True,
+            "chart": HelmChart.compact_exclude_fields(),
+        }
 
 
 class HelmRepository(BaseManifest):
@@ -269,6 +304,91 @@ class ClusterPolicy(BaseManifest):
         }
 
 
+class ConfigMap(BaseManifest):
+    """A ConfigMap is an API object used to store data in key-value pairs."""
+
+    name: str
+    """The name of the kustomization."""
+
+    namespace: str | None = None
+    """The namespace of the kustomization."""
+
+    data: dict[str, Any] | None = None
+    """The data in the ConfigMap."""
+
+    binary_data: dict[str, Any] | None = None
+    """The binary data in the ConfigMap."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "ConfigMap":
+        """Parse a config map object from a kubernetes resource."""
+        _check_version(doc, "v1")
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        namespace = metadata.get("namespace")
+        return ConfigMap(
+            name=name,
+            namespace=namespace,
+            data=doc.get("data"),
+            binaryData=doc.get("binaryData"),
+        )
+
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "data": True,
+            "binaryData": True,
+        }
+
+
+class Secret(BaseManifest):
+    """A Secret contains a small amount of sensitive data."""
+
+    name: str
+    """The name of the kustomization."""
+
+    namespace: str | None = None
+    """The namespace of the kustomization."""
+
+    data: dict[str, Any] | None = None
+    """The data in the Secret."""
+
+    string_data: dict[str, Any] | None = None
+    """The string data in the Secret."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "Secret":
+        """Parse a secret object from a kubernetes resource."""
+        _check_version(doc, "v1")
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        namespace = metadata.get("namespace")
+        # While secrets are not typically stored in the cluster, we replace with
+        # placeholder values anyway.
+        if data := doc.get("data"):
+            for key, value in data.items():
+                data[key] = VALUE_B64_PLACEHOLDER
+        if string_data := doc.get("stringData"):
+            for key, value in string_data.items():
+                string_data[key] = VALUE_PLACEHOLDER
+        return Secret(
+            name=name, namespace=namespace, data=data, string_data=string_data
+        )
+
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "data": True,
+            "stringData": True,
+        }
+
+
 class Kustomization(BaseManifest):
     """A Kustomization is a set of declared cluster artifacts.
 
@@ -294,6 +414,12 @@ class Kustomization(BaseManifest):
 
     cluster_policies: list[ClusterPolicy] = Field(default_factory=list)
     """The set of ClusterPolicies represented in this kustomization."""
+
+    config_maps: list[ConfigMap] = Field(default_factory=list)
+    """The list of config maps referenced in the kustomization."""
+
+    secrets: list[Secret] = Field(default_factory=list)
+    """The list of secrets referenced in the kustomization."""
 
     source_path: str | None = None
     """Optional source path for this Kustomization, relative to the build path."""
@@ -362,6 +488,12 @@ class Kustomization(BaseManifest):
             },
             "cluster_policies": {
                 "__all__": ClusterPolicy.compact_exclude_fields(),
+            },
+            "config_maps": {
+                "__all__": ConfigMap.compact_exclude_fields(),
+            },
+            "secrets": {
+                "__all__": Secret.compact_exclude_fields(),
             },
             "source_path": True,
             "source_name": True,

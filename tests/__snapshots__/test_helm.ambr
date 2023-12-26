@@ -1,0 +1,28 @@
+# serializer version: 1
+# name: test_value_references
+  dict({
+    'ingress': dict({
+      'className': 'nginx',
+      'enabled': True,
+      'hosts': list([
+        dict({
+          'host': 'podinfo.production',
+          'paths': list([
+            dict({
+              'path': '/',
+              'pathType': 'ImplementationSpecific',
+            }),
+          ]),
+        }),
+      ]),
+    }),
+    'redis': dict({
+      'enabled': True,
+      'repository': 'public.ecr.aws/docker/library/redis',
+      'tag': '7.0.6',
+    }),
+    'tls': dict({
+      'crt': '**PLACEHOLDER**',
+    }),
+  })
+# ---
