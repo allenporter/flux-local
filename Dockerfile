@@ -15,7 +15,7 @@ COPY --from=ghcr.io/fluxcd/flux-cli:v2.2.2              /usr/local/bin/flux     
 COPY --from=docker.io/alpine/helm:3.13.3                /usr/bin/helm                    /usr/local/bin/helm
 COPY --from=docker.io/bitnami/kubectl:1.29.0            /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/kubectl
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.3.0  /app/kustomize                   /usr/local/bin/kustomize
-COPY --from=ghcr.io/kyverno/kyverno-cli:v1.10.7         /ko-app/kubectl-kyverno          /usr/local/bin/kyverno
+COPY --from=ghcr.io/kyverno/kyverno-cli:v1.11.2         /ko-app/kubectl-kyverno          /usr/local/bin/kyverno
 
 USER 1001
 ENTRYPOINT ["/usr/local/bin/flux-local"]
