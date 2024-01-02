@@ -7,7 +7,7 @@
 	// Creates a local volume where you the developer need to clone the git
 	// repo inside the container. Uses a local volume since this project
 	// relies heavily on local disk performance.
-	"workspaceMount": "source=flux-local,target=/workspaces,type=volume",
-	"workspaceFolder": "/workspaces/",
-	"postCreateCommand": "chown vscode /workspaces",
+	//"workspaceMount": "source=flux-local,target=/workspaces,type=volume",
+	//"workspaceFolder": "/workspaces/",
+	//"postCreateCommand": "chown vscode /workspaces",
 }
