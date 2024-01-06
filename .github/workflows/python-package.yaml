@@ -35,9 +35,9 @@ jobs:
         pip install -e .
     - uses: supplypike/setup-bin@v3
       with:
-        uri: https://github.com/kyverno/kyverno/releases/download/v1.9.0/kyverno-cli_v1.9.0_linux_x86_64.tar.gz
+        uri: https://github.com/kyverno/kyverno/releases/download/v1.11.3/kyverno-cli_v1.11.3_linux_x86_64.tar.gz
         name: kyverno-cli
-        version: v1.9.0
+        version: v1.11.3
     - name: Test with pytest
       run: |
         SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing --snapshot-warn-unused
