@@ -375,7 +375,8 @@ class DiffHelmReleaseAction:
             )
 
         if not helm_visitor.releases and not orig_helm_visitor.releases:
-            print(selector.not_found("HelmRelease", query.helm_release))
+            with open(output_file, "w") as file:
+                print(selector.not_found("HelmRelease", query.helm_release), file=file)
             return
 
         # Find HelmRelease objects with diffs and prune all other HelmReleases from
