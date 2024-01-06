@@ -81,8 +81,7 @@ async def test_validate_fail(path: Path) -> None:
     """Test applying policies to validate resources."""
     cmd = kustomize.grep("kind=ConfigMap", path)
     with pytest.raises(
-        exceptions.CommandException, match="require-test-annotation: validation error"
-    ):
+        exceptions.CommandException, match="fail: 1"):
         await cmd.validate(TESTDATA_DIR / "policies/fail.yaml")
 
 
