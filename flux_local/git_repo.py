@@ -439,8 +439,12 @@ async def visit_kustomization(
     )
     unique = {ks.namespaced_name for ks in kustomizations}
     if len(unique) != len(kustomizations):
+        ks_names = [ks.namespaced_name for ks in kustomizations]
+        dupes = list(filter(lambda x: ks_names.count(x) > 1, ks_names))
         raise FluxException(
-            "Detected multiple Fluxtomizations with the same name indicating a multi-cluster setup. Please run with a more strict path"
+            f"Detected multiple Fluxtomizations with the same name: {dupes}. "
+            "This indicates either (1) an incorrect Kustomization which needs to be fixed "
+            "or (2) a multi-cluster setup which requires flux-local to run with a more strict --path."
         )
     return kustomizations
 

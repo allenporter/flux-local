@@ -211,7 +211,8 @@ class Helm:
         if not repo:
             raise HelmException(
                 f"Unable to find HelmRepository for {release.chart.chart_name} for "
-                f"HelmRelease {release.name}"
+                f"HelmRelease {release.name} "
+                f"({len(self._repos)} other HelmRepositories in --path)"
             )
         args: list[str] = [
             HELM_BIN,
