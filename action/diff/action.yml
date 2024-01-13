@@ -43,6 +43,10 @@ inputs:
   sources:
     description: GitRepository or OCIRepository to include with optional source mappings like `flux-system` or `cluster=./kubernetes/`
     default: ''
+  token:
+    description: Token used for checkout action
+    default: '${{ github.token }}'
+    required: false
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
@@ -77,11 +81,13 @@ runs:
       uses: actions/checkout@v4
       with:
         path: pr
+        token: ${{ inputs.token }}
     - name: Checkout live branch
       uses: actions/checkout@v4
       with:
         ref: ${{ inputs.live-branch }}
         path: live
+        token: ${{ inputs.token }}
     - name: Diff Resources
       id: flux_diff
       run: |
