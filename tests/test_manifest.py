@@ -102,8 +102,6 @@ async def test_serializing_manifest(tmp_path: Path) -> None:
     manifest = Manifest(
         clusters=[
             Cluster(
-                name="cluster",
-                namespace="flux-system",
                 path="./example",
                 kustomizations=[],
             )
@@ -111,15 +109,13 @@ async def test_serializing_manifest(tmp_path: Path) -> None:
     )
     await write_manifest(tmp_path / "file.yaml", manifest)
     new_manifest = await read_manifest(tmp_path / "file.yaml")
-    assert new_manifest.dict() == {
+    assert new_manifest.model_dump() == {
         "clusters": [
             {
-                "name": "cluster",
-                "namespace": "flux-system",
                 "path": "./example",
                 "kustomizations": [],
             },
         ]
     }
-    assert new_manifest.compact_dict() == new_manifest.dict()
-    assert new_manifest.compact_dict() == manifest.dict()
+    assert new_manifest.compact_dict() == new_manifest.model_dump()
+    assert new_manifest.compact_dict() == manifest.model_dump()

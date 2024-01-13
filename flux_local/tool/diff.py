@@ -4,6 +4,7 @@ import asyncio
 import functools
 import os
 from argparse import ArgumentParser, _SubParsersAction as SubParsersAction
+from collections.abc import Iterable
 from contextlib import contextmanager
 from dataclasses import asdict
 import difflib
@@ -11,7 +12,7 @@ import logging
 import pathlib
 import shlex
 import tempfile
-from typing import cast, Generator, Any, AsyncGenerator
+from typing import cast, Generator, Any, AsyncGenerator, TypeVar
 import yaml
 
 
@@ -27,18 +28,28 @@ _CSV = functools.partial(str.split, sep=",")
 
 _TRUNCATE = "[Diff truncated by flux-local]"
 
+T = TypeVar("T")
+
+
+def _unique_keys(k1: dict[T, Any], k2: dict[T, Any]) -> Iterable[T]:
+    """Return an ordered set."""
+    return {
+        **{k: True for k in k1.keys()},
+        **{k: True for k in k2.keys()},
+    }.keys()
+
 
 def perform_object_diff(
     a: ObjectOutput, b: ObjectOutput, n: int, limit_bytes: int
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
-    for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+    for kustomization_key in _unique_keys(a.content, b.content):
         _LOGGER.debug(
             "Diffing results for Kustomization %s (n=%d)", kustomization_key, n
         )
         a_resources = a.content.get(kustomization_key, {})
         b_resources = b.content.get(kustomization_key, {})
-        for resource_key in set(a_resources.keys()) | set(b_resources.keys()):
+        for resource_key in _unique_keys(a_resources, b_resources):
             diff_text = difflib.unified_diff(
                 a=a_resources.get(resource_key, []),
                 b=b_resources.get(resource_key, []),
@@ -63,14 +74,14 @@ async def perform_external_diff(
 ) -> AsyncGenerator[str, None]:
     """Generate diffs between the two output objects."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+        for kustomization_key in _unique_keys(a.content, b.content):
             _LOGGER.debug(
                 "Diffing results for Kustomization %s",
                 kustomization_key,
             )
             a_resources = a.content.get(kustomization_key, {})
             b_resources = b.content.get(kustomization_key, {})
-            keys = set(a_resources.keys()) | set(b_resources.keys())
+            keys = _unique_keys(a_resources, b_resources)
 
             a_file = pathlib.Path(tmpdir) / "a.yaml"
             a_file.write_text(
@@ -115,12 +126,12 @@ def perform_yaml_diff(
     """Generate diffs between the two output objects."""
 
     diffs = []
-    for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
+    for kustomization_key in _unique_keys(a.content, b.content):
         _LOGGER.debug("Diffing results for %s (n=%d)", kustomization_key, n)
         a_resources = a.content.get(kustomization_key, {})
         b_resources = b.content.get(kustomization_key, {})
         resource_diffs = []
-        for resource_key in set(a_resources.keys()) | set(b_resources.keys()):
+        for resource_key in _unique_keys(a_resources, b_resources):
             diff_text = difflib.unified_diff(
                 a=a_resources.get(resource_key, []),
                 b=b_resources.get(resource_key, []),
@@ -149,22 +160,19 @@ def perform_yaml_diff(
         yield yaml.dump(diffs, sort_keys=False, explicit_start=True, default_style=None)
 
 
-def get_helm_release_diff_keys(
-    a: ObjectOutput, b: ObjectOutput
-) -> dict[str, list[ResourceKey]]:
+def get_helm_release_diff_keys(a: ObjectOutput, b: ObjectOutput) -> list[ResourceKey]:
     """Return HelmRelease resource keys with diffs, by cluster."""
-    result: dict[str, list[ResourceKey]] = {}
-    for kustomization_key in set(a.content.keys()) | set(b.content.keys()):
-        cluster_path = kustomization_key.cluster_path
+    results: list[ResourceKey] = []
+    for kustomization_key in _unique_keys(a.content, b.content):
         _LOGGER.debug("Diffing results for Kustomization %s", kustomization_key)
         a_resources = a.content.get(kustomization_key, {})
         b_resources = b.content.get(kustomization_key, {})
-        for resource_key in set(a_resources.keys()) | set(b_resources.keys()):
+        for resource_key in _unique_keys(a_resources, b_resources):
             if resource_key.kind != "HelmRelease":
                 continue
             if a_resources.get(resource_key) != b_resources.get(resource_key):
-                result[cluster_path] = result.get(cluster_path, []) + [resource_key]
-    return result
+                results.append(resource_key)
+    return results
 
 
 def add_diff_flags(args: ArgumentParser) -> None:
@@ -241,6 +249,12 @@ class DiffKustomizationAction:
                 ),
             ),
         )
+        args.add_argument(
+            "--output-file",
+            type=str,
+            default="/dev/stdout",
+            help="Output file for the results of the command",
+        )
         selector.add_ks_selector_flags(args)
         add_diff_flags(args)
         args.set_defaults(cls=cls)
@@ -252,6 +266,7 @@ class DiffKustomizationAction:
         unified: int,
         strip_attrs: list[str] | None,
         limit_bytes: int,
+        output_file: str,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -277,19 +292,22 @@ class DiffKustomizationAction:
             return
 
         _LOGGER.debug("Diffing content")
-        if output == "yaml":
-            result = perform_yaml_diff(orig_content, content, unified, limit_bytes)
-            for line in result:
-                print(line)
-        elif external_diff := os.environ.get("DIFF"):
-            async for line in perform_external_diff(
-                shlex.split(external_diff), orig_content, content, limit_bytes
-            ):
-                print(line)
-        else:
-            result = perform_object_diff(orig_content, content, unified, limit_bytes)
-            for line in result:
-                print(line)
+        with open(output_file, "w") as file:
+            if output == "yaml":
+                result = perform_yaml_diff(orig_content, content, unified, limit_bytes)
+                for line in result:
+                    print(line, file=file)
+            elif external_diff := os.environ.get("DIFF"):
+                async for line in perform_external_diff(
+                    shlex.split(external_diff), orig_content, content, limit_bytes
+                ):
+                    print(line, file=file)
+            else:
+                result = perform_object_diff(
+                    orig_content, content, unified, limit_bytes
+                )
+                for line in result:
+                    print(line, file=file)
 
 
 class DiffHelmReleaseAction:
@@ -312,6 +330,12 @@ class DiffHelmReleaseAction:
                 ),
             ),
         )
+        args.add_argument(
+            "--output-file",
+            type=str,
+            default="/dev/stdout",
+            help="Output file for the results of the command",
+        )
         selector.add_hr_selector_flags(args)
         selector.add_helm_options_flags(args)
         add_diff_flags(args)
@@ -324,6 +348,7 @@ class DiffHelmReleaseAction:
         unified: int,
         strip_attrs: list[str] | None,
         limit_bytes: int,
+        output_file: str,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -350,7 +375,8 @@ class DiffHelmReleaseAction:
             )
 
         if not helm_visitor.releases and not orig_helm_visitor.releases:
-            print(selector.not_found("HelmRelease", query.helm_release))
+            with open(output_file, "w") as file:
+                print(selector.not_found("HelmRelease", query.helm_release), file=file)
             return
 
         # Find HelmRelease objects with diffs and prune all other HelmReleases from
@@ -359,31 +385,19 @@ class DiffHelmReleaseAction:
         # This avoid building unnecessary resources and churn from things like
         # random secret generation.
         diff_resource_keys = get_helm_release_diff_keys(orig_content, content)
-        cluster_paths = {
-            kustomization_key.cluster_path
-            for kustomization_key in set(orig_content.content.keys())
-            | set(content.content.keys())
+        diff_names = {
+            resource_key.namespaced_name for resource_key in diff_resource_keys
         }
-        for cluster_path in cluster_paths:
-            diff_keys = diff_resource_keys.get(cluster_path, [])
-            diff_names = {
-                f"{resource_key.namespace}/{resource_key.name}"
-                for resource_key in diff_keys
-            }
-            if cluster_path in helm_visitor.releases:
-                releases = [
-                    release
-                    for release in helm_visitor.releases[cluster_path]
-                    if f"{release.namespace}/{release.name}" in diff_names
-                ]
-                helm_visitor.releases[cluster_path] = releases
-            if cluster_path in orig_helm_visitor.releases:
-                releases = [
-                    release
-                    for release in orig_helm_visitor.releases[cluster_path]
-                    if f"{release.namespace}/{release.name}" in diff_names
-                ]
-                orig_helm_visitor.releases[cluster_path] = releases
+        helm_visitor.releases = [
+            release
+            for release in helm_visitor.releases
+            if release.namespaced_name in diff_names
+        ]
+        orig_helm_visitor.releases = [
+            release
+            for release in orig_helm_visitor.releases
+            if release.namespaced_name in diff_names
+        ]
 
         helm_content = ObjectOutput(strip_attrs)
         orig_helm_content = ObjectOutput(strip_attrs)
@@ -397,21 +411,25 @@ class DiffHelmReleaseAction:
                 ),
             )
 
-        if output == "yaml":
-            for line in perform_yaml_diff(
-                orig_helm_content, helm_content, unified, limit_bytes
-            ):
-                print(line)
-        elif external_diff := os.environ.get("DIFF"):
-            async for line in perform_external_diff(
-                shlex.split(external_diff), orig_helm_content, helm_content, limit_bytes
-            ):
-                print(line)
-        else:
-            for line in perform_object_diff(
-                orig_helm_content, helm_content, unified, limit_bytes
-            ):
-                print(line)
+        with open(output_file, "w") as file:
+            if output == "yaml":
+                for line in perform_yaml_diff(
+                    orig_helm_content, helm_content, unified, limit_bytes
+                ):
+                    print(line, file=file)
+            elif external_diff := os.environ.get("DIFF"):
+                async for line in perform_external_diff(
+                    shlex.split(external_diff),
+                    orig_helm_content,
+                    helm_content,
+                    limit_bytes,
+                ):
+                    print(line, file=file)
+            else:
+                for line in perform_object_diff(
+                    orig_helm_content, helm_content, unified, limit_bytes
+                ):
+                    print(line, file=file)
 
 
 class DiffAction:

@@ -1,0 +1,3301 @@
+# serializer version: 1
+# name: test_build[build-cluster2]
+  '''
+  ---
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster-apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+      kustomize.toolkit.fluxcd.io/prune: disabled
+    name: monitoring
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster-apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster-apps-kubernetes-dashboard
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2beta1
+      kind: HelmRelease
+      name: kubernetes-dashboard
+      namespace: monitoring
+    interval: 30m
+    path: ./tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app
+    prune: true
+    retryInterval: 1m
+    sourceRef:
+      kind: GitRepository
+      name: home-ops-kubernetes
+    timeout: 3m
+  ---
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster-apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+      kustomize.toolkit.fluxcd.io/prune: disabled
+    name: networking
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster-apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster-apps-ingress-nginx-certificates
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    dependsOn:
+    - name: cluster-apps-cert-manager-issuers
+    interval: 30m
+    path: ./tests/testdata/cluster2/apps/networking/ingress-nginx/certificates
+    prune: true
+    retryInterval: 1m
+    sourceRef:
+      kind: GitRepository
+      name: home-ops-kubernetes
+    timeout: 3m
+    wait: true
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster-apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster-apps-ingress-nginx
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    dependsOn:
+    - name: cluster-apps-ingress-nginx-certificates
+    healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2beta1
+      kind: HelmRelease
+      name: ingress-nginx
+      namespace: networking
+    interval: 30m
+    path: ./tests/testdata/cluster2/apps/networking/ingress-nginx/app
+    prune: true
+    retryInterval: 1m
+    sourceRef:
+      kind: GitRepository
+      name: home-ops-kubernetes
+    targetNamespace: networking
+    timeout: 3m
+  
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      app.kubernetes.io/instance: kubernetes-dashboard
+      app.kubernetes.io/name: kubernetes-dashboard
+      kustomize.toolkit.fluxcd.io/name: cluster-apps-kubernetes-dashboard
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: kubernetes-dashboard
+    namespace: monitoring
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    chart:
+      spec:
+        chart: kubernetes-dashboard
+        sourceRef:
+          kind: HelmRepository
+          name: kubernetes-dashboard
+          namespace: flux-system
+        version: 6.0.0
+    install:
+      createNamespace: true
+      remediation:
+        retries: 3
+    interval: 15m
+    maxHistory: 3
+    uninstall:
+      keepHistory: false
+    upgrade:
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+    values:
+      env:
+        TZ: America/New_York
+      extraArgs:
+      - --enable-skip-login
+      - --disable-settings-authorizer
+      - --enable-insecure-login
+      - --token-ttl=43200
+      ingress:
+        annotations:
+          hajimari.io/icon: mdi:kubernetes
+          nginx.ingress.kubernetes.io/whitelist-source-range: |
+            10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+        className: nginx
+        enabled: true
+        hosts:
+        - kubernetes.devbu.io
+        tls:
+        - hosts:
+          - kubernetes.devbu.io
+      metricsScraper:
+        enabled: true
+      serviceMonitor:
+        enabled: false
+  
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+      kustomize.toolkit.fluxcd.io/name: cluster-apps-ingress-nginx
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: ingress-nginx
+    namespace: networking
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    chart:
+      spec:
+        chart: ingress-nginx
+        sourceRef:
+          kind: HelmRepository
+          name: ingress-nginx
+          namespace: flux-system
+        version: 4.5.2
+    install:
+      createNamespace: true
+      remediation:
+        retries: 3
+    interval: 15m
+    maxHistory: 3
+    uninstall:
+      keepHistory: false
+    upgrade:
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+    values:
+      controller:
+        config:
+          client-body-buffer-size: 100M
+          client-body-timeout: 120
+          client-header-timeout: 120
+          enable-brotli: "true"
+          enable-real-ip: "true"
+          forwarded-for-header: CF-Connecting-IP
+          hsts-max-age: "31449600"
+          keep-alive: 120
+          keep-alive-requests: 10000
+          log-format-escape-json: "true"
+          log-format-upstream: |
+            {"time": "$time_iso8601", "remote_addr": "$proxy_protocol_addr", "x_forwarded_for": "$proxy_add_x_forwarded_for", "request_id": "$req_id", "remote_user": "$remote_user", "bytes_sent": $bytes_sent, "request_time": $request_time, "status": $status, "vhost": "$host", "request_proto": "$server_protocol", "path": "$uri", "request_query": "$args", "request_length": $request_length, "duration": $request_time,"method": "$request_method", "http_referrer": "$http_referer", "http_user_agent": "$http_user_agent"}
+          proxy-body-size: 0
+          proxy-buffer-size: 16k
+          ssl-protocols: TLSv1.3 TLSv1.2
+          use-forwarded-headers: "true"
+        extraArgs:
+          default-ssl-certificate: networking/devbu-io-tls
+        extraEnvs:
+        - name: TZ
+          value: America/New_York
+        ingressClassResource:
+          default: true
+        metrics:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            namespace: networking
+            namespaceSelector:
+              any: true
+        podAnnotations:
+          configmap.reloader.stakater.com/reload: cloudflare-proxied-networks
+        replicaCount: 2
+        resources:
+          limits:
+            memory: 500Mi
+          requests:
+            cpu: 10m
+            memory: 250Mi
+        service:
+          externalIPs:
+          - ${SVC_NGINX_ADDR}
+          externalTrafficPolicy: Local
+        topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: controller
+              app.kubernetes.io/name: ingress-nginx
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+      defaultBackend:
+        enabled: false
+  
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster-apps-ingress-nginx-certificates
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: example-io
+    namespace: networking
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    commonName: example.io
+    dnsNames:
+    - example.io
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-production
+    secretName: example-io-tls
+  
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster-apps
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    interval: 10m
+    path: ./tests/testdata/cluster2/apps
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: home-ops-kubernetes
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: OCIRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-manifests
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 10m
+    ref:
+      tag: v0.40.0
+    url: oci://ghcr.io/fluxcd/flux-manifests
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 10m
+    path: ./
+    prune: true
+    sourceRef:
+      kind: OCIRepository
+      name: flux-manifests
+    wait: true
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: home-ops-kubernetes
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    ignore: |
+      # exclude all
+      /*
+      # include kubernetes directory
+      !/tests/testdata/cluster2/kubernetes
+    interval: 30m
+    ref:
+      branch: main
+    secretRef:
+      name: github-deploy-key
+    url: ssh://git@github.com/example/home-ops
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    interval: 30m
+    path: ./tests/testdata/cluster2/flux
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: home-ops-kubernetes
+    wait: false
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: ingress-nginx
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    interval: 2h
+    url: https://kubernetes.github.io/ingress-nginx
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: kubernetes-dashboard
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '6'
+      internal.config.kubernetes.io/index: '6'
+  spec:
+    interval: 2h
+    url: https://kubernetes.github.io/dashboard/
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: cluster
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: kyverno
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '7'
+      internal.config.kubernetes.io/index: '7'
+  spec:
+    interval: 2h
+    url: https://kyverno.github.io/kyverno/
+  
+  
+  '''
+# ---
+# name: test_build[build-cluster3]
+  '''
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: OCIRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    interval: 1m
+    ref:
+      tag: main
+    url: oci://ghcr.io/allenporter/manifests/flux-local
+    verify:
+      provider: cosign
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 1m0s
+    ref:
+      branch: main
+    secretRef:
+      name: flux-system
+    url: ssh://git@github.com/allenporter/flux-local
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 10m0s
+    path: ./tests/testdata/cluster3/clusters/cluster3
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: namespaces
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    interval: 10m
+    path: ./namespaces/overlays/cluster3
+    prune: true
+    sourceRef:
+      kind: OCIRepository
+      name: cluster
+    timeout: 30m
+    wait: false
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: tenants
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    interval: 10m0s
+    path: ./tenants/overlays/cluster3
+    prune: true
+    sourceRef:
+      kind: OCIRepository
+      name: cluster
+    wait: false
+  
+  
+  '''
+# ---
+# name: test_build[build-cluster6]
+  '''
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: renovate
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    interval: 30m
+    url: https://docs.renovatebot.com/helm-charts
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: renovate
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    chart:
+      spec:
+        chart: renovate
+        sourceRef:
+          kind: HelmRepository
+          name: renovate
+          namespace: flux-system
+        version: 37.64.3
+    interval: 5m
+    values:
+      renovate:
+        existingConfigFile: /dev/null
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 2G
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: Always
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccount:
+        create: true
+  
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: apps
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    path: ./tests/testdata/cluster6/apps/
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 1m0s
+    ref:
+      branch: main
+    secretRef:
+      name: flux-system
+    url: ssh://git@github.com/allenporter/flux-local
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 10m0s
+    path: ./tests/testdata/cluster6/cluster
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  
+  
+  '''
+# ---
+# name: test_build[build-helm-cluster6]
+  '''
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: renovate
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    interval: 30m
+    url: https://docs.renovatebot.com/helm-charts
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: renovate
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    chart:
+      spec:
+        chart: renovate
+        sourceRef:
+          kind: HelmRepository
+          name: renovate
+          namespace: flux-system
+        version: 37.64.3
+    interval: 5m
+    values:
+      renovate:
+        existingConfigFile: /dev/null
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 2G
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: Always
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccount:
+        create: true
+  
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: apps
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    path: ./tests/testdata/cluster6/apps/
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 1m0s
+    ref:
+      branch: main
+    secretRef:
+      name: flux-system
+    url: ssh://git@github.com/allenporter/flux-local
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 10m0s
+    path: ./tests/testdata/cluster6/cluster
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  
+  ---
+  # Source: renovate/templates/serviceaccount.yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: renovate
+    labels:
+      helm.sh/chart: renovate-37.64.3
+      app.kubernetes.io/name: renovate
+      app.kubernetes.io/instance: renovate
+      app.kubernetes.io/version: "37.64.3"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  ---
+  # Source: renovate/templates/cronjob.yaml
+  apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    name: renovate
+    labels:
+      helm.sh/chart: renovate-37.64.3
+      app.kubernetes.io/name: renovate
+      app.kubernetes.io/instance: renovate
+      app.kubernetes.io/version: "37.64.3"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    schedule: "0 1 * * *"
+    jobTemplate:
+      metadata:
+        labels:
+          app.kubernetes.io/name: renovate
+          app.kubernetes.io/instance: renovate
+      spec:
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/name: renovate
+              app.kubernetes.io/instance: renovate
+          spec:
+            serviceAccountName: renovate
+            restartPolicy: Never
+            containers:
+            - name: renovate
+              image: "ghcr.io/renovatebot/renovate:37.64.3"
+              imagePullPolicy: IfNotPresent
+              env:
+              - name: RENOVATE_CONFIG_FILE
+                value: /dev/null
+              envFrom:
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                  - ALL
+              resources:
+                limits:
+                  cpu: 1000m
+                  memory: 2G
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+            volumes:
+            securityContext:
+              fsGroup: 1000
+              fsGroupChangePolicy: Always
+              runAsNonRoot: true
+              runAsUser: 1000
+              seccompProfile:
+                type: RuntimeDefault
+  
+  
+  '''
+# ---
+# name: test_build[build-helm-cluster8-valuesFrom]
+  '''
+  ---
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: mnt-pod
+    namespace: home
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    containers:
+    - args:
+      - -c
+      - sleep 500000
+      command:
+      - /bin/sh
+      image: alpine
+      name: task-pv-container
+      volumeMounts:
+      - mountPath: /data
+        name: task-pv-storage
+    volumes:
+    - name: task-pv-storage
+      persistentVolumeClaim:
+        claimName: some-pod-datadir
+  ---
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: sleep
+    namespace: home
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    initContainers:
+    - args:
+      - -c
+      - sleep 500000
+      command:
+      - /bin/sh
+      image: busybox
+      name: sleep
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 5m
+    type: oci
+    url: oci://ghcr.io/stefanprodan/charts
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    chart:
+      spec:
+        chart: podinfo
+        sourceRef:
+          kind: HelmRepository
+          name: podinfo
+          namespace: flux-system
+    install:
+      remediation:
+        retries: 3
+    interval: 50m
+    releaseName: podinfo
+    valuesFrom:
+    - kind: ConfigMap
+      name: podinfo-values
+    - kind: Secret
+      name: podinfo-tls-values
+      optional: true
+      targetPath: tls.crt
+      valuesKey: crt
+  ---
+  apiVersion: v1
+  data:
+    values.yaml: |-
+      redis:
+        enabled: true
+        repository: public.ecr.aws/docker/library/redis
+        tag: 7.0.6
+      ingress:
+        enabled: true
+        className: nginx
+        hosts:
+          - host: podinfo.production
+            paths:
+              - path: /
+                pathType: ImplementationSpecific
+  kind: ConfigMap
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo-values
+    namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  ---
+  apiVersion: v1
+  data:
+    crt: dmFsdWUtMg0KDQo=
+  kind: Secret
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo-tls-values
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: apps
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    dependsOn:
+    - name: infra-configs
+    interval: 10m0s
+    path: ./tests/testdata/cluster8/apps
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    timeout: 5m0s
+    wait: true
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 1m0s
+    ref:
+      branch: main
+    secretRef:
+      name: flux-system
+    url: ssh://git@github.com/allenporter/flux-local
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 10m0s
+    path: ./tests/testdata/cluster8/cluster/
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  
+  ---
+  # Source: podinfo/templates/redis/config.yaml
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  data:
+    redis.conf: |
+      maxmemory 64mb
+      maxmemory-policy allkeys-lru
+      save ""
+      appendonly no
+  ---
+  # Source: podinfo/templates/redis/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo-redis
+    labels:
+      app: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    type: ClusterIP
+    selector:
+      app: podinfo-redis
+    ports:
+    - name: redis
+      port: 6379
+      protocol: TCP
+      targetPort: redis
+  ---
+  # Source: podinfo/templates/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.5.4
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.5.4"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    type: ClusterIP
+    ports:
+    - port: 9898
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9999
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    selector:
+      app.kubernetes.io/name: podinfo
+  ---
+  # Source: podinfo/templates/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.5.4
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.5.4"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    replicas: 1
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: podinfo
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: podinfo
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9898"
+      spec:
+        terminationGracePeriodSeconds: 30
+        containers:
+        - name: podinfo
+          image: "ghcr.io/stefanprodan/podinfo:6.5.4"
+          imagePullPolicy: IfNotPresent
+          command:
+          - ./podinfo
+          - --port=9898
+          - --cert-path=/data/cert
+          - --port-metrics=9797
+          - --grpc-port=9999
+          - --grpc-service-name=podinfo
+          - --cache-server=tcp://podinfo-redis:6379
+          - --level=info
+          - --random-delay=false
+          - --random-error=false
+          env:
+          - name: PODINFO_UI_COLOR
+            value: "#34577c"
+          ports:
+          - name: http
+            containerPort: 9898
+            protocol: TCP
+          - name: http-metrics
+            containerPort: 9797
+            protocol: TCP
+          - name: grpc
+            containerPort: 9999
+            protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/healthz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/readyz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          volumeMounts:
+          - name: data
+            mountPath: /data
+          resources:
+            limits: null
+            requests:
+              cpu: 1m
+              memory: 16Mi
+        volumes:
+        - name: data
+          emptyDir: {}
+  ---
+  # Source: podinfo/templates/redis/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: podinfo-redis
+    labels:
+      app: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    strategy:
+      type: Recreate
+    selector:
+      matchLabels:
+        app: podinfo-redis
+    template:
+      metadata:
+        labels:
+          app: podinfo-redis
+        annotations:
+          checksum/config: "34c601c9d39797bbf53d1c7a278976609301f637ec11dc0253563729dfad4f8e"
+      spec:
+        containers:
+        - name: redis
+          image: "public.ecr.aws/docker/library/redis:7.0.6"
+          imagePullPolicy: IfNotPresent
+          command:
+          - redis-server
+          - "/redis-master/redis.conf"
+          ports:
+          - name: redis
+            containerPort: 6379
+            protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+              - redis-cli
+              - ping
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 32Mi
+          volumeMounts:
+          - mountPath: /var/lib/redis
+            name: data
+          - mountPath: /redis-master
+            name: config
+        volumes:
+        - name: data
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: podinfo-redis
+            items:
+            - key: redis.conf
+              path: redis.conf
+  ---
+  # Source: podinfo/templates/ingress.yaml
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.5.4
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.5.4"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    ingressClassName: nginx
+    rules:
+    - host: "podinfo.production"
+      http:
+        paths:
+        - path: /
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: podinfo
+              port:
+                number: 9898
+  
+  
+  '''
+# ---
+# name: test_build[build-helm-cluster]
+  '''
+  ---
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    chart:
+      spec:
+        chart: podinfo
+        sourceRef:
+          kind: HelmRepository
+          name: podinfo
+          namespace: flux-system
+        version: 6.3.2
+    install:
+      remediation:
+        retries: 3
+    interval: 50m
+    releaseName: podinfo
+    values:
+      ingress:
+        className: nginx
+        enabled: true
+        hosts:
+        - host: podinfo.production
+          paths:
+          - path: /
+            pathType: ImplementationSpecific
+      redis:
+        enabled: true
+        repository: public.ecr.aws/docker/library/redis
+        tag: 7.0.6
+  ---
+  apiVersion: v1
+  data:
+    foo: bar
+  kind: ConfigMap
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo-config
+    namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: apps
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    dependsOn:
+    - name: infra-configs
+    interval: 10m0s
+    path: ./tests/testdata/cluster/apps/prod
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    timeout: 5m0s
+    wait: true
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 1m0s
+    ref:
+      branch: main
+    secretRef:
+      name: flux-system
+    url: ssh://git@github.com/allenporter/flux-local
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 10m0s
+    path: ./tests/testdata/cluster/clusters/prod
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: infra-controllers
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    interval: 1h
+    path: ./tests/testdata/cluster/infrastructure/controllers
+    prune: true
+    retryInterval: 1m
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    timeout: 5m
+    wait: true
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: infra-configs
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    dependsOn:
+    - name: infra-controllers
+    interval: 1h
+    path: ./tests/testdata/cluster/infrastructure/configs
+    prune: true
+    retryInterval: 1m
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    timeout: 5m
+  
+  ---
+  apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/description: Policy that is expected to allow resources under test through since no resources should have this annotation.
+      policies.kyverno.io/title: Test Allow Policy
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: test-allow-policy
+  spec:
+    background: true
+    rules:
+    - match:
+        resources:
+          kinds:
+          - ConfigMap
+      name: forbid-test-annotation
+      validate:
+        message: Found test-annotation
+        pattern:
+          metadata:
+            =(annotations):
+              X(flux-local/test-annotation): "null"
+    validationFailureAction: audit
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: bitnami
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 30m
+    provider: generic
+    timeout: 1m0s
+    url: https://charts.bitnami.com/bitnami
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 5m
+    type: oci
+    url: oci://ghcr.io/stefanprodan/charts
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: weave-charts
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    interval: 120m
+    type: oci
+    url: oci://ghcr.io/weaveworks/charts
+  
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-controllers
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: metallb
+    namespace: metallb
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    chart:
+      spec:
+        chart: metallb
+        reconcileStrategy: ChartVersion
+        sourceRef:
+          kind: HelmRepository
+          name: bitnami
+          namespace: flux-system
+        version: 4.1.14
+    install:
+      crds: CreateReplace
+      remediation:
+        retries: 3
+    interval: 5m
+    releaseName: metallb
+    upgrade:
+      crds: CreateReplace
+    values:
+      speaker:
+        secretName: metallb-secret
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-controllers
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: weave-gitops
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    chart:
+      spec:
+        chart: weave-gitops
+        interval: 12h
+        sourceRef:
+          kind: HelmRepository
+          name: weave-charts
+        version: 4.0.22
+    interval: 60m
+  
+  ---
+  # Source: weave-gitops/templates/network-policy.yaml
+  apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: allow-dashboard-ingress
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: weave-gitops
+        app.kubernetes.io/instance: weave-gitops
+    ingress:
+    - ports:
+      - port: 9001
+        protocol: TCP
+    policyTypes:
+    - Ingress
+  ---
+  # Source: weave-gitops/templates/network-policy.yaml
+  apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: allow-dashboard-egress
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: weave-gitops
+        app.kubernetes.io/instance: weave-gitops
+    egress:
+    - {}
+    policyTypes:
+    - Egress
+  ---
+  # Source: weave-gitops/templates/serviceaccount.yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: weave-gitops
+    labels:
+      helm.sh/chart: weave-gitops-4.0.22
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  ---
+  # Source: weave-gitops/templates/role.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: weave-gitops
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  rules:
+  # impersonation rules for ui calls
+  - apiGroups: [""]
+    resources: ["users", "groups"]
+    verbs: ["impersonate"]
+  # Access to enterprise entitlement
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+    # or should return the first non-falsy result
+    resourceNames: ["cluster-user-auth", "oidc-auth"]
+  # The service account needs to read namespaces to know where it can query
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  # The service account needs to list custom resources to query if given feature
+  # is available or not.
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["list"]
+  ---
+  # Source: weave-gitops/templates/rolebinding.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: weave-gitops
+    labels:
+      helm.sh/chart: weave-gitops-4.0.22
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  subjects:
+  - kind: ServiceAccount
+    name: weave-gitops
+    namespace: flux-system
+  roleRef:
+    kind: ClusterRole
+    name: weave-gitops
+    apiGroup: rbac.authorization.k8s.io
+  ---
+  # Source: weave-gitops/templates/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: weave-gitops
+    labels:
+      helm.sh/chart: weave-gitops-4.0.22
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    type: ClusterIP
+    ports:
+    - port: 9001
+      targetPort: http
+      protocol: TCP
+      name: http
+    selector:
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+  ---
+  # Source: weave-gitops/templates/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: weave-gitops
+    labels:
+      helm.sh/chart: weave-gitops-4.0.22
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/part-of: weave-gitops
+      weave.works/app: weave-gitops-oss
+    annotations:
+      config.kubernetes.io/index: '6'
+      internal.config.kubernetes.io/index: '6'
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: weave-gitops
+        app.kubernetes.io/instance: weave-gitops
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: weave-gitops
+          app.kubernetes.io/instance: weave-gitops
+          app.kubernetes.io/part-of: weave-gitops
+          weave.works/app: weave-gitops-oss
+      spec:
+        serviceAccountName: weave-gitops
+        securityContext: {}
+        containers:
+        - name: weave-gitops
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          image: "ghcr.io/weaveworks/wego-app:v0.24.0"
+          imagePullPolicy: IfNotPresent
+          args:
+          - "--log-level"
+          - "info"
+          - "--insecure"
+          ports:
+          - name: http
+            containerPort: 9001
+            protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          env:
+          - name: WEAVE_GITOPS_FEATURE_TENANCY
+            value: "true"
+          - name: WEAVE_GITOPS_FEATURE_CLUSTER
+            value: "false"
+          resources: {}
+  
+  ---
+  # Source: metallb/templates/controller/serviceaccount.yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: metallb-controller
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  automountServiceAccountToken: true
+  ---
+  # Source: metallb/templates/speaker/serviceaccount.yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: metallb-speaker
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: speaker
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  automountServiceAccountToken: true
+  ---
+  # Source: metallb/templates/controller/configmap.yaml
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: metallb-config
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  data:
+    config: |
+      null
+  ---
+  # Source: metallb/templates/controller/rbac.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: metallb:controller
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    annotations:
+      config.kubernetes.io/index: '11'
+      internal.config.kubernetes.io/index: '11'
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+    - update
+  - apiGroups:
+    - ''
+    resources:
+    - services/status
+    verbs:
+    - update
+  - apiGroups:
+    - ''
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+  - apiGroups:
+    - policy
+    resourceNames:
+    - metallb-controller
+    resources:
+    - podsecuritypolicies
+    verbs:
+    - use
+  - apiGroups:
+    - admissionregistration.k8s.io
+    resources:
+    - validatingwebhookconfigurations
+    - mutatingwebhookconfigurations
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - apiextensions.k8s.io
+    resources:
+    - customresourcedefinitions
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  ---
+  # Source: metallb/templates/speaker/rbac.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: metallb-speaker
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: speaker
+    annotations:
+      config.kubernetes.io/index: '12'
+      internal.config.kubernetes.io/index: '12'
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - services
+    - endpoints
+    - nodes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ''
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+  - apiGroups:
+    - policy
+    resourceNames:
+    - metallb-speaker
+    resources:
+    - podsecuritypolicies
+    verbs:
+    - use
+  - apiGroups:
+    - discovery.k8s.io
+    resources:
+    - endpointslices
+    verbs:
+    - get
+    - list
+    - watch
+  ---
+  # Source: metallb/templates/controller/rbac.yaml
+  ## Role bindings
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: metallb:controller
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    annotations:
+      config.kubernetes.io/index: '13'
+      internal.config.kubernetes.io/index: '13'
+  subjects:
+  - kind: ServiceAccount
+    name: metallb-controller
+    namespace: metallb
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: metallb:controller
+  ---
+  # Source: metallb/templates/speaker/rbac.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: metallb-speaker
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: speaker
+    annotations:
+      config.kubernetes.io/index: '14'
+      internal.config.kubernetes.io/index: '14'
+  subjects:
+  - kind: ServiceAccount
+    name: metallb-speaker
+    namespace: "metallb"
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: metallb-speaker
+  ---
+  # Source: metallb/templates/controller/rbac.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: metallb-controller
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    annotations:
+      config.kubernetes.io/index: '15'
+      internal.config.kubernetes.io/index: '15'
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - secrets
+    verbs:
+    - create
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ''
+    resources:
+    - secrets
+    resourceNames:
+    - "metallb-secret"
+    verbs:
+    - list
+  - apiGroups:
+    - apps
+    resources:
+    - deployments
+    resourceNames:
+    - metallb-controller
+    verbs:
+    - get
+  - apiGroups:
+    - ''
+    resources:
+    - secrets
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - addresspools
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - ipaddresspools
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - bgppeers
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - metallb.io
+    resources:
+    - bgpadvertisements
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - metallb.io
+    resources:
+    - l2advertisements
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - metallb.io
+    resources:
+    - communities
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - bfdprofiles
+    verbs:
+    - get
+    - list
+    - watch
+  ---
+  # Source: metallb/templates/rbac.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: metallb-config-watcher
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '16'
+      internal.config.kubernetes.io/index: '16'
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - configmaps
+    verbs:
+    - get
+    - list
+    - watch
+  ---
+  # Source: metallb/templates/speaker/rbac.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: metallb-pod-lister
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: speaker
+    annotations:
+      config.kubernetes.io/index: '17'
+      internal.config.kubernetes.io/index: '17'
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - pods
+    verbs:
+    - list
+  - apiGroups:
+    - ''
+    resources:
+    - secrets
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - addresspools
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - bfdprofiles
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - bgppeers
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - l2advertisements
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - bgpadvertisements
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - ipaddresspools
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - metallb.io
+    resources:
+    - communities
+    verbs:
+    - get
+    - list
+    - watch
+  ---
+  # Source: metallb/templates/controller/rbac.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: metallb-controller
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    annotations:
+      config.kubernetes.io/index: '18'
+      internal.config.kubernetes.io/index: '18'
+  subjects:
+  - kind: ServiceAccount
+    name: metallb-controller
+    namespace: metallb
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: metallb-controller
+  ---
+  # Source: metallb/templates/rbac.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: metallb-config-watcher
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '19'
+      internal.config.kubernetes.io/index: '19'
+  subjects:
+  - kind: ServiceAccount
+    name: metallb-controller
+  - kind: ServiceAccount
+    name: metallb-speaker
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: metallb-config-watcher
+  ---
+  # Source: metallb/templates/speaker/rbac.yaml
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: metallb-pod-lister
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: speaker
+    annotations:
+      config.kubernetes.io/index: '20'
+      internal.config.kubernetes.io/index: '20'
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: metallb-pod-lister
+  subjects:
+  - kind: ServiceAccount
+    name: metallb-speaker
+  ---
+  # Source: metallb/templates/controller/webhooks.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: metallb-webhook-service
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '21'
+      internal.config.kubernetes.io/index: '21'
+  spec:
+    ports:
+    - port: 443
+      targetPort: 9443
+    selector:
+      app.kubernetes.io/name: metallb
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/component: controller
+  ---
+  # Source: metallb/templates/speaker/daemonset.yaml
+  apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    name: metallb-speaker
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: speaker
+    annotations:
+      config.kubernetes.io/index: '22'
+      internal.config.kubernetes.io/index: '22'
+  spec:
+    updateStrategy:
+      type: RollingUpdate
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: metallb
+        app.kubernetes.io/instance: metallb
+        app.kubernetes.io/component: speaker
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: metallb
+          helm.sh/chart: metallb-4.1.14
+          app.kubernetes.io/instance: metallb
+          app.kubernetes.io/managed-by: Helm
+          app.kubernetes.io/component: speaker
+      spec:
+        serviceAccountName: metallb-speaker
+        affinity:
+          podAffinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: metallb
+                    app.kubernetes.io/instance: metallb
+                    app.kubernetes.io/component: speaker
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+          nodeAffinity:
+        nodeSelector:
+          "kubernetes.io/os": linux
+        hostNetwork: true
+        securityContext:
+          fsGroup: 0
+        terminationGracePeriodSeconds: 2
+        containers:
+        - name: metallb-speaker
+          image: docker.io/bitnami/metallb-speaker:0.13.7-debian-11-r28
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+              - NET_ADMIN
+              - NET_RAW
+              - SYS_ADMIN
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsUser: 0
+          args:
+          - --port=7472
+          env:
+          - name: METALLB_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: METALLB_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          - name: METALLB_ML_BIND_ADDR
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: METALLB_ML_LABELS
+            value: "app.kubernetes.io/name=metallb,app.kubernetes.io/instance=metallb,app.kubernetes.io/component=speaker"
+          - name: METALLB_ML_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: METALLB_ML_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: metallb-secret
+                key: secretkey
+          envFrom:
+          ports:
+          - name: metrics
+            containerPort: 7472
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            httpGet:
+              path: /metrics
+              port: metrics
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            httpGet:
+              path: /metrics
+              port: metrics
+          resources:
+            limits: {}
+            requests: {}
+  ---
+  # Source: metallb/templates/controller/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: metallb-controller
+    namespace: "metallb"
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    annotations:
+      config.kubernetes.io/index: '23'
+      internal.config.kubernetes.io/index: '23'
+  spec:
+    replicas: 1
+    strategy:
+      type: RollingUpdate
+    revisionHistoryLimit: 3
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: metallb
+        app.kubernetes.io/instance: metallb
+        app.kubernetes.io/component: controller
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: metallb
+          helm.sh/chart: metallb-4.1.14
+          app.kubernetes.io/instance: metallb
+          app.kubernetes.io/managed-by: Helm
+          app.kubernetes.io/component: controller
+      spec:
+        serviceAccountName: metallb-controller
+        nodeSelector:
+          "kubernetes.io/os": linux
+        affinity:
+          podAffinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: metallb
+                    app.kubernetes.io/instance: metallb
+                    app.kubernetes.io/component: controller
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+          nodeAffinity:
+        securityContext:
+          fsGroup: 1001
+        containers:
+        - name: metallb-controller
+          image: docker.io/bitnami/metallb-controller:0.13.7-debian-11-r29
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1001
+          args:
+          - --port=7472
+          - --cert-service-name=metallb-webhook-service
+          env:
+          envFrom:
+          ports:
+          - name: metrics
+            containerPort: 7472
+          - name: webhook-server
+            containerPort: 9443
+            protocol: TCP
+          volumeMounts:
+          - name: cert
+            mountPath: /tmp/k8s-webhook-server/serving-certs
+            readOnly: true
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            httpGet:
+              path: /metrics
+              port: metrics
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            httpGet:
+              path: /metrics
+              port: metrics
+          resources:
+            limits: {}
+            requests: {}
+        volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: webhook-server-cert
+  ---
+  # Source: metallb/templates/controller/webhooks.yaml
+  apiVersion: admissionregistration.k8s.io/v1
+  kind: ValidatingWebhookConfiguration
+  metadata:
+    name: metallb-webhook-configuration
+    labels:
+      app.kubernetes.io/name: metallb
+      helm.sh/chart: metallb-4.1.14
+      app.kubernetes.io/instance: metallb
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '24'
+      internal.config.kubernetes.io/index: '24'
+  webhooks:
+  - admissionReviewVersions:
+    - v1
+    clientConfig:
+      service:
+        name: metallb-webhook-service
+        namespace: "metallb"
+        path: /validate-metallb-io-v1beta1-addresspool
+    failurePolicy: Fail
+    name: addresspoolvalidationwebhook.metallb.io
+    rules:
+    - apiGroups:
+      - metallb.io
+      apiVersions:
+      - v1beta1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - addresspools
+    sideEffects: None
+  - admissionReviewVersions:
+    - v1
+    clientConfig:
+      service:
+        name: metallb-webhook-service
+        namespace: "metallb"
+        path: /validate-metallb-io-v1beta2-bgppeer
+    failurePolicy: Fail
+    name: bgppeervalidationwebhook.metallb.io
+    rules:
+    - apiGroups:
+      - metallb.io
+      apiVersions:
+      - v1beta2
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - bgppeers
+    sideEffects: None
+  - admissionReviewVersions:
+    - v1
+    clientConfig:
+      service:
+        name: metallb-webhook-service
+        namespace: "metallb"
+        path: /validate-metallb-io-v1beta1-ipaddresspool
+    failurePolicy: Fail
+    name: ipaddresspoolvalidationwebhook.metallb.io
+    rules:
+    - apiGroups:
+      - metallb.io
+      apiVersions:
+      - v1beta1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - ipaddresspools
+    sideEffects: None
+  - admissionReviewVersions:
+    - v1
+    clientConfig:
+      service:
+        name: metallb-webhook-service
+        namespace: "metallb"
+        path: /validate-metallb-io-v1beta1-bgpadvertisement
+    failurePolicy: Fail
+    name: bgpadvertisementvalidationwebhook.metallb.io
+    rules:
+    - apiGroups:
+      - metallb.io
+      apiVersions:
+      - v1beta1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - bgpadvertisements
+    sideEffects: None
+  - admissionReviewVersions:
+    - v1
+    clientConfig:
+      service:
+        name: metallb-webhook-service
+        namespace: "metallb"
+        path: /validate-metallb-io-v1beta1-community
+    failurePolicy: Fail
+    name: communityvalidationwebhook.metallb.io
+    rules:
+    - apiGroups:
+      - metallb.io
+      apiVersions:
+      - v1beta1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - communities
+    sideEffects: None
+  - admissionReviewVersions:
+    - v1
+    clientConfig:
+      service:
+        name: metallb-webhook-service
+        namespace: "metallb"
+        path: /validate-metallb-io-v1beta1-bfdprofile
+    failurePolicy: Fail
+    name: bfdprofileyvalidationwebhook.metallb.io
+    rules:
+    - apiGroups:
+      - metallb.io
+      apiVersions:
+      - v1beta1
+      operations:
+      - DELETE
+      resources:
+      - bfdprofiles
+    sideEffects: None
+  - admissionReviewVersions:
+    - v1
+    clientConfig:
+      service:
+        name: metallb-webhook-service
+        namespace: "metallb"
+        path: /validate-metallb-io-v1beta1-l2advertisement
+    failurePolicy: Fail
+    name: l2advertisementvalidationwebhook.metallb.io
+    rules:
+    - apiGroups:
+      - metallb.io
+      apiVersions:
+      - v1beta1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - l2advertisements
+    sideEffects: None
+  
+  ---
+  # Source: podinfo/templates/redis/config.yaml
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  data:
+    redis.conf: |
+      maxmemory 64mb
+      maxmemory-policy allkeys-lru
+      save ""
+      appendonly no
+  ---
+  # Source: podinfo/templates/redis/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo-redis
+    labels:
+      app: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    type: ClusterIP
+    selector:
+      app: podinfo-redis
+    ports:
+    - name: redis
+      port: 6379
+      protocol: TCP
+      targetPort: redis
+  ---
+  # Source: podinfo/templates/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.3.2
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.3.2"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    type: ClusterIP
+    ports:
+    - port: 9898
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9999
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    selector:
+      app.kubernetes.io/name: podinfo
+  ---
+  # Source: podinfo/templates/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.3.2
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.3.2"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    replicas: 1
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: podinfo
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: podinfo
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9898"
+      spec:
+        terminationGracePeriodSeconds: 30
+        containers:
+        - name: podinfo
+          image: "ghcr.io/stefanprodan/podinfo:6.3.2"
+          imagePullPolicy: IfNotPresent
+          command:
+          - ./podinfo
+          - --port=9898
+          - --cert-path=/data/cert
+          - --port-metrics=9797
+          - --grpc-port=9999
+          - --grpc-service-name=podinfo
+          - --cache-server=tcp://podinfo-redis:6379
+          - --level=info
+          - --random-delay=false
+          - --random-error=false
+          env:
+          - name: PODINFO_UI_COLOR
+            value: "#34577c"
+          ports:
+          - name: http
+            containerPort: 9898
+            protocol: TCP
+          - name: http-metrics
+            containerPort: 9797
+            protocol: TCP
+          - name: grpc
+            containerPort: 9999
+            protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/healthz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/readyz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          volumeMounts:
+          - name: data
+            mountPath: /data
+          resources:
+            limits: null
+            requests:
+              cpu: 1m
+              memory: 16Mi
+        volumes:
+        - name: data
+          emptyDir: {}
+  ---
+  # Source: podinfo/templates/redis/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: podinfo-redis
+    labels:
+      app: podinfo-redis
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    strategy:
+      type: Recreate
+    selector:
+      matchLabels:
+        app: podinfo-redis
+    template:
+      metadata:
+        labels:
+          app: podinfo-redis
+        annotations:
+          checksum/config: "34c601c9d39797bbf53d1c7a278976609301f637ec11dc0253563729dfad4f8e"
+      spec:
+        containers:
+        - name: redis
+          image: "public.ecr.aws/docker/library/redis:7.0.6"
+          imagePullPolicy: IfNotPresent
+          command:
+          - redis-server
+          - "/redis-master/redis.conf"
+          ports:
+          - name: redis
+            containerPort: 6379
+            protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+              - redis-cli
+              - ping
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 32Mi
+          volumeMounts:
+          - mountPath: /var/lib/redis
+            name: data
+          - mountPath: /redis-master
+            name: config
+        volumes:
+        - name: data
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: podinfo-redis
+            items:
+            - key: redis.conf
+              path: redis.conf
+  ---
+  # Source: podinfo/templates/ingress.yaml
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.3.2
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.3.2"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    ingressClassName: nginx
+    rules:
+    - host: "podinfo.production"
+      http:
+        paths:
+        - path: /
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: podinfo
+              port:
+                number: 9898
+  
+  
+  '''
+# ---
+# name: test_build[build]
+  '''
+  ---
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    chart:
+      spec:
+        chart: podinfo
+        sourceRef:
+          kind: HelmRepository
+          name: podinfo
+          namespace: flux-system
+        version: 6.3.2
+    install:
+      remediation:
+        retries: 3
+    interval: 50m
+    releaseName: podinfo
+    values:
+      ingress:
+        className: nginx
+        enabled: true
+        hosts:
+        - host: podinfo.production
+          paths:
+          - path: /
+            pathType: ImplementationSpecific
+      redis:
+        enabled: true
+        repository: public.ecr.aws/docker/library/redis
+        tag: 7.0.6
+  ---
+  apiVersion: v1
+  data:
+    foo: bar
+  kind: ConfigMap
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo-config
+    namespace: podinfo
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: apps
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    dependsOn:
+    - name: infra-configs
+    interval: 10m0s
+    path: ./tests/testdata/cluster/apps/prod
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    timeout: 5m0s
+    wait: true
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1
+  kind: GitRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 1m0s
+    ref:
+      branch: main
+    secretRef:
+      name: flux-system
+    url: ssh://git@github.com/allenporter/flux-local
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: flux-system
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 10m0s
+    path: ./tests/testdata/cluster/clusters/prod
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: infra-controllers
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    interval: 1h
+    path: ./tests/testdata/cluster/infrastructure/controllers
+    prune: true
+    retryInterval: 1m
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    timeout: 5m
+    wait: true
+  ---
+  apiVersion: kustomize.toolkit.fluxcd.io/v1
+  kind: Kustomization
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: infra-configs
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    dependsOn:
+    - name: infra-controllers
+    interval: 1h
+    path: ./tests/testdata/cluster/infrastructure/configs
+    prune: true
+    retryInterval: 1m
+    sourceRef:
+      kind: GitRepository
+      name: flux-system
+    timeout: 5m
+  
+  ---
+  apiVersion: kyverno.io/v1
+  kind: ClusterPolicy
+  metadata:
+    annotations:
+      policies.kyverno.io/description: Policy that is expected to allow resources under test through since no resources should have this annotation.
+      policies.kyverno.io/title: Test Allow Policy
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: test-allow-policy
+  spec:
+    background: true
+    rules:
+    - match:
+        resources:
+          kinds:
+          - ConfigMap
+      name: forbid-test-annotation
+      validate:
+        message: Found test-annotation
+        pattern:
+          metadata:
+            =(annotations):
+              X(flux-local/test-annotation): "null"
+    validationFailureAction: audit
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: bitnami
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 30m
+    provider: generic
+    timeout: 1m0s
+    url: https://charts.bitnami.com/bitnami
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    interval: 5m
+    type: oci
+    url: oci://ghcr.io/stefanprodan/charts
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: HelmRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: weave-charts
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    interval: 120m
+    type: oci
+    url: oci://ghcr.io/weaveworks/charts
+  
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-controllers
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: metallb
+    namespace: metallb
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    chart:
+      spec:
+        chart: metallb
+        reconcileStrategy: ChartVersion
+        sourceRef:
+          kind: HelmRepository
+          name: bitnami
+          namespace: flux-system
+        version: 4.1.14
+    install:
+      crds: CreateReplace
+      remediation:
+        retries: 3
+    interval: 5m
+    releaseName: metallb
+    upgrade:
+      crds: CreateReplace
+    values:
+      speaker:
+        secretName: metallb-secret
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2beta1
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-controllers
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: weave-gitops
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    chart:
+      spec:
+        chart: weave-gitops
+        interval: 12h
+        sourceRef:
+          kind: HelmRepository
+          name: weave-charts
+        version: 4.0.22
+    interval: 60m
+  
+  
+  '''
+# ---

@@ -24,6 +24,8 @@ jobs:
         - tests/testdata/cluster7
     steps:
     - uses: actions/checkout@v4
+    - name: Setup Flux CLI
+      uses: fluxcd/flux2/action@v2.2.2
     - uses: ./action/test
       with:
         enable-helm: true

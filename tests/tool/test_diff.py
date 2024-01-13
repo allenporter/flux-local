@@ -9,9 +9,11 @@ look like they belong to a separate cluster.
 import pytest
 import os
 
-from flux_local import git_repo
-from flux_local.command import Command, run
+from syrupy.assertion import SnapshotAssertion
 
+from flux_local import git_repo
+
+from . import run_command
 
 CLUSTER_DIR = "tests/testdata/cluster"
 
@@ -21,7 +23,7 @@ CLUSTER_DIR = "tests/testdata/cluster"
     os.environ.get("SKIP_DIFF_TESTS", False),
     reason="SKIP_DIFF_TESTS set in environment",
 )
-async def test_diff_ks() -> None:
+async def test_diff_ks(snapshot: SnapshotAssertion) -> None:
     """Test a diff in resources within a Kustomization."""
 
     repo = git_repo.git_repo()
@@ -35,36 +37,14 @@ async def test_diff_ks() -> None:
             configmap = path / "apps/prod/configmap.yaml"
             configmap.write_text("")
 
-            result = await run(
-                Command(
-                    [
-                        "flux-local",
-                        "diff",
-                        "ks",
-                        "--path",
-                        str(path),
-                        "--path-orig",
-                        str(path_orig),
-                    ]
-                )
+            result = await run_command(
+                [
+                    "diff",
+                    "ks",
+                    "--path",
+                    str(path),
+                    "--path-orig",
+                    str(path_orig),
+                ]
             )
-
-    assert (
-        result
-        == """--- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps ConfigMap: podinfo/podinfo-config
-
-+++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps ConfigMap: podinfo/podinfo-config
-
-@@ -1,9 +0,0 @@
-
-----
--apiVersion: v1
--data:
--  foo: bar
--kind: ConfigMap
--metadata:
--  name: podinfo-config
--  namespace: podinfo
--
-"""  # noqa: E501
-    )
+    assert result == snapshot

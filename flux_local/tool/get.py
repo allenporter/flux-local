@@ -1,13 +1,21 @@
 """Flux-local get action."""
 
 import logging
-from argparse import ArgumentParser, _SubParsersAction as SubParsersAction
+from argparse import (
+    ArgumentParser,
+    BooleanOptionalAction,
+    _SubParsersAction as SubParsersAction,
+)
 from typing import cast, Any
+import sys
+import pathlib
+import tempfile
 
-from flux_local import git_repo
+from flux_local import git_repo, image, helm
 
 from .format import PrintFormatter, YamlFormatter
 from . import selector
+from .visitor import HelmVisitor, ImageOutput
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -150,11 +158,24 @@ class GetClusterAction:
         )
         selector.add_cluster_selector_flags(args)
         args.add_argument(
+            "--enable-images",
+            type=str,
+            default=False,
+            action=BooleanOptionalAction,
+            help="Output container images when traversing the cluster",
+        )
+        args.add_argument(
             "--output",
             "-o",
             choices=["diff", "yaml"],
             default="diff",
             help="Output format of the command",
+        )
+        args.add_argument(
+            "--output-file",
+            type=str,
+            default="/dev/stdout",
+            help="Output file for the results of the command",
         )
         args.set_defaults(cls=cls)
         return args
@@ -162,32 +183,66 @@ class GetClusterAction:
     async def run(  # type: ignore[no-untyped-def]
         self,
         output: str,
+        output_file: str,
+        enable_images: bool,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
         query = selector.build_cluster_selector(**kwargs)
         query.helm_release.enabled = output == "yaml"
+
+        image_visitor: image.ImageVisitor | None = None
+        helm_content: ImageOutput | None = None
+        if enable_images:
+            if output != "yaml":
+                print(
+                    "Flag --enable-images only works with --output yaml",
+                    file=sys.stderr,
+                )
+                return
+            image_visitor = image.ImageVisitor()
+            query.doc_visitor = image_visitor.repo_visitor()
+
+            helm_content = ImageOutput()
+            helm_visitor = HelmVisitor()
+            query.helm_repo.visitor = helm_visitor.repo_visitor()
+            query.helm_release.visitor = helm_visitor.release_visitor()
+
         manifest = await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
         )
         if output == "yaml":
-            YamlFormatter().print([manifest.compact_dict()])
+            if image_visitor:
+                image_visitor.update_manifest(manifest)
+            if helm_content:
+                with tempfile.TemporaryDirectory() as helm_cache_dir:
+                    await helm_visitor.inflate(
+                        pathlib.Path(helm_cache_dir),
+                        helm_content.visitor(),
+                        helm.Options(),
+                    )
+                    helm_content.update_manifest(manifest)
+
+            with open(output_file, "w") as file:
+                YamlFormatter().print([manifest.compact_dict()], file=file)
             return
 
-        cols = ["name", "path", "kustomizations"]
-        if query.cluster.namespace is None:
-            cols.insert(0, "namespace")
+        cols = ["path", "kustomizations"]
         results: list[dict[str, Any]] = []
         for cluster in manifest.clusters:
             value: dict[str, Any] = cluster.dict(include=set(cols))
             value["kustomizations"] = len(cluster.kustomizations)
             results.append(value)
 
-        if not results:
-            print(selector.not_found("flux cluster Kustmization", query.cluster))
-            return
+        with open(output_file, "w") as file:
+            if not results:
+                print(
+                    selector.not_found("flux cluster Kustmization", query.cluster),
+                    file=file,
+                )
+                return
 
-        PrintFormatter(cols).print(results)
+            PrintFormatter(cols).print(results, file=file)
 
 
 class GetAction:

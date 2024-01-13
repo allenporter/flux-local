@@ -1,0 +1,344 @@
+# serializer version: 1
+# name: test_get_cluster[all-namespaces]
+  '''
+  PATH                      KUSTOMIZATIONS    
+  tests/testdata/cluster    4                 
+  
+  '''
+# ---
+# name: test_get_cluster[cluster2]
+  '''
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster2    5                 
+  
+  '''
+# ---
+# name: test_get_cluster[cluster3-no-source]
+  '''
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster3    1                 
+  
+  '''
+# ---
+# name: test_get_cluster[cluster3]
+  '''
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster3    2                 
+  
+  '''
+# ---
+# name: test_get_cluster[cluster4]
+  '''
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster4    3                 
+  
+  '''
+# ---
+# name: test_get_cluster[cluster5]
+  '''
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster5    1                 
+  
+  '''
+# ---
+# name: test_get_cluster[cluster6]
+  '''
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster6    2                 
+  
+  '''
+# ---
+# name: test_get_cluster[cluster7]
+  '''
+  PATH                       KUSTOMIZATIONS    
+  tests/testdata/cluster7    3                 
+  
+  '''
+# ---
+# name: test_get_cluster[cluster]
+  '''
+  PATH                      KUSTOMIZATIONS    
+  tests/testdata/cluster    4                 
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster-images]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster/apps/prod
+      helm_repos: []
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.3.2
+        - public.ecr.aws/docker/library/redis:7.0.6
+      cluster_policies: []
+      config_maps:
+      - name: podinfo-config
+        namespace: podinfo
+      secrets: []
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster/clusters/prod
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+      config_maps: []
+      secrets: []
+    - name: infra-configs
+      namespace: flux-system
+      path: tests/testdata/cluster/infrastructure/configs
+      helm_repos:
+      - name: bitnami
+        namespace: flux-system
+        url: https://charts.bitnami.com/bitnami
+        repo_type: default
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      - name: weave-charts
+        namespace: flux-system
+        url: oci://ghcr.io/weaveworks/charts
+        repo_type: oci
+      helm_releases: []
+      cluster_policies:
+      - name: test-allow-policy
+      config_maps: []
+      secrets: []
+    - name: infra-controllers
+      namespace: flux-system
+      path: tests/testdata/cluster/infrastructure/controllers
+      helm_repos: []
+      helm_releases:
+      - name: metallb
+        namespace: metallb
+        chart:
+          name: metallb
+          repo_name: bitnami
+          repo_namespace: flux-system
+        images:
+        - docker.io/bitnami/metallb-controller:0.13.7-debian-11-r29
+        - docker.io/bitnami/metallb-speaker:0.13.7-debian-11-r28
+      - name: weave-gitops
+        namespace: flux-system
+        chart:
+          name: weave-gitops
+          repo_name: weave-charts
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/weaveworks/wego-app:v0.24.0
+      cluster_policies: []
+      config_maps: []
+      secrets: []
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster-no-images]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster/apps/prod
+      helm_repos: []
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+      cluster_policies: []
+      config_maps:
+      - name: podinfo-config
+        namespace: podinfo
+      secrets: []
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster/clusters/prod
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+      config_maps: []
+      secrets: []
+    - name: infra-configs
+      namespace: flux-system
+      path: tests/testdata/cluster/infrastructure/configs
+      helm_repos:
+      - name: bitnami
+        namespace: flux-system
+        url: https://charts.bitnami.com/bitnami
+        repo_type: default
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      - name: weave-charts
+        namespace: flux-system
+        url: oci://ghcr.io/weaveworks/charts
+        repo_type: oci
+      helm_releases: []
+      cluster_policies:
+      - name: test-allow-policy
+      config_maps: []
+      secrets: []
+    - name: infra-controllers
+      namespace: flux-system
+      path: tests/testdata/cluster/infrastructure/controllers
+      helm_repos: []
+      helm_releases:
+      - name: metallb
+        namespace: metallb
+        chart:
+          name: metallb
+          repo_name: bitnami
+          repo_namespace: flux-system
+      - name: weave-gitops
+        namespace: flux-system
+        chart:
+          name: weave-gitops
+          repo_name: weave-charts
+          repo_namespace: flux-system
+      cluster_policies: []
+      config_maps: []
+      secrets: []
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster8-images-allow-secrets]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster8
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster8/apps
+      helm_repos:
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.5.4
+        - public.ecr.aws/docker/library/redis:7.0.6
+      cluster_policies: []
+      config_maps:
+      - name: podinfo-values
+        namespace: podinfo
+      secrets:
+      - name: podinfo-tls-values
+      images:
+      - alpine
+      - busybox
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster8/cluster
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+      config_maps: []
+      secrets: []
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster8-images]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster8
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster8/apps
+      helm_repos:
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.5.4
+        - public.ecr.aws/docker/library/redis:7.0.6
+      cluster_policies: []
+      config_maps:
+      - name: podinfo-values
+        namespace: podinfo
+      secrets: []
+      images:
+      - alpine
+      - busybox
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster8/cluster
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+      config_maps: []
+      secrets: []
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster8-no-images]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster8
+    kustomizations:
+    - name: apps
+      namespace: flux-system
+      path: tests/testdata/cluster8/apps
+      helm_repos:
+      - name: podinfo
+        namespace: flux-system
+        url: oci://ghcr.io/stefanprodan/charts
+        repo_type: oci
+      helm_releases:
+      - name: podinfo
+        namespace: podinfo
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: flux-system
+      cluster_policies: []
+      config_maps:
+      - name: podinfo-values
+        namespace: podinfo
+      secrets: []
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster8/cluster
+      helm_repos: []
+      helm_releases: []
+      cluster_policies: []
+      config_maps: []
+      secrets: []
+  
+  '''
+# ---

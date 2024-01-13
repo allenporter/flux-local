@@ -1,8 +1,0 @@
-args:
-- get
-- cluster
-- --path
-- tests/testdata/cluster/
-stdout: |
-  NAME           PATH                                      KUSTOMIZATIONS    
-  flux-system    ./tests/testdata/cluster/clusters/prod    4                 

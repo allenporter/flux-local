@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from . import build, diff, get, test
+from . import build, diff, get, test, diagnostics
 from flux_local.exceptions import FluxException
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,6 +29,7 @@ def _make_parser() -> argparse.ArgumentParser:
     get.GetAction.register(subparsers)
     diff.DiffAction.register(subparsers)
     test.TestAction.register(subparsers)
+    diagnostics.DiagnosticsAction.register(subparsers)
     return parser
 
 

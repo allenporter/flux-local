@@ -1,8 +1,0 @@
-args:
-- get
-- hr
-- -A
-- --path
-- tests/testdata/cluster3
-stdout: |
-  no HelmRelease objects found in cluster

@@ -50,17 +50,31 @@ inputs:
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
-    value: ${{ steps.flux_diff.outputs.diff }}
+    value: ${{ steps.flux_diff_output.outputs.diff }}
 runs:
   using: "composite"
   steps:
+    - name: Verify Flux CLI
+      run:
+        flux --version || (echo "Could not find flux CLI, add https://fluxcd.io/flux/flux-gh-action/" && exit 1)
+      shell: bash
+    - name: Copy requirements locally
+      id: copy-requirements
+      shell: bash
+      run: |
+        # `cache-dependency-path` seems to need to be within the current directory. Use a temporary directory
+        tempdir=$(mktemp --directory --tmpdir=. --suffix=-flux-local-diff-action)
+        cp ${{ github.action_path }}/../../requirements.txt $tempdir
+        echo "::set-output name=directory::${tempdir}"
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
-    - name: Install flux-local
+        cache: pip
+        cache-dependency-path: ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
+    - name: Install flux-local and requirements
       run: |
-        python -m pip install --upgrade pip
+        pip install -r ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
         pip install -e ${{ github.action_path }}/../../
       shell: bash
     - name: Checkout PR branch
@@ -74,11 +88,9 @@ runs:
         ref: ${{ inputs.live-branch }}
         path: live
         token: ${{ inputs.token }}
-    - name: flux-local diff
+    - name: Diff Resources
       id: flux_diff
       run: |
-        delimiter="$(openssl rand -hex 8)"
-        echo "diff<<${delimiter}" >> $GITHUB_OUTPUT
         if [[ "${{ inputs.resource }}" == "helmrelease" ]]; then
           extra_flags="--api-versions=${{ inputs.api-versions}}"
         else
@@ -98,7 +110,14 @@ runs:
             --all-namespaces \
             --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
             --sources "${{ inputs.sources }}" \
-            ${extra_flags} \
-            >> $GITHUB_OUTPUT
+            --output-file diff.patch \
+            ${extra_flags}
+      shell: bash
+    - name: Generate Diff output
+      id: flux_diff_output
+      run: |
+        delimiter="$(openssl rand -hex 8)"
+        echo "diff<<${delimiter}" >> $GITHUB_OUTPUT
+        cat diff.patch >> $GITHUB_OUTPUT
         echo "${delimiter}" >> $GITHUB_OUTPUT
       shell: bash

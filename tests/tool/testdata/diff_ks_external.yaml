@@ -1,8 +1,0 @@
-env:
-  DIFF: diff
-args:
-- diff
-- ks
-- apps
-- --path
-- tests/testdata/cluster/

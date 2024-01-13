@@ -1,0 +1,97 @@
+# serializer version: 1
+# name: test_get_ks[cluster2]
+  '''
+  NAME                                       PATH                                                                  
+  cluster                                    tests/testdata/cluster2/flux                                          
+  cluster-apps                               tests/testdata/cluster2/apps                                          
+  cluster-apps-ingress-nginx                 tests/testdata/cluster2/apps/networking/ingress-nginx/app             
+  cluster-apps-ingress-nginx-certificates    tests/testdata/cluster2/apps/networking/ingress-nginx/certificates    
+  cluster-apps-kubernetes-dashboard          tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app      
+  
+  '''
+# ---
+# name: test_get_ks[cluster3]
+  '''
+  NAMESPACE      NAME          PATH                                                    
+  flux-system    namespaces    tests/testdata/cluster3/namespaces/overlays/cluster3    
+  flux-system    tenants       tests/testdata/cluster3/tenants/overlays/cluster3       
+  
+  '''
+# ---
+# name: test_get_ks[cluster4]
+  '''
+  NAME                                 PATH                                                            
+  cluster                              tests/testdata/cluster4/flux                                    
+  cluster-apps                         tests/testdata/cluster4/apps                                    
+  cluster-apps-kubernetes-dashboard    tests/testdata/cluster4/apps/monitoring/kubernetes-dashboard    
+  
+  '''
+# ---
+# name: test_get_ks[cluster5-all]
+  '''
+  NAMESPACE      NAME                 PATH                                     
+  controllers    infra-controllers    tests/testdata/cluster5                  
+  flux-system    flux-system          tests/testdata/cluster5/clusters/prod    
+  
+  '''
+# ---
+# name: test_get_ks[cluster5]
+  '''
+  NAME           PATH                                     
+  flux-system    tests/testdata/cluster5/clusters/prod    
+  
+  '''
+# ---
+# name: test_get_ks[cluster6]
+  '''
+  NAME           PATH                               
+  apps           tests/testdata/cluster6/apps       
+  flux-system    tests/testdata/cluster6/cluster    
+  
+  '''
+# ---
+# name: test_get_ks[cluster7]
+  '''
+  NAME           PATH                                     
+  apps           tests/testdata/cluster7/flux/apps        
+  charts         tests/testdata/cluster7/flux/charts      
+  flux-system    tests/testdata/cluster7/clusters/home    
+  
+  '''
+# ---
+# name: test_get_ks[cluster]
+  '''
+  NAME                 PATH                                                 
+  apps                 tests/testdata/cluster/apps/prod                     
+  flux-system          tests/testdata/cluster/clusters/prod                 
+  infra-configs        tests/testdata/cluster/infrastructure/configs        
+  infra-controllers    tests/testdata/cluster/infrastructure/controllers    
+  
+  '''
+# ---
+# name: test_get_ks[cluster_path]
+  '''
+  NAME                 PATH                                                 
+  apps                 tests/testdata/cluster/apps/prod                     
+  flux-system          tests/testdata/cluster/clusters/prod                 
+  infra-configs        tests/testdata/cluster/infrastructure/configs        
+  infra-controllers    tests/testdata/cluster/infrastructure/controllers    
+  
+  '''
+# ---
+# name: test_get_ks[ks_path]
+  '''
+  no Kustomization objects found in cluster
+  
+  '''
+# ---
+# name: test_get_ks[wide]
+  '''
+  NAME                 PATH                                                 HELMREPOS    RELEASES    
+  apps                 tests/testdata/cluster/apps/prod                     0            1           
+  flux-system          tests/testdata/cluster/clusters/prod                 0            0           
+  infra-configs        tests/testdata/cluster/infrastructure/configs        3            0           
+  infra-controllers    tests/testdata/cluster/infrastructure/controllers    0            2           
+  
+  '''
+# ---

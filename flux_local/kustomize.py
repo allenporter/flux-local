@@ -34,10 +34,7 @@ for object in objects:
 You can apply kyverno policies to the objects with the `validate` method.
 """
 
-import aiofiles
-from aiofiles.os import listdir
-from aiofiles.ospath import isdir, exists
-import asyncio
+from aiofiles.ospath import isdir
 import logging
 from pathlib import Path
 import tempfile
@@ -46,30 +43,27 @@ from typing import Any, AsyncGenerator
 import yaml
 
 from . import manifest
-from .command import Command, run_piped, Task
+from .command import Command, run_piped, Task, format_path
 from .exceptions import (
     InputException,
     KustomizeException,
     KyvernoException,
+    KustomizePathException,
 )
+from .manifest import Kustomization
 
 _LOGGER = logging.getLogger(__name__)
 
 __all__ = [
-    "build",
+    "flux_build",
     "grep",
     "Kustomize",
 ]
 
 KUSTOMIZE_BIN = "kustomize"
 KYVERNO_BIN = "kyverno"
+FLUX_BIN = "flux"
 HELM_RELEASE_KIND = "HelmRelease"
-KUSTOMIZE_FILES = ["kustomization.yaml", "kustomization.yml", "Kustomization"]
-
-# Use the same behavior as flux to allow loading files outside the directory
-# containing kustomization.yaml
-# https://fluxcd.io/flux/faq/#what-is-the-behavior-of-kustomize-used-by-flux
-KUSTOMIZE_BUILD_FLAGS = ["--load-restrictor=LoadRestrictionsNone"]
 
 
 class Kustomize:
@@ -113,15 +107,21 @@ class Kustomize:
         """Run the kustomize command and return the output as a string."""
         return await run_piped(self._cmds)
 
-    async def _docs(self) -> AsyncGenerator[dict[str, Any], None]:
+    async def _docs(
+        self, target_namespace: str | None = None
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Run the kustomize command and return the result documents."""
         out = await self.run()
         for doc in yaml.safe_load_all(out):
+            if target_namespace is not None:
+                doc = update_namespace(doc, target_namespace)
             yield doc
 
-    async def objects(self) -> list[dict[str, Any]]:
+    async def objects(
+        self, target_namespace: str | None = None
+    ) -> list[dict[str, Any]]:
         """Run the kustomize command and return the result cluster objects as a list."""
-        return [doc async for doc in self._docs()]
+        return [doc async for doc in self._docs(target_namespace=target_namespace)]
 
     def skip_resources(self, kinds: list[str]) -> "Kustomize":
         """Skip resources kinds of the specified types."""
@@ -189,86 +189,57 @@ class Stash(Task):
         return self._out
 
 
-class Build(Task):
-    """A task that issues a build command, handling implicit Kustomizations."""
+class FluxBuild(Task):
+    """A task that issues a flux build command."""
 
-    def __init__(self, path: Path, kustomize_flags: list[str] | None = None) -> None:
+    def __init__(self, ks: Kustomization, path: Path) -> None:
         """Initialize Build."""
+        self._ks = ks
         self._path = path
-        self._kustomize_flags = list(KUSTOMIZE_BUILD_FLAGS)
-        if kustomize_flags:
-            self._kustomize_flags.extend(kustomize_flags)
 
     async def run(self, stdin: bytes | None = None) -> bytes:
         """Run the task."""
         if stdin is not None:
             raise InputException("Invalid stdin cannot be passed to build command")
-
         if not await isdir(self._path):
-            raise InputException(f"Specified path is not a directory: {self._path}")
-        if not await can_kustomize_dir(self._path):
-            # Attempt to effectively generate a kustomization.yaml on the fly
-            # mirroring the behavior of flux
-            return await fluxtomize(self._path)
+            raise KustomizePathException(
+                f"Kustomization '{self._ks.namespaced_name}' path field '{self._ks.path or ''}' is not a directory: {self._path}"
+            )
 
-        args = [KUSTOMIZE_BIN, "build"]
-        args.extend(self._kustomize_flags)
-        cwd: Path | None = None
-        if self._path.is_absolute():
-            cwd = self._path
-        else:
-            args.append(str(self._path))
-        task = Command(args, cwd=cwd, exc=KustomizeException)
-        return await task.run()
+        args = [
+            FLUX_BIN,
+            "build",
+            "ks",
+            self._ks.name,
+            "--dry-run",
+            "--kustomization-file",
+            "/dev/stdin",
+            "--path",
+            str(self._path),
+        ]
+        if self._ks.namespace:
+            args.extend(
+                [
+                    "--namespace",
+                    self._ks.namespace,
+                ]
+            )
+        kustomization_data = yaml.dump_all(
+            [self._ks.contents or {}], sort_keys=False, explicit_start=True
+        )
+        input_ks = str(kustomization_data).encode("utf-8")
 
+        task = Command(args, cwd=None, exc=KustomizeException)
+        return await task.run(stdin=input_ks)
 
-async def can_kustomize_dir(path: Path) -> bool:
-    """Return true if a kustomize file exists for the specified directory."""
-    for name in KUSTOMIZE_FILES:
-        if await exists(path / name):
-            return True
-    return False
-
-
-async def yaml_load_all(path: Path) -> list[dict[str, Any]]:
-    """Load all documents from the file."""
-    async with aiofiles.open(path) as f:
-        contents = await f.read()
-        return list(yaml.load_all(contents, Loader=yaml.Loader))
-
-
-async def fluxtomize(path: Path) -> bytes:
-    """Create a synthentic Kustomization file and attempt to build it.
-
-    This is similar to the behavior of flux, which kustomize does not support
-    directly. Every yaml file found is read and written to the output. Every
-    directory that can be kustomized is built using the CLI like build()
-    """
-    # Every file resource is read and output
-    # Every directory is kustomized
-    tasks = []
-    filenames = list(await listdir(path))
-    filenames.sort()
-    for filename in filenames:
-        new_path = path / filename
-        if new_path.is_dir():
-            tasks.append(build(new_path).objects())
-        elif filename.endswith(".yaml") or filename.endswith(".yml"):
-            tasks.append(yaml_load_all(new_path))
-        else:
-            continue
-
-    results = await asyncio.gather(*tasks)
-    docs = []
-    for result in results:
-        docs.extend(result)
-    out = yaml.dump_all(docs, sort_keys=False, explicit_start=True)
-    return str(out).encode("utf-8")
+    def __str__(self) -> str:
+        """Render as a debug string."""
+        return f"flux build {format_path(self._path)}"
 
 
-def build(path: Path, kustomize_flags: list[str] | None = None) -> Kustomize:
+def flux_build(ks: Kustomization, path: Path) -> Kustomize:
     """Build cluster artifacts from the specified path."""
-    return Kustomize(cmds=[Build(path, kustomize_flags)])
+    return Kustomize(cmds=[FluxBuild(ks, path)])
 
 
 def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
@@ -283,3 +254,13 @@ def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
     else:
         args.append(str(path))
     return Kustomize([Command(args, cwd=cwd, exc=KustomizeException)])
+
+
+def update_namespace(doc: dict[str, Any], namespace: str) -> dict[str, Any]:
+    """Update the namespace of the specified document.
+
+    Will only update the namespace if the doc appears to have a metadata/name.
+    """
+    if (metadata := doc.get("metadata")) is not None and "name" in metadata:
+        doc["metadata"]["namespace"] = namespace
+    return doc

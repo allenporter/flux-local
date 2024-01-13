@@ -4,34 +4,34 @@ repos:
   rev: v4.5.0
   hooks:
   - id: trailing-whitespace
-    exclude: '^tests/tool/testdata/.*\.yaml$'
+    exclude: '^tests/.*.ambr$'
   - id: end-of-file-fixer
-    exclude: '^tests/tool/testdata/.*\.yaml$'
+    exclude: '^tests/.*.ambr$'
   - id: check-yaml
     args:
     - --allow-multiple-documents
   - id: check-added-large-files
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.2.5
+  rev: v2.2.6
   hooks:
   - id: codespell
 - repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: 'v0.0.292'
+  rev: 'v0.1.11'
   hooks:
   - id: ruff
     args: [--fix, --exit-non-zero-on-fix]
 - repo: https://github.com/adrienverge/yamllint.git
-  rev: v1.32.0
+  rev: v1.33.0
   hooks:
   - id: yamllint
-    exclude: '^tests/tool/testdata/.*\.yaml$'
     args:
     - -c
     - ".yaml-lint.yaml"
 - repo: https://github.com/psf/black
-  rev: 23.10.0
+  rev: 23.12.1
   hooks:
   - id: black
+    exclude: '^tests/.*.ambr$'
 - repo: local
   hooks:
   - id: mypy

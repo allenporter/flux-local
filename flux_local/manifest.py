@@ -5,16 +5,14 @@ serialized and stored and checked into the cluster for use in other applications
 e.g. such as writing management plan for resources.
 """
 
+import base64
 from pathlib import Path
 from typing import Any, Optional, cast
 
 import aiofiles
 import yaml
 
-try:
-    from pydantic.v1 import BaseModel, Field
-except ImportError:
-    from pydantic import BaseModel, Field  # type: ignore
+from pydantic import BaseModel, Field
 
 from .exceptions import InputException
 
@@ -39,6 +37,10 @@ HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
 CLUSTER_POLICY_DOMAIN = "kyverno.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
+CONFIG_MAP_KIND = "ConfigMap"
+DEFAULT_NAMESPACE = "flux-system"
+VALUE_PLACEHOLDER = "**PLACEHOLDER**"
+VALUE_B64_PLACEHOLDER = base64.b64encode(VALUE_PLACEHOLDER.encode())
 
 REPO_TYPE_DEFAULT = "default"
 REPO_TYPE_OCI = "oci"
@@ -55,8 +57,6 @@ def _check_version(doc: dict[str, Any], version: str) -> None:
 class BaseManifest(BaseModel):
     """Base class for all manifest objects."""
 
-    _COMPACT_EXCLUDE_FIELDS: dict[str, Any] = {}
-
     def compact_dict(self, exclude: dict[str, Any] | None = None) -> dict[str, Any]:
         """Return a compact dictionary representation of the object.
 
@@ -64,14 +64,19 @@ class BaseManifest(BaseModel):
         with variable fields removed.
         """
         if exclude is None:
-            exclude = self._COMPACT_EXCLUDE_FIELDS
-        return self.dict(exclude=exclude)  # type: ignore[arg-type]
+            exclude = self.compact_exclude_fields()
+        return self.model_dump(exclude=exclude, exclude_unset=True, exclude_none=True)
+
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {}
 
     @classmethod
     def parse_yaml(cls, content: str) -> "BaseManifest":
         """Parse a serialized manifest."""
         doc = next(yaml.load_all(content, Loader=yaml.Loader), None)
-        return cls.parse_obj(doc)
+        return cls.model_validate(doc)
 
     def yaml(self, exclude: dict[str, Any] | None = None) -> str:
         """Return a YAML string representation of compact_dict."""
@@ -89,7 +94,7 @@ class HelmChart(BaseManifest):
     """The version of the chart."""
 
     repo_name: str
-    """The name of the HelmRepository."""
+    """The short name of the HelmRepository."""
 
     repo_namespace: str
     """The namespace of the HelmRepository."""
@@ -121,11 +126,38 @@ class HelmChart(BaseManifest):
         )
 
     @property
+    def repo_full_name(self) -> str:
+        """Identifier for the HelmRepository."""
+        return f"{self.repo_namespace}-{self.repo_name}"
+
+    @property
     def chart_name(self) -> str:
         """Identifier for the HelmChart."""
-        return f"{self.repo_namespace}-{self.repo_name}/{self.name}"
+        return f"{self.repo_full_name}/{self.name}"
 
-    _COMPACT_EXCLUDE_FIELDS = {"version": True}
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {"version": True}
+
+
+class ValuesReference(BaseManifest):
+    """A reference to a resource containing values for a HelmRelease."""
+
+    kind: str
+    """The kind of resource."""
+
+    name: str
+    """The name of the resource."""
+
+    values_key: str = Field(alias="valuesKey", default="values.yaml")
+    """The key in the resource that contains the values."""
+
+    target_path: Optional[str] = Field(alias="targetPath", default=None)
+    """The path in the HelmRelease values to store the values."""
+
+    optional: bool = False
+    """Whether the reference is optional."""
 
 
 class HelmRelease(BaseManifest):
@@ -143,6 +175,12 @@ class HelmRelease(BaseManifest):
     values: Optional[dict[str, Any]] = None
     """The values to install in the chart."""
 
+    values_from: Optional[list[ValuesReference]]
+    """A list of values to reference from an ConfigMap or Secret."""
+
+    images: list[str] = Field(default_factory=list)
+    """The list of images referenced in the HelmRelease."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "HelmRelease":
         """Parse a HelmRelease from a kubernetes resource object."""
@@ -154,11 +192,16 @@ class HelmRelease(BaseManifest):
         if not (namespace := metadata.get("namespace")):
             raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
         chart = HelmChart.parse_doc(doc, namespace)
+        spec = doc["spec"]
+        values_from: list[ValuesReference] | None = None
+        if values_from_dict := spec.get("valuesFrom"):
+            values_from = [ValuesReference(**subdoc) for subdoc in values_from_dict]
         return cls(
             name=name,
             namespace=namespace,
             chart=chart,
-            values=doc["spec"].get("values"),
+            values=spec.get("values"),
+            values_from=values_from,
         )
 
     @property
@@ -171,10 +214,19 @@ class HelmRelease(BaseManifest):
         """Identifier for the HelmRepository identified in the HelmChart."""
         return f"{self.chart.repo_namespace}-{self.chart.repo_name}"
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "values": True,
-        "chart": HelmChart._COMPACT_EXCLUDE_FIELDS,
-    }
+    @property
+    def namespaced_name(self) -> str:
+        """Return the namespace and name concatenated as an id."""
+        return f"{self.namespace}/{self.name}"
+
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "values": True,
+            "values_from": True,
+            "chart": HelmChart.compact_exclude_fields(),
+        }
 
 
 class HelmRepository(BaseManifest):
@@ -244,9 +296,97 @@ class ClusterPolicy(BaseManifest):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
         return ClusterPolicy(name=name, namespace=namespace, doc=doc)
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "doc": True,
-    }
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "doc": True,
+        }
+
+
+class ConfigMap(BaseManifest):
+    """A ConfigMap is an API object used to store data in key-value pairs."""
+
+    name: str
+    """The name of the kustomization."""
+
+    namespace: str | None = None
+    """The namespace of the kustomization."""
+
+    data: dict[str, Any] | None = None
+    """The data in the ConfigMap."""
+
+    binary_data: dict[str, Any] | None = None
+    """The binary data in the ConfigMap."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "ConfigMap":
+        """Parse a config map object from a kubernetes resource."""
+        _check_version(doc, "v1")
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        namespace = metadata.get("namespace")
+        return ConfigMap(
+            name=name,
+            namespace=namespace,
+            data=doc.get("data"),
+            binaryData=doc.get("binaryData"),
+        )
+
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "data": True,
+            "binaryData": True,
+        }
+
+
+class Secret(BaseManifest):
+    """A Secret contains a small amount of sensitive data."""
+
+    name: str
+    """The name of the kustomization."""
+
+    namespace: str | None = None
+    """The namespace of the kustomization."""
+
+    data: dict[str, Any] | None = None
+    """The data in the Secret."""
+
+    string_data: dict[str, Any] | None = None
+    """The string data in the Secret."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "Secret":
+        """Parse a secret object from a kubernetes resource."""
+        _check_version(doc, "v1")
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        namespace = metadata.get("namespace")
+        # While secrets are not typically stored in the cluster, we replace with
+        # placeholder values anyway.
+        if data := doc.get("data"):
+            for key, value in data.items():
+                data[key] = VALUE_B64_PLACEHOLDER
+        if string_data := doc.get("stringData"):
+            for key, value in string_data.items():
+                string_data[key] = VALUE_PLACEHOLDER
+        return Secret(
+            name=name, namespace=namespace, data=data, string_data=string_data
+        )
+
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "data": True,
+            "stringData": True,
+        }
 
 
 class Kustomization(BaseManifest):
@@ -275,6 +415,12 @@ class Kustomization(BaseManifest):
     cluster_policies: list[ClusterPolicy] = Field(default_factory=list)
     """The set of ClusterPolicies represented in this kustomization."""
 
+    config_maps: list[ConfigMap] = Field(default_factory=list)
+    """The list of config maps referenced in the kustomization."""
+
+    secrets: list[Secret] = Field(default_factory=list)
+    """The list of secrets referenced in the kustomization."""
+
     source_path: str | None = None
     """Optional source path for this Kustomization, relative to the build path."""
 
@@ -286,6 +432,15 @@ class Kustomization(BaseManifest):
 
     source_namespace: str | None = None
     """The namespace of the sourceRef that provides this Kustomization."""
+
+    target_namespace: str | None = None
+    """The namespace to target when performing the operation."""
+
+    contents: dict[str, Any] | None = None
+    """Contents of the raw Kustomization document."""
+
+    images: list[str] = Field(default_factory=list)
+    """The list of images referenced in the kustomization."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":
@@ -310,6 +465,8 @@ class Kustomization(BaseManifest):
             source_kind=source_ref.get("kind"),
             source_name=source_ref.get("name"),
             source_namespace=source_ref.get("namespace", namespace),
+            target_namespace=spec.get("targetNamespace"),
+            contents=doc,
         )
 
     @property
@@ -318,22 +475,33 @@ class Kustomization(BaseManifest):
         return f"{self.path}"
 
     @property
-    def namespaced_name(self, sep: str = "/") -> str:
+    def namespaced_name(self) -> str:
         """Return the namespace and name concatenated as an id."""
-        return f"{self.namespace}{sep}{self.name}"
+        return f"{self.namespace}/{self.name}"
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "helm_releases": {
-            "__all__": HelmRelease._COMPACT_EXCLUDE_FIELDS,
-        },
-        "cluster_policies": {
-            "__all__": ClusterPolicy._COMPACT_EXCLUDE_FIELDS,
-        },
-        "source_path": True,
-        "source_name": True,
-        "source_namespace": True,
-        "source_kind": True,
-    }
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "helm_releases": {
+                "__all__": HelmRelease.compact_exclude_fields(),
+            },
+            "cluster_policies": {
+                "__all__": ClusterPolicy.compact_exclude_fields(),
+            },
+            "config_maps": {
+                "__all__": ConfigMap.compact_exclude_fields(),
+            },
+            "secrets": {
+                "__all__": Secret.compact_exclude_fields(),
+            },
+            "source_path": True,
+            "source_name": True,
+            "source_namespace": True,
+            "source_kind": True,
+            "target_namespace": True,
+            "contents": True,
+        }
 
 
 class Cluster(BaseManifest):
@@ -343,38 +511,11 @@ class Cluster(BaseManifest):
     a repo may also contain multiple (e.g. dev an prod).
     """
 
-    name: str
-    """The name of the cluster."""
-
-    namespace: str
-    """The namespace of the cluster."""
-
     path: str
     """The local git repo path to the Kustomization objects for the cluster."""
 
     kustomizations: list[Kustomization] = Field(default_factory=list)
     """A list of flux Kustomizations for the cluster."""
-
-    @classmethod
-    def parse_doc(cls, doc: dict[str, Any]) -> "Cluster":
-        """Parse a partial Kustomization from a kubernetes resource."""
-        _check_version(doc, FLUXTOMIZE_DOMAIN)
-        if not (metadata := doc.get("metadata")):
-            raise InputException(f"Invalid {cls} missing metadata: {doc}")
-        if not (name := metadata.get("name")):
-            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
-        if not (namespace := metadata.get("namespace")):
-            raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
-        if not (spec := doc.get("spec")):
-            raise InputException(f"Invalid {cls} missing spec: {doc}")
-        if not (path := spec.get("path")):
-            raise InputException(f"Invalid {cls} missing spec.path: {doc}")
-        return Cluster(name=name, namespace=namespace, path=path)
-
-    @property
-    def namespaced_name(self, sep: str = "/") -> str:
-        """Return the namespace and name concatenated as an id."""
-        return f"{self.namespace}{sep}{self.name}"
 
     @property
     def id_name(self) -> str:
@@ -408,11 +549,14 @@ class Cluster(BaseManifest):
             for policy in kustomization.cluster_policies
         ]
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "kustomizations": {
-            "__all__": Kustomization._COMPACT_EXCLUDE_FIELDS,
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "kustomizations": {
+                "__all__": Kustomization.compact_exclude_fields(),
+            }
         }
-    }
 
 
 class Manifest(BaseManifest):
@@ -421,11 +565,14 @@ class Manifest(BaseManifest):
     clusters: list[Cluster]
     """A list of Clusters represented in the repo."""
 
-    _COMPACT_EXCLUDE_FIELDS = {
-        "clusters": {
-            "__all__": Cluster._COMPACT_EXCLUDE_FIELDS,
+    @classmethod
+    def compact_exclude_fields(cls) -> dict[str, Any]:
+        """Return a dictionary of fields to exclude from compact_dict."""
+        return {
+            "clusters": {
+                "__all__": Cluster.compact_exclude_fields(),
+            }
         }
-    }
 
 
 async def read_manifest(manifest_path: Path) -> Manifest:

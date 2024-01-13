@@ -9,7 +9,7 @@ import tempfile
 import yaml
 from typing import Any
 
-from flux_local import git_repo
+from flux_local import git_repo, image
 from flux_local.helm import Helm, Options
 from flux_local.kustomize import Kustomize
 from flux_local.manifest import (
@@ -17,6 +17,7 @@ from flux_local.manifest import (
     Kustomization,
     HelmRepository,
     ClusterPolicy,
+    Manifest,
 )
 
 
@@ -38,17 +39,12 @@ ResourceType = Kustomization | HelmRelease | HelmRepository | ClusterPolicy
 class ResourceKey:
     """Key for a Kustomization object output."""
 
-    cluster_path: str
     kustomization_path: str
     kind: str
-    namespace: str
+    namespace: str | None
     name: str
 
     def __post_init__(self) -> None:
-        if self.cluster_path.startswith("/"):
-            raise AssertionError(
-                f"Expected cluster_path as relative: {self.cluster_path}"
-            )
         if self.kustomization_path.startswith("/"):
             raise AssertionError(
                 f"Expected kustomization_path as relative: {self.kustomization_path}"
@@ -62,22 +58,18 @@ class ResourceKey:
         if self.kustomization_path and self.kustomization_path != ".":
             parts.append(self.kustomization_path)
             parts.append(" ")
-        elif self.cluster_path:
-            parts.append(self.cluster_path)
-            parts.append(" ")
         parts.append(self.compact_label)
         return "".join(parts)
 
     @property
-    def compact_label(self) -> str:
-        parts = []
-        parts.append(self.kind)
-        parts.append(": ")
+    def namespaced_name(self) -> str:
         if self.namespace:
-            parts.append(self.namespace)
-            parts.append("/")
-        parts.append(self.name)
-        return "".join(parts)
+            return f"{self.namespace}/{self.name}"
+        return self.name
+
+    @property
+    def compact_label(self) -> str:
+        return f"{self.kind}: {self.namespaced_name}"
 
 
 class ResourceOutput(ABC):
@@ -94,7 +86,6 @@ class ResourceOutput(ABC):
     @abstractmethod
     async def call_async(
         self,
-        cluster_path: pathlib.Path,
         kustomization_path: pathlib.Path,
         doc: ResourceType,
         cmd: Kustomize | None,
@@ -103,16 +94,14 @@ class ResourceOutput(ABC):
 
     def key_func(
         self,
-        cluster_path: pathlib.Path,
         kustomization_path: pathlib.Path,
         resource: ResourceType,
     ) -> ResourceKey:
         return ResourceKey(
-            cluster_path=str(cluster_path),
             kustomization_path=str(kustomization_path),
             kind=resource.__class__.__name__,
-            namespace=resource.namespace or "",
-            name=resource.name or "",
+            namespace=resource.namespace,
+            name=resource.name,
         )
 
 
@@ -125,7 +114,6 @@ class ContentOutput(ResourceOutput):
 
     async def call_async(
         self,
-        cluster_path: pathlib.Path,
         kustomization_path: pathlib.Path,
         doc: ResourceType,
         cmd: Kustomize | None,
@@ -136,7 +124,7 @@ class ContentOutput(ResourceOutput):
             lines = content.split("\n")
             if lines[0] != "---":
                 lines.insert(0, "---")
-            self.content[self.key_func(cluster_path, kustomization_path, doc)] = lines
+            self.content[self.key_func(kustomization_path, doc)] = lines
 
 
 def strip_attrs(metadata: dict[str, Any], strip_attributes: list[str]) -> None:
@@ -153,6 +141,39 @@ def strip_attrs(metadata: dict[str, Any], strip_attributes: list[str]) -> None:
                 break
 
 
+class ImageOutput(ResourceOutput):
+    """Resource visitor that builds outputs for objects within the kustomization."""
+
+    def __init__(self) -> None:
+        """Initialize ObjectOutput."""
+        self.image_visitor = image.ImageVisitor()
+        self.repo_visitor = self.image_visitor.repo_visitor()
+
+    async def call_async(
+        self,
+        kustomization_path: pathlib.Path,
+        doc: ResourceType,
+        cmd: Kustomize | None,
+    ) -> None:
+        """Visitor function invoked to build and record resource objects."""
+        if cmd and isinstance(doc, HelmRelease):
+            objects = await cmd.objects()
+            for obj in objects:
+                if obj.get("kind") in self.repo_visitor.kinds:
+                    self.repo_visitor.func(doc.namespaced_name, obj)
+
+    def update_manifest(self, manifest: Manifest) -> None:
+        """Update the manifest with the images found in the repo."""
+        for cluster in manifest.clusters:
+            for kustomization in cluster.kustomizations:
+                for helm_release in kustomization.helm_releases:
+                    if images := self.image_visitor.images.get(
+                        helm_release.namespaced_name
+                    ):
+                        helm_release.images = list(images)
+                        helm_release.images.sort()
+
+
 class ObjectOutput(ResourceOutput):
     """Resource visitor that builds outputs for objects within the kustomization."""
 
@@ -166,7 +187,6 @@ class ObjectOutput(ResourceOutput):
 
     async def call_async(
         self,
-        cluster_path: pathlib.Path,
         kustomization_path: pathlib.Path,
         doc: ResourceType,
         cmd: Kustomize | None,
@@ -195,7 +215,6 @@ class ObjectOutput(ResourceOutput):
                     strip_attrs(meta, self.strip_attributes)
                 resource_key = ResourceKey(
                     kind=kind,
-                    cluster_path=str(cluster_path),
                     kustomization_path=str(kustomization_path),
                     namespace=metadata.get("namespace", doc.namespace),
                     name=metadata.get("name", ""),
@@ -204,13 +223,10 @@ class ObjectOutput(ResourceOutput):
                 lines = content.split("\n")
                 lines.insert(0, "---")
                 contents[resource_key] = lines
-            self.content[
-                self.key_func(cluster_path, kustomization_path, doc)
-            ] = contents
+            self.content[self.key_func(kustomization_path, doc)] = contents
 
 
 async def inflate_release(
-    cluster_path: pathlib.Path,
     helm: Helm,
     release: HelmRelease,
     visitor: git_repo.ResourceVisitor,
@@ -218,7 +234,7 @@ async def inflate_release(
 ) -> None:
     cmd = await helm.template(release, options)
     # We can ignore the Kustomiation path since we're essentially grouping by cluster
-    await visitor.func(cluster_path, pathlib.Path(""), release, cmd)
+    await visitor.func(pathlib.Path(""), release, cmd)
 
 
 class HelmVisitor:
@@ -226,35 +242,28 @@ class HelmVisitor:
 
     def __init__(self) -> None:
         """Initialize KustomizationContentOutput."""
-        self.repos: dict[str, list[HelmRepository]] = {}
-        self.releases: dict[str, list[HelmRelease]] = {}
+        self.repos: list[HelmRepository] = []
+        self.releases: list[HelmRelease] = []
 
-    def active_repos(self, cluster_path: str) -> list[HelmRepository]:
+    @property
+    def active_repos(self) -> list[HelmRepository]:
         """Return HelpRepositories referenced by a HelmRelease."""
         repo_keys: set[str] = {
-            f"{release.chart.repo_namespace}-{release.chart.repo_name}"
-            for release in self.releases.get(cluster_path, [])
+            release.chart.repo_full_name for release in self.releases
         }
-        return [
-            repo
-            for repo in self.repos.get(cluster_path, [])
-            if repo.repo_name in repo_keys
-        ]
+        return [repo for repo in self.repos if repo.repo_name in repo_keys]
 
     def repo_visitor(self) -> git_repo.ResourceVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
 
         async def add_repo(
-            cluster_path: pathlib.Path,
             kustomization_path: pathlib.Path,
             doc: ResourceType,
             cmd: Kustomize | None,
         ) -> None:
             if not isinstance(doc, HelmRepository):
                 raise ValueError(f"Expected HelmRepository: {doc}")
-            self.repos[str(cluster_path)] = self.repos.get(str(cluster_path), []) + [
-                doc
-            ]
+            self.repos.append(doc)
 
         return git_repo.ResourceVisitor(func=add_repo)
 
@@ -262,16 +271,13 @@ class HelmVisitor:
         """Return a git_repo.ResourceVisitor that points to this object."""
 
         async def add_release(
-            cluster_path: pathlib.Path,
             kustomization_path: pathlib.Path,
             doc: ResourceType,
             cmd: Kustomize | None,
         ) -> None:
             if not isinstance(doc, HelmRelease):
                 raise ValueError(f"Expected HelmRelease: {doc}")
-            self.releases[str(cluster_path)] = self.releases.get(
-                str(cluster_path), []
-            ) + [doc]
+            self.releases.append(doc)
 
         return git_repo.ResourceVisitor(func=add_release)
 
@@ -282,43 +288,22 @@ class HelmVisitor:
         options: Options,
     ) -> None:
         """Expand and notify about HelmReleases discovered."""
-        cluster_paths = set(list(self.releases)) | set(list(self.repos))
-        tasks = [
-            self.inflate_cluster(
-                helm_cache_dir,
-                pathlib.Path(cluster_path),
-                visitor,
-                options,
-            )
-            for cluster_path in cluster_paths
-        ]
-        _LOGGER.debug("Waiting for cluster inflation to complete")
-        await asyncio.gather(*tasks)
-
-    async def inflate_cluster(
-        self,
-        helm_cache_dir: pathlib.Path,
-        cluster_path: pathlib.Path,
-        visitor: git_repo.ResourceVisitor,
-        options: Options,
-    ) -> None:
-        _LOGGER.debug("Inflating Helm charts in cluster %s", cluster_path)
+        _LOGGER.debug("Inflating Helm charts in cluster")
         if not self.releases:
             return
         with tempfile.TemporaryDirectory() as tmp_dir:
             helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
-            if active_repos := self.active_repos(str(cluster_path)):
+            if active_repos := self.active_repos:
                 helm.add_repos(active_repos)
                 await helm.update()
             tasks = [
                 inflate_release(
-                    cluster_path,
                     helm,
                     release,
                     visitor,
                     options,
                 )
-                for release in self.releases.get(str(cluster_path), [])
+                for release in self.releases
             ]
-            _LOGGER.debug("Waiting for tasks to inflate %s", cluster_path)
+            _LOGGER.debug("Waiting for inflate tasks to complete")
             await asyncio.gather(*tasks)
