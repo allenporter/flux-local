@@ -80,13 +80,13 @@ runs:
       uses: actions/checkout@v4
       with:
         path: pr
-        token: ${{ inputs.token }} || ${{ github.token }}
+        token: ${{ inputs.token || github.token }}
     - name: Checkout live branch
       uses: actions/checkout@v4
       with:
         ref: ${{ inputs.live-branch }}
         path: live
-        token: ${{ inputs.token }} || ${{ github.token }}
+        token: ${{ inputs.token || github.token }}
     - name: Diff Resources
       id: flux_diff
       run: |
