@@ -46,7 +46,6 @@ inputs:
   token:
     description: GitHub token to use for cloning the repository
     required: false
-    default: ''
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
@@ -81,13 +80,13 @@ runs:
       uses: actions/checkout@v4
       with:
         path: pr
-        token: ${{ inputs.token }}
+        token: ${{ inputs.token }} || ${{ github.token }}
     - name: Checkout live branch
       uses: actions/checkout@v4
       with:
         ref: ${{ inputs.live-branch }}
         path: live
-        token: ${{ inputs.token }}
+        token: ${{ inputs.token }} || ${{ github.token }}
     - name: Diff Resources
       id: flux_diff
       run: |
