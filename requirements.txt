@@ -1,5 +1,5 @@
 aiofiles==23.2.1
-black==23.12.1
+black==24.1.0
 coverage==7.4.0
 GitPython==3.1.41
 mypy==1.8.0
