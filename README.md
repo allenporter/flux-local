@@ -251,8 +251,8 @@ helm release expansion enabled.
 
 ```yaml
 - name: Setup Flux CLI
-  uses: fluxcd/flux2/action@v2
-- uses: allenporter/flux-local/test@2.0.0
+  uses: fluxcd/flux2/action@v2.2.2
+- uses: allenporter/flux-local/action/test@4.3.1
   with:
     path: clusters/prod
     enable-helm: true
