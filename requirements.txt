@@ -19,5 +19,5 @@ types-PyYAML==6.0.12.12
 typing-extensions==4.9.0
 types-python-slugify==8.0.2.20240127
 wheel==0.42.0
-yamllint==1.34.0
+yamllint==1.35.0
 syrupy==4.6.1
