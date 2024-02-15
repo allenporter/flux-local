@@ -12,7 +12,7 @@ RUN apt-get update --fix-missing && \
         git \
         python3-pip
 
-COPY --from=docker.io/bitnami/kubectl:1.29.1            /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/kubectl
+COPY --from=docker.io/bitnami/kubectl:1.29.2            /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/kubectl
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.3.0  /app/kustomize                   /usr/local/bin/kustomize
 COPY --from=ghcr.io/kyverno/kyverno-cli:v1.11.4         /ko-app/kubectl-kyverno          /usr/local/bin/kyverno
 COPY --from=docker.io/alpine/helm:3.14.0                /usr/bin/helm                    /usr/local/bin/helm
