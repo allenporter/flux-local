@@ -1,6 +1,6 @@
 # Docker environment for local development in devcontainer
 
-FROM ubuntu:jammy-20240125
+FROM ubuntu:jammy-20240212
 
 RUN apt-get update --fix-missing && \
     apt-get upgrade -y && \
