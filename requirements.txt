@@ -6,7 +6,7 @@ mypy==1.8.0
 nest_asyncio==1.6.0
 pdoc==14.4.0
 pip==24.0
-pre-commit==3.6.1
+pre-commit==3.6.2
 pydantic==2.6.1
 pytest==8.0.1
 pytest-asyncio==0.23.5
