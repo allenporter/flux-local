@@ -17,7 +17,7 @@ ruff==0.3.2
 types-aiofiles==23.2.0.20240310
 types-PyYAML==6.0.12.12
 typing-extensions==4.10.0
-types-python-slugify==8.0.2.20240127
+types-python-slugify==8.0.2.20240310
 wheel==0.42.0
 yamllint==1.35.1
 syrupy==4.6.1
