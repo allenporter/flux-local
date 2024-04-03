@@ -939,6 +939,7 @@
           kind: HelmRepository
           name: podinfo
           namespace: flux-system
+        version: 6.5.4
     install:
       remediation:
         retries: 3
