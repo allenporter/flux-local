@@ -14,7 +14,7 @@ pytest-cov==4.1.0
 python-slugify==8.0.4
 PyYAML==6.0.1
 ruff==0.3.5
-types-aiofiles==23.2.0.20240331
+types-aiofiles==23.2.0.20240403
 types-PyYAML==6.0.12.20240311
 typing-extensions==4.10.0
 types-python-slugify==8.0.2.20240310
