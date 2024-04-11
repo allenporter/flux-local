@@ -33,7 +33,7 @@ jobs:
       run: |
         pip install -r requirements.txt
         pip install -e .
-    - uses: supplypike/setup-bin@v3
+    - uses: supplypike/setup-bin@v4
       with:
         uri: https://github.com/kyverno/kyverno/releases/download/v1.11.3/kyverno-cli_v1.11.3_linux_x86_64.tar.gz
         name: kyverno-cli
