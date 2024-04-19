@@ -15,7 +15,7 @@ spec:
   path: ./tests/testdata/cluster/apps/prod
   postBuild:
     substitute:
-      cluster_env: "prod"
+      cluster_env: "production"
   prune: true
   wait: true
   timeout: 5m0s
