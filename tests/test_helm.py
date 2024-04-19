@@ -420,7 +420,7 @@ def test_values_references_secret() -> None:
     assert updated_hr.values == {
         "test": "test",
         "target": {
-            "path1": "**PLACEHOLDER**",
-            "path2": "**PLACEHOLDER**",
+            "path1": "!!PLACEHOLDER!!",
+            "path2": "!!PLACEHOLDER!!",
         },
     }
