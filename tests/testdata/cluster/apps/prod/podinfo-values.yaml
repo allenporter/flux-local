@@ -11,7 +11,7 @@ spec:
   values:
     ingress:
       hosts:
-        - host: podinfo.production
+        - host: podinfo.${cluster_env}
           paths:
             - path: /
               pathType: ImplementationSpecific
