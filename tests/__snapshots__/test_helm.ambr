@@ -22,7 +22,7 @@
       'tag': '7.0.6',
     }),
     'tls': dict({
-      'crt': '**PLACEHOLDER**',
+      'crt': '!!PLACEHOLDER!!',
     }),
   })
 # ---
