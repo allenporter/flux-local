@@ -93,7 +93,9 @@
       helm_repos: []
       helm_releases: []
       cluster_policies: []
-      config_maps: []
+      config_maps:
+      - name: cluster-config
+        namespace: flux-system
       secrets: []
     - name: infra-configs
       namespace: flux-system
@@ -172,7 +174,9 @@
       helm_repos: []
       helm_releases: []
       cluster_policies: []
-      config_maps: []
+      config_maps:
+      - name: cluster-config
+        namespace: flux-system
       secrets: []
     - name: infra-configs
       namespace: flux-system

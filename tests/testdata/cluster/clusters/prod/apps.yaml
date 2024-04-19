@@ -16,6 +16,9 @@ spec:
   postBuild:
     substitute:
       cluster_env: "production"
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-config
   prune: true
   wait: true
   timeout: 5m0s

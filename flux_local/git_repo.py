@@ -42,7 +42,7 @@ from typing import Any, Generator
 
 import git
 
-from . import kustomize, helm
+from . import kustomize, values
 from .exceptions import FluxException, KustomizePathException
 from .manifest import (
     CRD_KIND,
@@ -394,6 +394,14 @@ class CachableBuilder:
         self._cache[key] = cmd
         return cmd
 
+    def remove(self, kustomization: Kustomization) -> None:
+        """Remove the kustomization value from the cache."""
+        target_key = f"{kustomization.namespaced_name} @"
+        for key in list(self._cache.keys()):
+            if key.startswith(target_key):
+                _LOGGER.debug("Invalidated cache %s", key)
+                del self._cache[key]
+
 
 async def visit_kustomization(
     selector: PathSelector,
@@ -470,7 +478,6 @@ async def kustomization_traversal(
                 _LOGGER.debug("Already visited %s", path)
                 continue
             visited_paths.add(path)
-
             tasks.append(visit_kustomization(selector, builder, path, visit_ks))
 
         # Find new kustomizations
@@ -570,7 +577,7 @@ async def build_kustomization(
         if selector.doc_visitor:
             kinds.extend(selector.doc_visitor.kinds)
         if not kinds:
-            return None
+            return
 
         regexp = f"kind=^({'|'.join(kinds)})$"
         docs = await cmd.grep(regexp).objects(
@@ -658,23 +665,57 @@ async def build_manifest(
         ]
 
         async def update_kustomization(cluster: Cluster) -> None:
-            build_tasks = []
-            for kustomization in cluster.kustomizations:
-                _LOGGER.debug(
-                    "Processing kustomization '%s': %s",
-                    kustomization.name,
-                    kustomization.path,
-                )
-                build_tasks.append(
-                    build_kustomization(
-                        kustomization,
-                        Path(cluster.path),
-                        selector,
-                        options.kustomize_flags,
-                        builder,
+            queue = [*cluster.kustomizations]
+            visited: set[str] = set()
+            # cluster_config = values.ks_cluster_config(cluster.kustomizations)
+            while queue:
+                build_tasks = []
+                in_flight = []
+                pending = []
+                while queue:
+                    kustomization = queue.pop(0)
+                    if not_ready := (set(kustomization.depends_on or {}) - visited):
+                        _LOGGER.debug(
+                            "Waiting for %s before building %s",
+                            not_ready,
+                            kustomization.namespaced_name,
+                        )
+                        pending.append(kustomization)
+                        continue
+                    _LOGGER.debug(
+                        "Processing kustomization '%s': %s",
+                        kustomization.name,
+                        kustomization.path,
                     )
-                )
-            await asyncio.gather(*build_tasks)
+
+                    if kustomization.postbuild_substitute_from:
+                        values.expand_postbuild_substitute_reference(
+                            kustomization,
+                            values.ks_cluster_config(cluster.kustomizations),
+                        )
+                        # Clear the cache to remove any previous builds that are
+                        # missing the postbuild substitutions.
+                        builder.remove(kustomization)
+
+                    in_flight.append(kustomization.namespaced_name)
+                    build_tasks.append(
+                        build_kustomization(
+                            kustomization,
+                            Path(cluster.path),
+                            selector,
+                            options.kustomize_flags,
+                            builder,
+                        )
+                    )
+                if not build_tasks:
+                    raise FluxException(
+                        "Internal error: Unexpected loop without build tasks"
+                    )
+                await asyncio.gather(*build_tasks)
+                visited.update(in_flight)
+
+                for kustomization in pending:
+                    queue.append(kustomization)
 
         # Validate all Kustomizations have valid dependsOn attributes since later
         # we'll be using them to order processing.
@@ -686,6 +727,18 @@ async def build_manifest(
         kustomization_tasks = []
         # Expand and visit Kustomizations
         for cluster in clusters:
+            all_ks: set[str] = set(
+                [ks.namespaced_name for ks in cluster.kustomizations]
+            )
+            for ks in cluster.kustomizations:
+                if missing := (set(ks.depends_on or {}) - all_ks):
+                    _LOGGER.warning(
+                        "Kustomization %s has dependsOn with invalid names: %s",
+                        ks.namespaced_name,
+                        missing,
+                    )
+                    ks.depends_on = list(set(ks.depends_on or {}) - missing)
+
             kustomization_tasks.append(update_kustomization(cluster))
         await asyncio.gather(*kustomization_tasks)
 
@@ -693,9 +746,11 @@ async def build_manifest(
         for cluster in clusters:
             for kustomization in cluster.kustomizations:
                 kustomization.helm_releases = [
-                    helm.expand_value_references(helm_release, kustomization)
+                    values.expand_value_references(helm_release, kustomization)
                     for helm_release in kustomization.helm_releases
                 ]
+                if kustomization.name == "apps":
+                    _LOGGER.warning("apps = %s", kustomization.helm_releases)
 
         # Visit Helm resources
         for cluster in clusters:

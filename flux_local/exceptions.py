@@ -33,3 +33,11 @@ class HelmException(CommandException):
 
 class KyvernoException(CommandException):
     """Raised when there is an error running kyverno policy command."""
+
+
+class InvalidValuesReference(FluxException):
+    """Exception raised for an unsupported ValuesReference."""
+
+
+class InvalidSubstituteReference(FluxException):
+    """Exception raised for an unsupported SubstituteReference."""

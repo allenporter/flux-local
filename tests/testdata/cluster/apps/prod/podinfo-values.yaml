@@ -10,6 +10,8 @@ spec:
       version: "6.3.2"
   values:
     ingress:
+      additionalLabels:
+        cluster_label: ${cluster_label}
       hosts:
         - host: podinfo.${cluster_env}
           paths:
