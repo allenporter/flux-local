@@ -32,13 +32,11 @@ for object in objects:
 ```
 """
 
-import base64
-from collections.abc import Sequence
 import datetime
 from dataclasses import dataclass
 import logging
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any
 
 import aiofiles
 import yaml
@@ -51,11 +49,6 @@ from .manifest import (
     CRD_KIND,
     SECRET_KIND,
     REPO_TYPE_OCI,
-    Kustomization,
-    CONFIG_MAP_KIND,
-    ConfigMap,
-    Secret,
-    VALUE_PLACEHOLDER,
 )
 from .exceptions import HelmException
 
@@ -239,128 +232,3 @@ class Helm:
         if options.skip_resources:
             cmd = cmd.skip_resources(options.skip_resources)
         return cmd
-
-
-_T = TypeVar("_T", bound=ConfigMap | Secret)
-
-
-def _find_object(name: str, namespace: str, objects: Sequence[_T]) -> _T | None:
-    """Find the object in the list of objects."""
-    for obj in objects:
-        if obj.name == name and obj.namespace == namespace:
-            return obj
-    return None
-
-
-def _decode_config_or_secret_value(
-    name: str, string_data: dict[str, str] | None, binary_data: dict[str, str] | None
-) -> dict[str, str] | None:
-    """Return the config or secret data."""
-    if binary_data:
-        try:
-            return {
-                k: base64.b64decode(v).decode("utf-8") for k, v in binary_data.items()
-            }
-        except ValueError:
-            raise HelmException(f"Unable to decode binary data for configmap {name}")
-    return string_data
-
-
-def _get_secret_data(
-    name: str, namespace: str, ks: Kustomization
-) -> dict[str, str] | None:
-    """Find the secret value in the kustomization."""
-    found: Secret | None = _find_object(name, namespace, ks.secrets)
-    if not found:
-        return None
-    return _decode_config_or_secret_value(
-        f"{namespace}/{name}", found.string_data, found.data
-    )
-
-
-def _get_configmap_data(
-    name: str, namespace: str, ks: Kustomization
-) -> dict[str, str] | None:
-    """Find the configmap value in the kustomization."""
-    found: ConfigMap | None = _find_object(name, namespace, ks.config_maps)
-    if not found:
-        return None
-    return _decode_config_or_secret_value(
-        f"{namespace}/{name}", found.data, found.binary_data
-    )
-
-
-def expand_value_references(
-    helm_release: HelmRelease, kustomization: Kustomization
-) -> HelmRelease:
-    """Expand value references in the HelmRelease."""
-    if not helm_release.values_from:
-        return helm_release
-
-    values = helm_release.values or {}
-    for ref in helm_release.values_from:
-        _LOGGER.debug("Expanding value reference %s", ref)
-        found_data: dict[str, str] | None = None
-        if ref.kind == SECRET_KIND:
-            found_data = _get_secret_data(
-                ref.name, helm_release.namespace, kustomization
-            )
-        elif ref.kind == CONFIG_MAP_KIND:
-            found_data = _get_configmap_data(
-                ref.name, helm_release.namespace, kustomization
-            )
-        else:
-            _LOGGER.warning(
-                "Unsupported valueFrom kind %s in HelmRelease %s",
-                ref.kind,
-                helm_release.namespaced_name,
-            )
-            continue
-
-        if found_data is None:
-            if not ref.optional:
-                _LOGGER.warning(
-                    "Unable to find %s %s/%s referenced in HelmRelease %s",
-                    ref.kind,
-                    helm_release.namespace,
-                    ref.name,
-                    helm_release.namespaced_name,
-                )
-            if ref.target_path:
-                # When a target path is specified, the value is expected to be
-                # a simple value type. Create a synthetic placeholder value
-                found_value = VALUE_PLACEHOLDER
-            else:
-                continue
-        elif (found_value := found_data.get(ref.values_key)) is None:
-            _LOGGER.warning(
-                "Unable to find key %s in %s/%s referenced in HelmRelease %s",
-                ref.values_key,
-                helm_release.namespace,
-                ref.name,
-                helm_release.namespaced_name,
-            )
-            continue
-
-        if ref.target_path:
-            parts = ref.target_path.split(".")
-            inner_values = values
-            for part in parts[:-1]:
-                if part not in inner_values:
-                    inner_values[part] = {}
-                elif not isinstance(inner_values[part], dict):
-                    raise HelmException(
-                        f"While building HelmRelease '{helm_release.namespaced_name}': Expected '{ref.name}' field '{ref.target_path}' values to be a dict, found {type(inner_values[part])}"
-                    )
-                inner_values = inner_values[part]
-
-            inner_values[parts[-1]] = found_value
-        else:
-            obj = yaml.load(found_value, Loader=yaml.SafeLoader)
-            if not obj or not isinstance(obj, dict):
-                raise HelmException(
-                    f"While building HelmRelease '{helm_release.namespaced_name}': Expected '{ref.name}' field '{ref.target_path}' values to be valid yaml, found {type(values)}"
-                )
-            values.update(obj)
-
-    return helm_release.model_copy(update={"values": values})

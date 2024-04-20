@@ -27,6 +27,8 @@ __all__ = [
     "HelmRelease",
     "HelmChart",
     "ClusterPolicy",
+    "ConfigMap",
+    "Secret",
 ]
 
 _LOGGER = logging.getLogger(__name__)
@@ -393,6 +395,19 @@ class Secret(BaseManifest):
         }
 
 
+class SubstituteReference(BaseManifest):
+    """SubstituteReference contains a reference to a resource containing the variables name and value."""
+
+    kind: str
+    """The kind of resource."""
+
+    name: str
+    """The name of the resource."""
+
+    optional: bool = False
+    """Whether the reference is optional."""
+
+
 class Kustomization(BaseManifest):
     """A Kustomization is a set of declared cluster artifacts.
 
@@ -446,6 +461,12 @@ class Kustomization(BaseManifest):
     images: list[str] = Field(default_factory=list)
     """The list of images referenced in the kustomization."""
 
+    postbuild_substitute: Optional[dict[str, Any]] = None
+    """A map of key/value pairs to substitute into the final YAML manifest, after building."""
+
+    postbuild_substitute_from: Optional[list[SubstituteReference]] = None
+    """A list of substitutions to reference from an ConfigMap or Secret."""
+
     depends_on: list[str] | None = None
     """A list of namespaced names that this Kustomization depends on."""
 
@@ -464,14 +485,18 @@ class Kustomization(BaseManifest):
         path = spec.get("path", "")
         source_path = metadata.get("annotations", {}).get("config.kubernetes.io/path")
         source_ref = spec.get("sourceRef", {})
-
+        postbuild = spec.get("postBuild", {})
+        substitute_from: list[SubstituteReference] | None = None
+        if substitute_from_dict := postbuild.get("substituteFrom"):
+            substitute_from = [
+                SubstituteReference(**subdoc) for subdoc in substitute_from_dict
+            ]
         depends_on = []
         for dependency in spec.get("dependsOn", ()):
             if not (dep_name := dependency.get("name")):
                 raise InputException(f"Invalid {cls} missing dependsOn.name: {doc}")
             dep_namespace = dependency.get("namespace", namespace)
             depends_on.append(f"{dep_namespace}/{dep_name}")
-
         return Kustomization(
             name=name,
             namespace=namespace,
@@ -482,6 +507,8 @@ class Kustomization(BaseManifest):
             source_namespace=source_ref.get("namespace", namespace),
             target_namespace=spec.get("targetNamespace"),
             contents=doc,
+            postbuild_substitute=postbuild.get("substitute"),
+            postbuild_substitute_from=substitute_from,
             depends_on=depends_on,
         )
 
@@ -529,8 +556,22 @@ class Kustomization(BaseManifest):
             "source_kind": True,
             "target_namespace": True,
             "contents": True,
+            "postbuild_substitute": True,
+            "postbuild_substitute_from": True,
             "depends_on": True,
         }
+    
+    def update_postbuild_substitutions(self, substitutions: dict[str, Any]) -> None:
+        """Update the postBuild.substitutions in the extracted values and raw doc contents."""
+        if self.postbuild_substitute is None:
+            self.postbuild_substitute = {}
+        self.postbuild_substitute.update(substitutions)
+        if self.contents:
+            post_build = self.contents["spec"]["postBuild"]
+            if (substitute := post_build.get("substitute")) is None:
+                substitute = {}
+                post_build["substitute"] = substitute
+            substitute.update(substitutions)
 
 
 class Cluster(BaseManifest):

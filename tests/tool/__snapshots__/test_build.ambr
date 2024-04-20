@@ -1352,6 +1352,8 @@
     releaseName: podinfo
     values:
       ingress:
+        additionalLabels:
+          cluster_label: example-value
         className: nginx
         enabled: true
         hosts:
@@ -1398,6 +1400,9 @@
     postBuild:
       substitute:
         cluster_env: production
+      substituteFrom:
+      - kind: ConfigMap
+        name: cluster-config
     prune: true
     sourceRef:
       kind: GitRepository
@@ -1443,6 +1448,20 @@
       kind: GitRepository
       name: flux-system
   ---
+  apiVersion: v1
+  data:
+    cluster_label: example-value
+  kind: ConfigMap
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster-config
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
   metadata:
@@ -1452,8 +1471,8 @@
     name: infra-controllers
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '3'
-      internal.config.kubernetes.io/index: '3'
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
   spec:
     interval: 1h
     path: ./tests/testdata/cluster/infrastructure/controllers
@@ -1474,8 +1493,8 @@
     name: infra-configs
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '4'
-      internal.config.kubernetes.io/index: '4'
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
   spec:
     dependsOn:
     - name: infra-controllers
@@ -3033,6 +3052,8 @@
     releaseName: podinfo
     values:
       ingress:
+        additionalLabels:
+          cluster_label: example-value
         className: nginx
         enabled: true
         hosts:
@@ -3079,6 +3100,9 @@
     postBuild:
       substitute:
         cluster_env: production
+      substituteFrom:
+      - kind: ConfigMap
+        name: cluster-config
     prune: true
     sourceRef:
       kind: GitRepository
@@ -3124,6 +3148,20 @@
       kind: GitRepository
       name: flux-system
   ---
+  apiVersion: v1
+  data:
+    cluster_label: example-value
+  kind: ConfigMap
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: flux-system
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster-config
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization
   metadata:
@@ -3133,8 +3171,8 @@
     name: infra-controllers
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '3'
-      internal.config.kubernetes.io/index: '3'
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
   spec:
     interval: 1h
     path: ./tests/testdata/cluster/infrastructure/controllers
@@ -3155,8 +3193,8 @@
     name: infra-configs
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '4'
-      internal.config.kubernetes.io/index: '4'
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
   spec:
     dependsOn:
     - name: infra-controllers

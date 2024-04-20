@@ -42,7 +42,7 @@ from typing import Any, Generator
 
 import git
 
-from . import kustomize, helm
+from . import kustomize, values
 from .exceptions import FluxException, KustomizePathException
 from .manifest import (
     CRD_KIND,
@@ -394,6 +394,14 @@ class CachableBuilder:
         self._cache[key] = cmd
         return cmd
 
+    def remove(self, kustomization: Kustomization) -> None:
+        """Remove the kustomization value from the cache."""
+        target_key = f"{kustomization.namespaced_name} @"
+        for key in list(self._cache.keys()):
+            if key.startswith(target_key):
+                _LOGGER.debug("Invalidated cache %s", key)
+                del self._cache[key]
+
 
 async def visit_kustomization(
     selector: PathSelector,
@@ -558,19 +566,20 @@ async def build_kustomization(
             )
 
         kinds = []
+        # Needed for expanding postbuild substitutions and value references
+        kinds.append(CONFIG_MAP_KIND)
         if helm_repo_selector.enabled:
             kinds.append(HELM_REPO_KIND)
         if helm_release_selector.enabled:
             kinds.append(HELM_RELEASE_KIND)
             # Needed for expanding value references
-            kinds.append(CONFIG_MAP_KIND)
             kinds.append(SECRET_KIND)
         if cluster_policy_selector.enabled:
             kinds.append(CLUSTER_POLICY_KIND)
         if selector.doc_visitor:
             kinds.extend(selector.doc_visitor.kinds)
         if not kinds:
-            return None
+            return
 
         regexp = f"kind=^({'|'.join(kinds)})$"
         docs = await cmd.grep(regexp).objects(
@@ -624,6 +633,23 @@ async def build_kustomization(
         ]
 
 
+def _ready_kustomizations(kustomizations: list[Kustomization], visited: set[str]) -> tuple[Kustomization, Kustomization]:
+    """Split the kustomizations into those that are ready vs pending."""
+    ready = []
+    pending = []
+    for kustomization in kustomizations:
+        if not_ready := (set(kustomization.depends_on or {}) - visited):
+            _LOGGER.debug(
+                "Kustomization %s waiting for %s",
+                kustomization.namespaced_name,
+                not_ready,
+            )
+            pending.append(kustomization)
+        else:
+            ready.append(kustomization)
+    return (ready, pending)
+
+
 async def build_manifest(
     path: Path | None = None,
     selector: ResourceSelector = ResourceSelector(),
@@ -658,23 +684,39 @@ async def build_manifest(
         ]
 
         async def update_kustomization(cluster: Cluster) -> None:
-            build_tasks = []
-            for kustomization in cluster.kustomizations:
-                _LOGGER.debug(
-                    "Processing kustomization '%s': %s",
-                    kustomization.name,
-                    kustomization.path,
-                )
-                build_tasks.append(
-                    build_kustomization(
-                        kustomization,
-                        Path(cluster.path),
-                        selector,
-                        options.kustomize_flags,
-                        builder,
+            queue = [*cluster.kustomizations]
+            visited: set[str] = set()
+            while queue:
+                build_tasks = []
+                (ready, pending) = _ready_kustomizations(queue, visited)
+                for kustomization in ready:
+                    _LOGGER.debug("Processing kustomization '%s': %s", kustomization.name, kustomization.path)
+
+                    if kustomization.postbuild_substitute_from:
+                        values.expand_postbuild_substitute_reference(
+                            kustomization,
+                            values.ks_cluster_config(cluster.kustomizations),
+                        )
+                        # Clear the cache to remove any previous builds that are
+                        # missing the postbuild substitutions.
+                        builder.remove(kustomization)
+
+                    build_tasks.append(
+                        build_kustomization(
+                            kustomization,
+                            Path(cluster.path),
+                            selector,
+                            options.kustomize_flags,
+                            builder,
+                        )
                     )
-                )
-            await asyncio.gather(*build_tasks)
+                if not build_tasks:
+                    raise FluxException(
+                        "Internal error: Unexpected loop without build tasks"
+                    )
+                await asyncio.gather(*build_tasks)
+                visited.update([ks.namespaced_name for ks in ready])
+                queue = pending
 
         # Validate all Kustomizations have valid dependsOn attributes since later
         # we'll be using them to order processing.
@@ -693,7 +735,7 @@ async def build_manifest(
         for cluster in clusters:
             for kustomization in cluster.kustomizations:
                 kustomization.helm_releases = [
-                    helm.expand_value_references(helm_release, kustomization)
+                    values.expand_value_references(helm_release, kustomization)
                     for helm_release in kustomization.helm_releases
                 ]
 
