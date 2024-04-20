@@ -35,7 +35,7 @@ import logging
 import os
 import tempfile
 from collections import deque
-from collections.abc import Callable, Awaitable, Iterable
+from collections.abc import Callable, Awaitable
 from functools import cache
 from pathlib import Path
 from typing import Any, Generator
@@ -458,7 +458,7 @@ async def kustomization_traversal(
     visited_paths: set[Path] = set()  # Relative paths within the cluster
     visited_ks: set[str] = set()
 
-    path_queue: list[tuple[Path, Kustomization | None]] = deque()
+    path_queue: deque[tuple[Path, Kustomization | None]] = deque()
     path_queue.append((selector.relative_path, None))
     while path_queue:
         # Fully empty the queue, running all tasks in parallel
@@ -615,9 +615,9 @@ async def build_kustomization(
             )
         )
         kustomization.config_maps = [
-                ConfigMap.parse_doc(doc)
-                for doc in docs
-                if doc.get("kind") == CONFIG_MAP_KIND
+            ConfigMap.parse_doc(doc)
+            for doc in docs
+            if doc.get("kind") == CONFIG_MAP_KIND
         ]
         kustomization.secrets = [
             Secret.parse_doc(doc) for doc in docs if doc.get("kind") == SECRET_KIND
