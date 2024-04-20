@@ -52,7 +52,7 @@ class ClusterConfig:
 def cluster_config(
     secrets: list[Secret], config_maps: list[ConfigMap]
 ) -> ClusterConfig:
-    """Create a ClusterConfig from a list of Kustomizations."""
+    """Create a ClusterConfig from a list of secrets and configmaps."""
     return ClusterConfig(
         lambda: secrets,
         lambda: config_maps,
