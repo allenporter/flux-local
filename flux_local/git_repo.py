@@ -676,7 +676,7 @@ async def build_manifest(
                 )
             await asyncio.gather(*build_tasks)
 
-        # Validate all Kustomizations have valid dependsOn attribtues since later
+        # Validate all Kustomizations have valid dependsOn attributes since later
         # we'll be using them to order processing.
         for cluster in clusters:
             all_ks = set([ks.namespaced_name for ks in cluster.kustomizations])
