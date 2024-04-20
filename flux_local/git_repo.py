@@ -34,10 +34,10 @@ from dataclasses import dataclass, field
 import logging
 import os
 import tempfile
+from collections import deque
 from collections.abc import Callable, Awaitable, Iterable
 from functools import cache
 from pathlib import Path
-import queue
 from typing import Any, Generator
 
 import git
@@ -458,13 +458,13 @@ async def kustomization_traversal(
     visited_paths: set[Path] = set()  # Relative paths within the cluster
     visited_ks: set[str] = set()
 
-    path_queue: queue.Queue[tuple[Path, Kustomization | None]] = queue.Queue()
-    path_queue.put((selector.relative_path, None))
-    while not path_queue.empty():
+    path_queue: list[tuple[Path, Kustomization | None]] = deque()
+    path_queue.append((selector.relative_path, None))
+    while path_queue:
         # Fully empty the queue, running all tasks in parallel
         tasks = []
-        while not path_queue.empty():
-            (path, visit_ks) = path_queue.get()
+        while path_queue:
+            (path, visit_ks) = path_queue.popleft()
 
             if path in visited_paths:
                 _LOGGER.debug("Already visited %s", path)
@@ -494,7 +494,7 @@ async def kustomization_traversal(
             if not (ks_path := adjust_ks_path(ks, selector)):
                 continue
             ks.path = str(ks_path)
-            path_queue.put((ks_path, ks))
+            path_queue.append((ks_path, ks))
             response_kustomizations.append(ks)
 
     response_kustomizations.sort(key=lambda x: (x.namespace, x.name))
