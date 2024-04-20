@@ -6,6 +6,7 @@ e.g. such as writing management plan for resources.
 """
 
 import base64
+import logging
 from pathlib import Path
 from typing import Any, Optional, cast
 
@@ -27,6 +28,9 @@ __all__ = [
     "HelmChart",
     "ClusterPolicy",
 ]
+
+_LOGGER = logging.getLogger(__name__)
+
 
 # Match a prefix of apiVersion to ensure we have the right type of object.
 # We don't check specific versions for forward compatibility on upgrade.
@@ -442,6 +446,9 @@ class Kustomization(BaseManifest):
     images: list[str] = Field(default_factory=list)
     """The list of images referenced in the kustomization."""
 
+    depends_on: list[str] | None = None
+    """A list of namespaced names that this Kustomization depends on."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":
         """Parse a partial Kustomization from a kubernetes resource."""
@@ -457,6 +464,14 @@ class Kustomization(BaseManifest):
         path = spec.get("path", "")
         source_path = metadata.get("annotations", {}).get("config.kubernetes.io/path")
         source_ref = spec.get("sourceRef", {})
+
+        depends_on = []
+        for dependency in spec.get("dependsOn", ()):
+            if not (dep_name := dependency.get("name")):
+                raise InputException(f"Invalid {cls} missing dependsOn.name: {doc}")
+            dep_namespace = dependency.get("namespace", namespace)
+            depends_on.append(f"{dep_namespace}/{dep_name}")
+
         return Kustomization(
             name=name,
             namespace=namespace,
@@ -467,6 +482,7 @@ class Kustomization(BaseManifest):
             source_namespace=source_ref.get("namespace", namespace),
             target_namespace=spec.get("targetNamespace"),
             contents=doc,
+            depends_on=depends_on,
         )
 
     @property
@@ -478,6 +494,18 @@ class Kustomization(BaseManifest):
     def namespaced_name(self) -> str:
         """Return the namespace and name concatenated as an id."""
         return f"{self.namespace}/{self.name}"
+
+
+    def validate_depends_on(self, all_ks: set[str]) -> None:
+        """Validate depends_on values are all correct given the list of Kustomizations."""
+        depends_on = set(self.depends_on or {})
+        if missing := (depends_on - all_ks):
+            _LOGGER.warning(
+                "Kustomization %s has dependsOn with invalid names: %s",
+                self.namespaced_name,
+                missing,
+            )
+            self.depends_on = list(depends_on - missing)
 
     @classmethod
     def compact_exclude_fields(cls) -> dict[str, Any]:
@@ -501,6 +529,7 @@ class Kustomization(BaseManifest):
             "source_kind": True,
             "target_namespace": True,
             "contents": True,
+            "depends_on": True,
         }
 
 

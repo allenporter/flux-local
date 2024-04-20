@@ -516,14 +516,8 @@ async def build_kustomization(
     selector: ResourceSelector,
     kustomize_flags: list[str],
     builder: CachableBuilder,
-) -> tuple[
-    Iterable[HelmRepository],
-    Iterable[HelmRelease],
-    Iterable[ClusterPolicy],
-    Iterable[ConfigMap],
-    Iterable[Secret],
-]:
-    """Build helm objects for the Kustomization."""
+) -> None:
+    """Build helm objects for the Kustomization and update state."""
 
     root: Path = selector.path.root
     kustomization_selector: MetadataSelector = selector.kustomization
@@ -537,7 +531,7 @@ async def build_kustomization(
         and not cluster_policy_selector.enabled
         and not selector.doc_visitor
     ):
-        return ([], [], [], [], [])
+        return
 
     with trace_context(f"Build '{kustomization.namespaced_name}'"):
         cmd = await builder.build(kustomization, root / kustomization.path)
@@ -576,7 +570,7 @@ async def build_kustomization(
         if selector.doc_visitor:
             kinds.extend(selector.doc_visitor.kinds)
         if not kinds:
-            return ([], [], [], [], [])
+            return None
 
         regexp = f"kind=^({'|'.join(kinds)})$"
         docs = await cmd.grep(regexp).objects(
@@ -590,7 +584,7 @@ async def build_kustomization(
                     continue
                 selector.doc_visitor.func(kustomization.namespaced_name, doc)
 
-        return (
+        kustomization.helm_repos = list(
             filter(
                 helm_repo_selector.predicate,
                 [
@@ -598,7 +592,9 @@ async def build_kustomization(
                     for doc in docs
                     if doc.get("kind") == HELM_REPO_KIND
                 ],
-            ),
+            )
+        )
+        kustomization.helm_releases = list(
             filter(
                 helm_release_selector.predicate,
                 [
@@ -606,7 +602,9 @@ async def build_kustomization(
                     for doc in docs
                     if doc.get("kind") == HELM_RELEASE_KIND
                 ],
-            ),
+            )
+        )
+        kustomization.cluster_policies = list(
             filter(
                 cluster_policy_selector.predicate,
                 [
@@ -614,14 +612,16 @@ async def build_kustomization(
                     for doc in docs
                     if doc.get("kind") == CLUSTER_POLICY_KIND
                 ],
-            ),
-            [
+            )
+        )
+        kustomization.config_maps = [
                 ConfigMap.parse_doc(doc)
                 for doc in docs
                 if doc.get("kind") == CONFIG_MAP_KIND
-            ],
-            [Secret.parse_doc(doc) for doc in docs if doc.get("kind") == SECRET_KIND],
-        )
+        ]
+        kustomization.secrets = [
+            Secret.parse_doc(doc) for doc in docs if doc.get("kind") == SECRET_KIND
+        ]
 
 
 async def build_manifest(
@@ -674,22 +674,14 @@ async def build_manifest(
                         builder,
                     )
                 )
-            results = list(await asyncio.gather(*build_tasks))
-            for kustomization, (
-                helm_repos,
-                helm_releases,
-                cluster_policies,
-                config_maps,
-                secrets,
-            ) in zip(
-                cluster.kustomizations,
-                results,
-            ):
-                kustomization.helm_repos = list(helm_repos)
-                kustomization.helm_releases = list(helm_releases)
-                kustomization.cluster_policies = list(cluster_policies)
-                kustomization.config_maps = list(config_maps)
-                kustomization.secrets = list(secrets)
+            await asyncio.gather(*build_tasks)
+
+        # Validate all Kustomizations have valid dependsOn attribtues since later
+        # we'll be using them to order processing.
+        for cluster in clusters:
+            all_ks = set([ks.namespaced_name for ks in cluster.kustomizations])
+            for ks in cluster.kustomizations:
+                ks.validate_depends_on(all_ks)
 
         kustomization_tasks = []
         # Expand and visit Kustomizations
