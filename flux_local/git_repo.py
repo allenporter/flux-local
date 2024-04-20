@@ -565,6 +565,8 @@ async def build_kustomization(
             )
 
         kinds = []
+        # Needed for expanding postbuild substitutions and value references
+        kinds.append(CONFIG_MAP_KIND)
         if helm_repo_selector.enabled:
             kinds.append(HELM_REPO_KIND)
         if helm_release_selector.enabled:
@@ -578,6 +580,7 @@ async def build_kustomization(
             kinds.extend(selector.doc_visitor.kinds)
         if not kinds:
             return
+        _LOGGER.debug("kinds=%s", kinds)
 
         regexp = f"kind=^({'|'.join(kinds)})$"
         docs = await cmd.grep(regexp).objects(
@@ -684,7 +687,6 @@ async def build_manifest(
         async def update_kustomization(cluster: Cluster) -> None:
             queue = [*cluster.kustomizations]
             visited: set[str] = set()
-            # cluster_config = values.ks_cluster_config(cluster.kustomizations)
             while queue:
                 build_tasks = []
                 (ready, pending) = _ready_kustomizations(queue, visited)
@@ -727,18 +729,6 @@ async def build_manifest(
         kustomization_tasks = []
         # Expand and visit Kustomizations
         for cluster in clusters:
-            all_ks: set[str] = set(
-                [ks.namespaced_name for ks in cluster.kustomizations]
-            )
-            for ks in cluster.kustomizations:
-                if missing := (set(ks.depends_on or {}) - all_ks):
-                    _LOGGER.warning(
-                        "Kustomization %s has dependsOn with invalid names: %s",
-                        ks.namespaced_name,
-                        missing,
-                    )
-                    ks.depends_on = list(set(ks.depends_on or {}) - missing)
-
             kustomization_tasks.append(update_kustomization(cluster))
         await asyncio.gather(*kustomization_tasks)
 

@@ -507,6 +507,8 @@ class Kustomization(BaseManifest):
             source_namespace=source_ref.get("namespace", namespace),
             target_namespace=spec.get("targetNamespace"),
             contents=doc,
+            postbuild_substitute=postbuild.get("substitute"),
+            postbuild_substitute_from=substitute_from,
             depends_on=depends_on,
         )
 
