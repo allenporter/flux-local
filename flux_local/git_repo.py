@@ -573,7 +573,6 @@ async def build_kustomization(
         if helm_release_selector.enabled:
             kinds.append(HELM_RELEASE_KIND)
             # Needed for expanding value references
-            kinds.append(CONFIG_MAP_KIND)
             kinds.append(SECRET_KIND)
         if cluster_policy_selector.enabled:
             kinds.append(CLUSTER_POLICY_KIND)
