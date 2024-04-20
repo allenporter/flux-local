@@ -638,9 +638,9 @@ def _ready_kustomizations(kustomizations: list[Kustomization], visited: set[str]
     for kustomization in kustomizations:
         if not_ready := (set(kustomization.depends_on or {}) - visited):
             _LOGGER.debug(
-                "Waiting for %s before building %s",
-                not_ready,
+                "Kustomization %s waiting for %s",
                 kustomization.namespaced_name,
+                not_ready,
             )
             pending.append(kustomization)
         else:
