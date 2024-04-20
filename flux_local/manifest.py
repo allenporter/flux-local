@@ -562,7 +562,7 @@ class Kustomization(BaseManifest):
         }
     
     def update_postbuild_substitutions(self, substitutions: dict[str, Any]) -> None:
-        """Update the postBuild.subtitutions in the extracted values and raw doc contents."""
+        """Update the postBuild.substitutions in the extracted values and raw doc contents."""
         if self.postbuild_substitute is None:
             self.postbuild_substitute = {}
         self.postbuild_substitute.update(substitutions)
