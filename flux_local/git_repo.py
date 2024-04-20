@@ -631,6 +631,23 @@ async def build_kustomization(
         ]
 
 
+def _ready_kustomizations(kustomizations: list[Kustomization], visited: set[str]) -> tuple[Kustomization, Kustomization]:
+    """Split the kustomizations into those that are ready vs pending."""
+    ready = []
+    pending = []
+    for kustomization in kustomizations:
+        if not_ready := (set(kustomization.depends_on or {}) - visited):
+            _LOGGER.debug(
+                "Waiting for %s before building %s",
+                not_ready,
+                kustomization.namespaced_name,
+            )
+            pending.append(kustomization)
+        else:
+            ready.append(kustomization)
+    return (ready, pending)
+
+
 async def build_manifest(
     path: Path | None = None,
     selector: ResourceSelector = ResourceSelector(),
@@ -670,23 +687,9 @@ async def build_manifest(
             # cluster_config = values.ks_cluster_config(cluster.kustomizations)
             while queue:
                 build_tasks = []
-                in_flight = []
-                pending = []
-                while queue:
-                    kustomization = queue.pop(0)
-                    if not_ready := (set(kustomization.depends_on or {}) - visited):
-                        _LOGGER.debug(
-                            "Waiting for %s before building %s",
-                            not_ready,
-                            kustomization.namespaced_name,
-                        )
-                        pending.append(kustomization)
-                        continue
-                    _LOGGER.debug(
-                        "Processing kustomization '%s': %s",
-                        kustomization.name,
-                        kustomization.path,
-                    )
+                (ready, pending) = _ready_kustomizations(queue, visited)
+                for kustomization in ready:
+                    _LOGGER.debug("Processing kustomization '%s': %s", kustomization.name, kustomization.path)
 
                     if kustomization.postbuild_substitute_from:
                         values.expand_postbuild_substitute_reference(
@@ -697,7 +700,6 @@ async def build_manifest(
                         # missing the postbuild substitutions.
                         builder.remove(kustomization)
 
-                    in_flight.append(kustomization.namespaced_name)
                     build_tasks.append(
                         build_kustomization(
                             kustomization,
@@ -712,10 +714,8 @@ async def build_manifest(
                         "Internal error: Unexpected loop without build tasks"
                     )
                 await asyncio.gather(*build_tasks)
-                visited.update(in_flight)
-
-                for kustomization in pending:
-                    queue.append(kustomization)
+                visited.update([ks.namespaced_name for ks in ready])
+                queue = pending
 
         # Validate all Kustomizations have valid dependsOn attributes since later
         # we'll be using them to order processing.
@@ -749,8 +749,6 @@ async def build_manifest(
                     values.expand_value_references(helm_release, kustomization)
                     for helm_release in kustomization.helm_releases
                 ]
-                if kustomization.name == "apps":
-                    _LOGGER.warning("apps = %s", kustomization.helm_releases)
 
         # Visit Helm resources
         for cluster in clusters:

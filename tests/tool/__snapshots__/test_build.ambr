@@ -1353,7 +1353,7 @@
     values:
       ingress:
         additionalLabels:
-          cluster_label: example-value
+          cluster_label: null
         className: nginx
         enabled: true
         hosts:

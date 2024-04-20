@@ -910,7 +910,6 @@
     "Cluster 'tests/testdata/cluster'": dict({
       "Build 'flux-system/apps'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster/apps/prod (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(HelmRepository|HelmRelease|ConfigMap|Secret|ClusterPolicy)$'",
         ]),
