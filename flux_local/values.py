@@ -144,7 +144,7 @@ def _lookup_value_reference(
     if found_data is None:
         if not ref.optional:
             raise InvalidValuesReference(
-                "Unable to find {ref.kind} {namespace}/{ref.name} referenced"
+                f"Unable to find {ref.kind} {namespace}/{ref.name} referenced"
             )
         if ref.target_path:
             # When a target path is specified, the value is expected to be
