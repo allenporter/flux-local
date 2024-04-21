@@ -124,7 +124,7 @@ async def test_target_namespace() -> None:
 async def test_flux_build_path_is_not_dir() -> None:
     """Test case where the flux build path does not exist."""
     cmd = kustomize.flux_build(
-        manifest.Kustomization(name="example", path="./"),
+        manifest.Kustomization(name="example", path="./", namespace="flux-system"),
         Path(TESTDATA_DIR) / "does-not-exist",
     )
     with pytest.raises(exceptions.FluxException, match="not a directory"):

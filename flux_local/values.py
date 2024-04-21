@@ -225,7 +225,8 @@ def expand_value_references(
                 f"Error building HelmRelease '{helm_release.namespaced_name}': {err}"
             )
 
-    return helm_release.model_copy(update={"values": values})
+    helm_release.values = values
+    return helm_release
 
 
 def expand_postbuild_substitute_reference(
