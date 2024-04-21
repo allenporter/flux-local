@@ -138,6 +138,83 @@ def test_values_references_with_missing_values_key() -> None:
     }
 
 
+
+def test_values_references_with_missing_secret() -> None:
+    """Test for expanding a value reference with a missing secret."""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values={"test": "test"},
+        values_from=[
+            ValuesReference(
+                kind="Secret",
+                name="test-values-secret",
+                values_key="some-key-does-not-exist",
+                target_path="target.path",
+            )
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+    )
+    updated_hr = expand_value_references(hr, ks)
+    assert updated_hr.values == {
+        "test": "test",
+        "target": {
+            "path": "!!PLACEHOLDER!!",
+        },
+    }
+
+
+def test_values_references_with_missing_secret_values_key() -> None:
+    """Test for expanding a value reference with a secret key that is missing."""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values={"test": "test"},
+        values_from=[
+            ValuesReference(
+                kind="Secret",
+                name="test-values-secret",
+                values_key="some-key-does-not-exist",
+                target_path="target.path",
+            )
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+        secrets=[
+            Secret(
+                name="test-values-secret",
+                namespace="test",
+                string_data={"some-key": "example_value"},
+            )
+        ],
+    )
+    updated_hr = expand_value_references(hr, ks)
+    assert updated_hr.values == {
+        "test": "test",
+    }
+
+
 def test_values_references_invalid_yaml() -> None:
     """Test for expanding a value reference with a values key."""
     hr = HelmRelease(

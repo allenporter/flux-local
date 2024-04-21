@@ -143,8 +143,11 @@ def _lookup_value_reference(
     found_value: str | None = None
     if found_data is None:
         if not ref.optional:
-            raise InvalidValuesReference(
-                f"Unable to find {ref.kind} {namespace}/{ref.name} referenced"
+            _LOGGER.warning(
+                "Unable to find %s %s/%s referenced",
+                ref.kind,
+                namespace,
+                ref.name,
             )
         if ref.target_path:
             # When a target path is specified, the value is expected to be
