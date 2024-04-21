@@ -55,16 +55,14 @@ def test_values_references_with_values_key() -> None:
         values_from=[
             ValuesReference(
                 kind="ConfigMap",
-                namespace="test",
                 name="test-values-configmap",
-                valuesKey="some-key",
-                targetPath="target.path",
+                values_key="some-key",
+                target_path="target.path",
             ),
             ValuesReference(
                 kind="ConfigMap",
-                namespace="test",
                 name="test-binary-data-configmap",
-                valuesKey="some-key",
+                values_key="some-key",
             ),
         ],
     )
@@ -115,10 +113,9 @@ def test_values_references_with_missing_values_key() -> None:
         values_from=[
             ValuesReference(
                 kind="ConfigMap",
-                namespace="test",
                 name="test-values-configmap",
-                valuesKey="some-key-does-not-exist",
-                targetPath="target.path",
+                values_key="some-key-does-not-exist",
+                target_path="target.path",
             )
         ],
     )
@@ -156,7 +153,6 @@ def test_values_references_invalid_yaml() -> None:
         values_from=[
             ValuesReference(
                 kind="ConfigMap",
-                namespace="test",
                 name="test-values-configmap",
             )
         ],
@@ -193,7 +189,6 @@ def test_values_references_invalid_binary_data() -> None:
         values_from=[
             ValuesReference(
                 kind="ConfigMap",
-                namespace="test",
                 name="test-values-configmap",
             )
         ],
@@ -233,11 +228,10 @@ def test_values_reference_invalid_target_path() -> None:
         values_from=[
             ValuesReference(
                 kind="ConfigMap",
-                namespace="test",
                 name="test-values-configmap",
-                valuesKey="some-key",
+                values_key="some-key",
                 # Target above is a list
-                targetPath="target.path",
+                target_path="target.path",
             )
         ],
     )
@@ -273,19 +267,16 @@ def test_values_reference_invalid_configmap_and_secret() -> None:
         values_from=[
             ValuesReference(
                 kind="ConfigMap",
-                namespace="test",
                 name="test-values-configmap",
                 optional=False,  # We just log
             ),
             ValuesReference(
                 kind="Secret",
-                namespace="test",
                 name="test-values-secret",
                 optional=False,  # We just log
             ),
             ValuesReference(
                 kind="UnknownKind",
-                namespace="test",
                 name="test-values-secret",
             ),
         ],
@@ -317,17 +308,15 @@ def test_values_references_secret() -> None:
         values_from=[
             ValuesReference(
                 kind="Secret",
-                namespace="test",
                 name="test-values-secret",
-                valuesKey="some-key1",
-                targetPath="target.path1",
+                values_key="some-key1",
+                target_path="target.path1",
             ),
             ValuesReference(
                 kind="Secret",
-                namespace="test",
                 name="test-string-values-secret",
-                valuesKey="some-key2",
-                targetPath="target.path2",
+                values_key="some-key2",
+                target_path="target.path2",
             ),
         ],
     )
