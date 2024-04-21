@@ -98,7 +98,7 @@ ValidatingWebhookConfiguration: 1
 You may also use `flux-local` to verify your local changes to cluster resources have the desird
 effect. This is similar to `flux diff` but entirely local. This will run a local `kustomize build`
 first against the local repo then again against a prior repo revision, then prints the output:
-```bash
+```diff
 $ flux-local diff ks apps
 ---
 
@@ -157,7 +157,7 @@ Changes not staged for commit:
 	modified:   home/dev/hajimari-values.yaml
 
 $ export DIFF="dyff between --omit-header --color on"
-# flux-local diff ks home --path clusters/dev/
+$ flux-local diff ks home --path clusters/dev/
 
 spec.chart.spec.version  (HelmRelease/hajimari/hajimari)
   ± value change
@@ -270,8 +270,8 @@ This is an example that diffs a `HelmRelease`:
 
 ```yaml
 - name: Setup Flux CLI
-  uses: fluxcd/flux2/action@v2
-- uses: allenporter/flux-local/action/diff@2.0.0
+  uses: fluxcd/flux2/action@v2.2.3
+- uses: allenporter/flux-local/action/diff@4.3.1
   id: diff
   with:
     live-branch: main
@@ -307,8 +307,8 @@ jobs:
           - kustomization
     steps:
       - name: Setup Flux CLI
-        uses: fluxcd/flux2/action@v2
-      - uses: allenporter/flux-local/action/diff@2.0.0
+        uses: fluxcd/flux2/action@v2.2.3
+      - uses: allenporter/flux-local/action/diff@4.3.1
         id: diff
         with:
           live-branch: main
