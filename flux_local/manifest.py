@@ -48,6 +48,8 @@ CONFIG_MAP_KIND = "ConfigMap"
 DEFAULT_NAMESPACE = "flux-system"
 VALUE_PLACEHOLDER = "!!PLACEHOLDER!!"
 VALUE_B64_PLACEHOLDER = base64.b64encode(VALUE_PLACEHOLDER.encode())
+HELM_REPOSITORY = "HelmRepository"
+GIT_REPOSITORY = "GitRepository"
 
 REPO_TYPE_DEFAULT = "default"
 REPO_TYPE_OCI = "oci"
@@ -97,10 +99,13 @@ class HelmChart(BaseManifest):
     """The version of the chart."""
 
     repo_name: str
-    """The short name of the HelmRepository."""
+    """The short name of the repository."""
 
     repo_namespace: str
-    """The namespace of the HelmRepository."""
+    """The namespace of the repository."""
+
+    repo_kind: str
+    """The kind of the soruceRef of the repository (e.g. HelmRepository, GitRepository)."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any], default_namespace: str) -> "HelmChart":
@@ -126,6 +131,7 @@ class HelmChart(BaseManifest):
             version=version,
             repo_name=source_ref["name"],
             repo_namespace=source_ref.get("namespace", default_namespace),
+            repo_kind=source_ref.get("kind", "HelmRepository"),
         )
 
     @property
