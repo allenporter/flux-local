@@ -2,6 +2,7 @@
 ignore: |
   venv
   tests/tool/testdata/
+  testdata/cluster9/local-charts/
 extends: default
 rules:
   truthy:
