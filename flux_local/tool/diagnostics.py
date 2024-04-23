@@ -47,8 +47,22 @@ class DiagnosticsAction:
         """Async Action implementation."""
         path = kwargs.get("path") or "."
 
+        # Parse directories to ignore from `.krmignore`
+        krmignore = pathlib.Path(path) / ".krmignore"
+        ignoredirs = []
+        if krmignore.exists():
+            with krmignore.open() as fd:
+                ignoredirs = [
+                    str(pathlib.Path(line.strip())) for line in fd.readlines()
+                ]
+
         errors = []
         for root, dirs, files in os.walk(str(path)):
+            # Ignore any directories that we should not walk
+            rootpath = str(pathlib.Path(root))
+            if any([rootpath.startswith(i) for i in ignoredirs]):
+                continue
+
             for file in files:
                 if not (file.endswith(".yaml") or file.endswith(".yml")):
                     continue
