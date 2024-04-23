@@ -41,6 +41,7 @@ from . import run_command
         "cluster7",
         "all_namespace",
         "name",
+        "cluster9",
     ],
 )
 async def test_get_hr(args: list[str], snapshot: SnapshotAssertion) -> None:

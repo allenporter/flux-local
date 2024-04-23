@@ -173,8 +173,6 @@ class Helm:
         """Add the specified HelmRepository to the local config."""
         self._repos.append(repo)
 
-    def add_git_source(self, )
-
     def add_repos(self, repos: list[HelmRepository]) -> None:
         """Add the specified HelmRepository to the local config."""
         for repo in repos:

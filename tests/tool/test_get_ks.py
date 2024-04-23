@@ -43,6 +43,7 @@ from . import run_command
         "cluster_path",
         "wide",
         "ks_path",
+        "cluster9",
     ],
 )
 async def test_get_ks(args: list[str], snapshot: SnapshotAssertion) -> None:
