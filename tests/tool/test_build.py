@@ -25,7 +25,7 @@ from . import run_command
             ]
         ),
         (["--enable-helm", "--no-skip-secrets", "tests/testdata/cluster8/"]),
-        (["--enable-helm", "--no-skip-secrets", "tests/testdata/cluster9/"]),
+        (["--enable-helm", "--no-skip-secrets", "tests/testdata/cluster9/clusters/dev"]),
     ],
     ids=[
         "build",

@@ -1,7 +1,39 @@
 # serializer version: 1
 # name: test_diagnostics
   '''
-  [DIAGNOSTICS OK]
+  [DIAGNOSTICS FAIL]: `tests/testdata/cluster9/local-charts/nginx/templates/hpa.yaml` failed to parse as yaml: while parsing a flow node
+  expected the node content, but found '-'
+    in "<unicode string>", line 1, column 3:
+      {{- if .Values.autoscaling.enabled }}
+        ^
+  [DIAGNOSTICS FAIL]: `tests/testdata/cluster9/local-charts/nginx/templates/deployment.yaml` failed to parse as yaml: while parsing a flow node
+  expected the node content, but found '-'
+    in "<unicode string>", line 6, column 7:
+          {{- include "nginx.labels" . | nin ... 
+            ^
+  [DIAGNOSTICS FAIL]: `tests/testdata/cluster9/local-charts/nginx/templates/service.yaml` failed to parse as yaml: while parsing a flow node
+  expected the node content, but found '-'
+    in "<unicode string>", line 6, column 7:
+          {{- include "nginx.labels" . | nin ... 
+            ^
+  [DIAGNOSTICS FAIL]: `tests/testdata/cluster9/local-charts/nginx/templates/ingress.yaml` failed to parse as yaml: while parsing a flow node
+  expected the node content, but found '-'
+    in "<unicode string>", line 1, column 3:
+      {{- if .Values.ingress.enabled -}}
+        ^
+  [DIAGNOSTICS FAIL]: `tests/testdata/cluster9/local-charts/nginx/templates/serviceaccount.yaml` failed to parse as yaml: while parsing a flow node
+  expected the node content, but found '-'
+    in "<unicode string>", line 1, column 3:
+      {{- if .Values.serviceAccount.crea ... 
+        ^
+  [DIAGNOSTICS FAIL]: `tests/testdata/cluster9/local-charts/nginx/templates/tests/test-connection.yaml` failed to parse as yaml: while parsing a block mapping
+    in "<unicode string>", line 4, column 3:
+        name: "{{ include "nginx.fullnam ... 
+        ^
+  expected <block end>, but found '<scalar>'
+    in "<unicode string>", line 4, column 22:
+        name: "{{ include "nginx.fullname" . }}-test-connec ... 
+                           ^
   
   '''
 # ---

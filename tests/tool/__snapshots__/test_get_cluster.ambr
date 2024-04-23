@@ -79,6 +79,7 @@
           name: podinfo
           repo_name: podinfo
           repo_namespace: flux-system
+          repo_kind: HelmRepository
         images:
         - ghcr.io/stefanprodan/podinfo:6.3.2
         - public.ecr.aws/docker/library/redis:7.0.6
@@ -129,6 +130,7 @@
           name: metallb
           repo_name: bitnami
           repo_namespace: flux-system
+          repo_kind: HelmRepository
         images:
         - docker.io/bitnami/metallb-controller:0.13.7-debian-11-r29
         - docker.io/bitnami/metallb-speaker:0.13.7-debian-11-r28
@@ -138,6 +140,7 @@
           name: weave-gitops
           repo_name: weave-charts
           repo_namespace: flux-system
+          repo_kind: HelmRepository
         images:
         - ghcr.io/weaveworks/wego-app:v0.24.0
       cluster_policies: []
@@ -163,6 +166,7 @@
           name: podinfo
           repo_name: podinfo
           repo_namespace: flux-system
+          repo_kind: HelmRepository
       cluster_policies: []
       config_maps:
       - name: podinfo-config
@@ -210,12 +214,14 @@
           name: metallb
           repo_name: bitnami
           repo_namespace: flux-system
+          repo_kind: HelmRepository
       - name: weave-gitops
         namespace: flux-system
         chart:
           name: weave-gitops
           repo_name: weave-charts
           repo_namespace: flux-system
+          repo_kind: HelmRepository
       cluster_policies: []
       config_maps: []
       secrets: []
@@ -243,6 +249,7 @@
           name: podinfo
           repo_name: podinfo
           repo_namespace: flux-system
+          repo_kind: HelmRepository
         images:
         - ghcr.io/stefanprodan/podinfo:6.5.4
         - public.ecr.aws/docker/library/redis:7.0.6
@@ -287,6 +294,7 @@
           name: podinfo
           repo_name: podinfo
           repo_namespace: flux-system
+          repo_kind: HelmRepository
         images:
         - ghcr.io/stefanprodan/podinfo:6.5.4
         - public.ecr.aws/docker/library/redis:7.0.6
@@ -330,6 +338,7 @@
           name: podinfo
           repo_name: podinfo
           repo_namespace: flux-system
+          repo_kind: HelmRepository
       cluster_policies: []
       config_maps:
       - name: podinfo-values

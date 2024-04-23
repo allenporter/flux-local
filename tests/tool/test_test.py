@@ -26,7 +26,7 @@ async def test_test_ks(args: list[str]) -> None:
         (["--sources", "cluster=tests/testdata/cluster3", "tests/testdata/cluster3"]),
         (["--enable-kyverno", "tests/testdata/cluster"]),
         (["--enable-kyverno", "tests/testdata/cluster2"]),
-        (["tests/testdata/cluster9"]),
+        (["tests/testdata/cluster9/clusters/dev"]),
     ],
     ids=["cluster", "cluster2", "cluster3", "policy", "policy-cluster2", "cluster9"],
 )

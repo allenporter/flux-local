@@ -28,7 +28,7 @@ from . import run_command
         (["-A", "--path", "tests/testdata/cluster7"]),
         (["metallb", "-A", "--path", "tests/testdata/cluster"]),
         (["-n", "metallb", "--path", "tests/testdata/cluster"]),
-        (["-A", "--path", "tests/testdata/cluster9"]),
+        (["-A", "--path", "tests/testdata/cluster9/clusters/dev"]),
     ],
     ids=[
         "cluster",

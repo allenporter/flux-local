@@ -29,7 +29,7 @@ from . import run_command
         (["--path", "./tests/testdata/cluster/clusters/prod"]),
         (["--path", "tests/testdata/cluster", "-o", "wide"]),
         (["--all-namespaces", "--path", "./tests/testdata/cluster/apps/prod"]),
-        (["--path", "tests/testdata/cluster9"]),
+        (["--path", "tests/testdata/cluster9/clusters/dev"]),
     ],
     ids=[
         "cluster",
