@@ -28,7 +28,7 @@ repos:
     - -c
     - ".yaml-lint.yaml"
 - repo: https://github.com/psf/black
-  rev: 24.4.0
+  rev: 24.4.1
   hooks:
   - id: black
     exclude: '^tests/.*.ambr$'
