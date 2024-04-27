@@ -25,6 +25,7 @@ from . import run_command
             ]
         ),
         (["--enable-helm", "--no-skip-secrets", "tests/testdata/cluster8/"]),
+        (["--enable-helm", "--no-skip-secrets", "tests/testdata/cluster9/clusters/dev"]),
     ],
     ids=[
         "build",
@@ -33,7 +34,8 @@ from . import run_command
         "build-cluster6",
         "build-helm-cluster",
         "build-helm-cluster6",
-        "build-helm-cluster8-valuesFrom"
+        "build-helm-cluster8-valuesFrom",
+        "build-helm-cluster9",
     ],
 )
 async def test_build(args: list[str], snapshot: SnapshotAssertion) -> None:

@@ -50,6 +50,7 @@ def test_compact_helm_release() -> None:
         "namespace": "metallb",
         "chart": {
             "name": "metallb",
+            "repo_kind": "HelmRepository",
             "repo_name": "bitnami",
             "repo_namespace": "flux-system",
         },

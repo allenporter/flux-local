@@ -28,6 +28,7 @@ from . import run_command
         (["-A", "--path", "tests/testdata/cluster7"]),
         (["metallb", "-A", "--path", "tests/testdata/cluster"]),
         (["-n", "metallb", "--path", "tests/testdata/cluster"]),
+        (["-A", "--path", "tests/testdata/cluster9/clusters/dev"]),
     ],
     ids=[
         "cluster",
@@ -40,6 +41,7 @@ from . import run_command
         "cluster7",
         "all_namespace",
         "name",
+        "cluster9",
     ],
 )
 async def test_get_hr(args: list[str], snapshot: SnapshotAssertion) -> None:

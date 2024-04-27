@@ -59,6 +59,14 @@
   
   '''
 # ---
+# name: test_get_ks[cluster9]
+  '''
+  NAME           PATH                                    
+  apps-stack     tests/testdata/cluster9/apps            
+  flux-system    tests/testdata/cluster9/clusters/dev    
+  
+  '''
+# ---
 # name: test_get_ks[cluster]
   '''
   NAME                 PATH                                                 

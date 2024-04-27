@@ -1,0 +1,29 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: nginx
+  namespace: default
+spec:
+  interval: 3h
+  timeout: 10m
+  maxHistory: 5
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  driftDetection:
+    mode: enabled
+  chart:
+    spec:
+      interval: 2h
+      chart: ./tests/testdata/cluster9/local-charts/nginx
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+  releaseName: nginx

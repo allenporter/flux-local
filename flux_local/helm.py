@@ -49,6 +49,8 @@ from .manifest import (
     CRD_KIND,
     SECRET_KIND,
     REPO_TYPE_OCI,
+    HELM_REPOSITORY,
+    GIT_REPOSITORY
 )
 from .exceptions import HelmException
 
@@ -63,11 +65,19 @@ _LOGGER = logging.getLogger(__name__)
 HELM_BIN = "helm"
 
 
-def _chart_name(repo: HelmRepository, release: HelmRelease) -> str:
+def _chart_name(release: HelmRelease, repo: HelmRepository | None) -> str:
     """Return the helm chart name used for the helm template command."""
-    if repo.repo_type == REPO_TYPE_OCI:
-        return f"{repo.url}/{release.chart.name}"
-    return release.chart.chart_name
+    if release.chart.repo_kind == HELM_REPOSITORY:
+        if repo.repo_type == REPO_TYPE_OCI:
+            return f"{repo.url}/{release.chart.name}"
+        return release.chart.chart_name
+    elif release.chart.repo_kind == GIT_REPOSITORY:
+        return release.chart.name
+    raise HelmException(
+        f"Unable to find chart source for chart {release.chart.chart_name} "
+        f"kind {release.chart.repo_kind} for HelmRelease {release.name}"
+    )
+
 
 
 class RepositoryConfig:
@@ -201,7 +211,9 @@ class Helm:
             iter([repo for repo in self._repos if repo.repo_name == release.repo_name]),
             None,
         )
-        if not repo:
+        # We'll attempt to make a chart name for a GitRepository below and it will
+        # be somewhat best effort.
+        if not repo and release.chart.repo_kind == HELM_REPOSITORY:
             raise HelmException(
                 f"Unable to find HelmRepository for {release.chart.chart_name} for "
                 f"HelmRelease {release.name} "
@@ -211,7 +223,7 @@ class Helm:
             HELM_BIN,
             "template",
             release.name,
-            _chart_name(repo, release),
+            _chart_name(release, repo),
             "--namespace",
             release.namespace,
         ]

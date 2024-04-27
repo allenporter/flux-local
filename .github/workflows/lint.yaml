@@ -19,6 +19,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: codespell-project/actions-codespell@master
+      with:
+        skip: ./tests/tool/__snapshots__/test_diagnostics.ambr,./tests/testdata/cluster9/clusters/dev/flux-system/gotk-components.yaml
     - uses: chartboost/ruff-action@v1.0.0
     - name: Run yamllint
       uses: ibiqlik/action-yamllint@v3

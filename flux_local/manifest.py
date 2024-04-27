@@ -48,6 +48,8 @@ CONFIG_MAP_KIND = "ConfigMap"
 DEFAULT_NAMESPACE = "flux-system"
 VALUE_PLACEHOLDER = "!!PLACEHOLDER!!"
 VALUE_B64_PLACEHOLDER = base64.b64encode(VALUE_PLACEHOLDER.encode())
+HELM_REPOSITORY = "HelmRepository"
+GIT_REPOSITORY = "GitRepository"
 
 REPO_TYPE_DEFAULT = "default"
 REPO_TYPE_OCI = "oci"
@@ -93,14 +95,17 @@ class HelmChart(BaseManifest):
     name: str
     """The name of the chart within the HelmRepository."""
 
-    version: Optional[str] = field(metadata={"serialize":"omit"})
+    version: Optional[str] = field(metadata={"serialize": "omit"})
     """The version of the chart."""
 
     repo_name: str
-    """The short name of the HelmRepository."""
+    """The short name of the repository."""
 
     repo_namespace: str
-    """The namespace of the HelmRepository."""
+    """The namespace of the repository."""
+
+    repo_kind: str = HELM_REPOSITORY
+    """The kind of the soruceRef of the repository (e.g. HelmRepository, GitRepository)."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any], default_namespace: str) -> "HelmChart":
@@ -126,6 +131,7 @@ class HelmChart(BaseManifest):
             version=version,
             repo_name=source_ref["name"],
             repo_namespace=source_ref.get("namespace", default_namespace),
+            repo_kind=source_ref.get("kind", HELM_REPOSITORY),
         )
 
     @property
@@ -149,14 +155,19 @@ class ValuesReference(BaseManifest):
     name: str
     """The name of the resource."""
 
-    values_key: str = field(metadata=field_options(alias="valuesKey"), default="values.yaml")
+    values_key: str = field(
+        metadata=field_options(alias="valuesKey"), default="values.yaml"
+    )
     """The key in the resource that contains the values."""
 
-    target_path: Optional[str] = field(metadata=field_options(alias="targetPath"), default=None)
+    target_path: Optional[str] = field(
+        metadata=field_options(alias="targetPath"), default=None
+    )
     """The path in the HelmRelease values to store the values."""
 
     optional: bool = False
     """Whether the reference is optional."""
+
 
 @dataclass
 class HelmRelease(BaseManifest):
@@ -171,10 +182,10 @@ class HelmRelease(BaseManifest):
     chart: HelmChart
     """A mapping to a specific helm chart for this HelmRelease."""
 
-    values: Optional[dict[str, Any]] = field(metadata={"serialize":"omit"})
+    values: Optional[dict[str, Any]] = field(metadata={"serialize": "omit"})
     """The values to install in the chart."""
 
-    values_from: Optional[list[ValuesReference]] = field(metadata={"serialize":"omit"})
+    values_from: Optional[list[ValuesReference]] = field(metadata={"serialize": "omit"})
     """A list of values to reference from an ConfigMap or Secret."""
 
     images: list[str] | None = field(default=None)
@@ -194,7 +205,9 @@ class HelmRelease(BaseManifest):
         spec = doc["spec"]
         values_from: list[ValuesReference] | None = None
         if values_from_dict := spec.get("valuesFrom"):
-            values_from = [ValuesReference.from_dict(subdoc) for subdoc in values_from_dict]
+            values_from = [
+                ValuesReference.from_dict(subdoc) for subdoc in values_from_dict
+            ]
         return HelmRelease(
             name=name,
             namespace=namespace,
@@ -272,7 +285,7 @@ class ClusterPolicy(BaseManifest):
     namespace: str | None = None
     """The namespace of the kustomization."""
 
-    doc: dict[str, Any] | None = field(metadata={"serialize":"omit"}, default=None)
+    doc: dict[str, Any] | None = field(metadata={"serialize": "omit"}, default=None)
     """The raw ClusterPolicy document."""
 
     @classmethod
@@ -299,10 +312,12 @@ class ConfigMap(BaseManifest):
     namespace: str | None = None
     """The namespace of the kustomization."""
 
-    data: dict[str, Any] | None = field(metadata={"serialize":"omit"}, default=None)
+    data: dict[str, Any] | None = field(metadata={"serialize": "omit"}, default=None)
     """The data in the ConfigMap."""
 
-    binary_data: dict[str, Any] | None = field(metadata={"serialize":"omit"}, default=None)
+    binary_data: dict[str, Any] | None = field(
+        metadata={"serialize": "omit"}, default=None
+    )
     """The binary data in the ConfigMap."""
 
     @classmethod
@@ -332,10 +347,12 @@ class Secret(BaseManifest):
     namespace: str | None = None
     """The namespace of the kustomization."""
 
-    data: dict[str, Any] | None = field(metadata={"serialize":"omit"}, default=None)
+    data: dict[str, Any] | None = field(metadata={"serialize": "omit"}, default=None)
     """The data in the Secret."""
 
-    string_data: dict[str, Any] | None = field(metadata={"serialize":"omit"}, default=None)
+    string_data: dict[str, Any] | None = field(
+        metadata={"serialize": "omit"}, default=None
+    )
     """The string data in the Secret."""
 
     @classmethod
@@ -373,6 +390,7 @@ class SubstituteReference(BaseManifest):
     optional: bool = False
     """Whether the reference is optional."""
 
+
 @dataclass
 class Kustomization(BaseManifest):
     """A Kustomization is a set of declared cluster artifacts.
@@ -406,34 +424,40 @@ class Kustomization(BaseManifest):
     secrets: list[Secret] = field(default_factory=list)
     """The list of secrets referenced in the kustomization."""
 
-    source_path: str | None = field(metadata={"serialize":"omit"}, default=None)
+    source_path: str | None = field(metadata={"serialize": "omit"}, default=None)
     """Optional source path for this Kustomization, relative to the build path."""
 
-    source_kind: str | None = field(metadata={"serialize":"omit"}, default=None)
+    source_kind: str | None = field(metadata={"serialize": "omit"}, default=None)
     """The sourceRef kind that provides this Kustomization e.g. GitRepository etc."""
 
-    source_name: str | None = field(metadata={"serialize":"omit"}, default=None)
+    source_name: str | None = field(metadata={"serialize": "omit"}, default=None)
     """The name of the sourceRef that provides this Kustomization."""
 
-    source_namespace: str | None = field(metadata={"serialize":"omit"}, default=None)
+    source_namespace: str | None = field(metadata={"serialize": "omit"}, default=None)
     """The namespace of the sourceRef that provides this Kustomization."""
 
-    target_namespace: str | None = field(metadata={"serialize":"omit"}, default=None)
+    target_namespace: str | None = field(metadata={"serialize": "omit"}, default=None)
     """The namespace to target when performing the operation."""
 
-    contents: dict[str, Any] | None = field(metadata={"serialize":"omit"}, default=None)
+    contents: dict[str, Any] | None = field(
+        metadata={"serialize": "omit"}, default=None
+    )
     """Contents of the raw Kustomization document."""
 
     images: list[str] | None = field(default=None)
     """The list of images referenced in the kustomization."""
 
-    postbuild_substitute: Optional[dict[str, Any]] = field(metadata={"serialize":"omit"}, default=None)
+    postbuild_substitute: Optional[dict[str, Any]] = field(
+        metadata={"serialize": "omit"}, default=None
+    )
     """A map of key/value pairs to substitute into the final YAML manifest, after building."""
 
-    postbuild_substitute_from: Optional[list[SubstituteReference]] = field(metadata={"serialize":"omit"}, default=None)
+    postbuild_substitute_from: Optional[list[SubstituteReference]] = field(
+        metadata={"serialize": "omit"}, default=None
+    )
     """A list of substitutions to reference from an ConfigMap or Secret."""
 
-    depends_on: list[str] | None = field(metadata={"serialize":"omit"}, default=None)
+    depends_on: list[str] | None = field(metadata={"serialize": "omit"}, default=None)
     """A list of namespaced names that this Kustomization depends on."""
 
     @classmethod
@@ -488,7 +512,6 @@ class Kustomization(BaseManifest):
         """Return the namespace and name concatenated as an id."""
         return f"{self.namespace}/{self.name}"
 
-
     def validate_depends_on(self, all_ks: set[str]) -> None:
         """Validate depends_on values are all correct given the list of Kustomizations."""
         depends_on = set(self.depends_on or {})
@@ -499,7 +522,7 @@ class Kustomization(BaseManifest):
                 missing,
             )
             self.depends_on = list(depends_on - missing)
-    
+
     def update_postbuild_substitutions(self, substitutions: dict[str, Any]) -> None:
         """Update the postBuild.substitutions in the extracted values and raw doc contents."""
         if self.postbuild_substitute is None:
@@ -511,6 +534,7 @@ class Kustomization(BaseManifest):
                 substitute = {}
                 post_build["substitute"] = substitute
             substitute.update(substitutions)
+
 
 @dataclass
 class Cluster(BaseManifest):
@@ -565,7 +589,6 @@ class Manifest(BaseManifest):
 
     clusters: list[Cluster]
     """A list of Clusters represented in the repo."""
-
 
 
 async def read_manifest(manifest_path: Path) -> Manifest:
