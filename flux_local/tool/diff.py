@@ -198,6 +198,15 @@ def add_diff_flags(args: ArgumentParser) -> None:
         default=None,
         nargs="?",
     )
+
+    args.add_argument(
+        "--branch-orig",
+        help="Branch to compare against using worktree",
+        type=str,
+        default=None,
+        nargs="?",
+    )
+
     args.add_argument(
         "--strip-attrs",
         help="Labels or annotations to strip from the diff",
@@ -225,7 +234,7 @@ def create_diff_path(
         yield git_repo.PathSelector(path_orig, sources=kwargs.get("sources"))
         return
 
-    with git_repo.create_worktree(selector.repo) as worktree:
+    with git_repo.create_worktree(selector.repo, existing_branch=kwargs.get("branch_orig")) as worktree:
         yield git_repo.PathSelector(pathlib.Path(worktree) / selector.relative_path)
 
 

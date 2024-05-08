@@ -772,17 +772,21 @@ async def build_manifest(
 
 
 @contextlib.contextmanager
-def create_worktree(repo: git.repo.Repo) -> Generator[Path, None, None]:
+def create_worktree(repo: git.repo.Repo, existing_branch: str | None = None) -> Generator[Path, None, None]:
     """Create a ContextManager for a new git worktree in the current repo.
 
     This is used to get a fork of the current repo without any local changes
     in order to produce a diff.
+    Specifying existing_branch allows  to compare the current state with the exisiting branch.
     """
     orig = os.getcwd()
     with tempfile.TemporaryDirectory() as tmp_dir:
         _LOGGER.debug("Creating worktree in %s", tmp_dir)
-        # Add --detach to avoid creating a branch since we will not make modifications
-        repo.git.worktree("add", "--detach", str(tmp_dir))
+        if existing_branch is None:
+            # Add --detach to avoid creating a branch since we will not make modifications
+            repo.git.worktree("add", "--detach", str(tmp_dir))
+        else:
+            repo.git.worktree("add", str(tmp_dir), existing_branch)
         os.chdir(tmp_dir)
         yield Path(tmp_dir)
     _LOGGER.debug("Restoring to %s", orig)
