@@ -777,7 +777,7 @@ def create_worktree(repo: git.repo.Repo, existing_branch: str | None = None) -> 
 
     This is used to get a fork of the current repo without any local changes
     in order to produce a diff.
-    Specifying existing_branch allows  to compare the current state with the exisiting branch.
+    Specifying existing_branch allows  to compare the current state with the existing branch.
     """
     orig = os.getcwd()
     with tempfile.TemporaryDirectory() as tmp_dir:
