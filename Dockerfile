@@ -3,12 +3,10 @@ FROM python:3.12-alpine as base
 RUN apk add --no-cache ca-certificates git
 
 WORKDIR /app
-COPY requirements.txt /requirements.txt
 COPY flux_local/ ./flux_local
 COPY setup.py .
 COPY setup.cfg .
 
-RUN pip install --no-cache-dir -r /requirements.txt
 RUN pip install -e .
 
 COPY --from=ghcr.io/fluxcd/flux-cli:v2.2.3              /usr/local/bin/flux              /usr/local/bin/flux
