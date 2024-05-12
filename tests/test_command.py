@@ -2,7 +2,8 @@
 
 import pytest
 
-from flux_local.command import Command, CommandException, run, run_piped
+from flux_local.command import Command, run, run_piped
+from flux_local.exceptions import CommandException
 
 
 async def test_command() -> None:

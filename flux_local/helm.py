@@ -50,7 +50,7 @@ from .manifest import (
     SECRET_KIND,
     REPO_TYPE_OCI,
     HELM_REPOSITORY,
-    GIT_REPOSITORY
+    GIT_REPOSITORY,
 )
 from .exceptions import HelmException
 
@@ -68,7 +68,7 @@ HELM_BIN = "helm"
 def _chart_name(release: HelmRelease, repo: HelmRepository | None) -> str:
     """Return the helm chart name used for the helm template command."""
     if release.chart.repo_kind == HELM_REPOSITORY:
-        if repo.repo_type == REPO_TYPE_OCI:
+        if repo and repo.repo_type == REPO_TYPE_OCI:
             return f"{repo.url}/{release.chart.name}"
         return release.chart.chart_name
     elif release.chart.repo_kind == GIT_REPOSITORY:
@@ -77,7 +77,6 @@ def _chart_name(release: HelmRelease, repo: HelmRepository | None) -> str:
         f"Unable to find chart source for chart {release.chart.chart_name} "
         f"kind {release.chart.repo_kind} for HelmRelease {release.name}"
     )
-
 
 
 class RepositoryConfig:

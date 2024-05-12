@@ -633,7 +633,9 @@ async def build_kustomization(
         ]
 
 
-def _ready_kustomizations(kustomizations: list[Kustomization], visited: set[str]) -> tuple[Kustomization, Kustomization]:
+def _ready_kustomizations(
+    kustomizations: list[Kustomization], visited: set[str]
+) -> tuple[list[Kustomization], list[Kustomization]]:
     """Split the kustomizations into those that are ready vs pending."""
     ready = []
     pending = []
@@ -690,7 +692,11 @@ async def build_manifest(
                 build_tasks = []
                 (ready, pending) = _ready_kustomizations(queue, visited)
                 for kustomization in ready:
-                    _LOGGER.debug("Processing kustomization '%s': %s", kustomization.name, kustomization.path)
+                    _LOGGER.debug(
+                        "Processing kustomization '%s': %s",
+                        kustomization.name,
+                        kustomization.path,
+                    )
 
                     if kustomization.postbuild_substitute_from:
                         values.expand_postbuild_substitute_reference(
@@ -772,7 +778,9 @@ async def build_manifest(
 
 
 @contextlib.contextmanager
-def create_worktree(repo: git.repo.Repo, existing_branch: str | None = None) -> Generator[Path, None, None]:
+def create_worktree(
+    repo: git.repo.Repo, existing_branch: str | None = None
+) -> Generator[Path, None, None]:
     """Create a ContextManager for a new git worktree in the current repo.
 
     This is used to get a fork of the current repo without any local changes

@@ -37,6 +37,7 @@ You can apply kyverno policies to the objects with the `validate` method.
 from aiofiles.ospath import isdir
 import asyncio
 from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
 import logging
 from pathlib import Path
 import tempfile
@@ -69,6 +70,7 @@ HELM_RELEASE_KIND = "HelmRelease"
 
 # Used to limit access to specific resources
 _LOCK_MAP: dict[str, asyncio.Lock] = {}
+
 
 class Kustomize:
     """Library for issuing a kustomize command."""
@@ -194,9 +196,9 @@ class Stash(Task):
 
 
 @asynccontextmanager
-async def _resource_lock(key: str):
+async def _resource_lock(key: str) -> AsyncIterator[None]:
     """Run while holding a lock for the specified resource.
-    
+
     This is not threadsafe and expected to be run in the asyncio loop.
     """
     if not (lock := _LOCK_MAP.get(key)):
