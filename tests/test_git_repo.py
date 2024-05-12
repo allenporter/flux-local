@@ -85,7 +85,7 @@ async def test_kustomization_visitor(snapshot: SnapshotAssertion) -> None:
     query.path.path = TESTDATA
 
     stream = io.StringIO()
-    visits: list[tuple[str, str, str, str]] = []
+    visits: list[tuple[str, str, str]] = []
 
     async def write(x: Path, y: Any, cmd: Kustomize | None) -> None:
         visits.append((str(x), y.namespace, y.name))
@@ -112,7 +112,7 @@ async def test_helm_repo_visitor(snapshot: SnapshotAssertion) -> None:
     query = ResourceSelector()
     query.path.path = TESTDATA
 
-    visits: list[tuple[str, str, str, str]] = []
+    visits: list[tuple[str, str, str]] = []
 
     async def append(x: Path, y: Any, z: Any) -> None:
         visits.append((str(x), y.namespace, y.name))
@@ -132,7 +132,7 @@ async def test_helm_release_visitor(snapshot: SnapshotAssertion) -> None:
     query = ResourceSelector()
     query.path.path = TESTDATA
 
-    visits: list[tuple[str, str, str, str]] = []
+    visits: list[tuple[str, str, str]] = []
 
     async def append(x: Path, y: Any, z: Any) -> None:
         visits.append((str(x), y.namespace, y.name))

@@ -14,14 +14,6 @@ warn_unused_configs = true
 warn_unused_ignores = true
 disable_error_code = [
     "import-untyped",
-    # TODO: Fix these warnings
-    "assignment",
-    "attr-defined",
-    "return-value",
-    "no-untyped-def",
-    "union-attr",
-    "assignment",
-    "arg-type",
 ]
 extra_checks = false
 check_untyped_defs = true

@@ -2,9 +2,11 @@
 
 set -o errexit
 
-# Change directory to the project root directory.
-cd "$(dirname "$0")"
+# other common virtualenvs
+my_path=$(git rev-parse --show-toplevel)
 
-pip3 install -r requirements_dev.txt --no-input --quiet
+if [ -f "${my_path}/venv/bin/activate" ]; then
+  . "${my_path}/venv/bin/activate"
+fi
 
-mypy .
+mypy ${my_path}
