@@ -1,0 +1,38 @@
+[tool.mypy]
+exclude = [
+  "venv/",
+]
+platform = "linux"
+show_error_codes = true
+follow_imports = "normal"
+local_partial_types = true
+strict_equality = true
+no_implicit_optional = true
+warn_incomplete_stub = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
+disable_error_code = [
+    "import-untyped",
+    # TODO: Fix these warnings
+    "assignment",
+    "attr-defined",
+    "return-value",
+    "no-untyped-def",
+    "union-attr",
+    "assignment",
+    "arg-type",
+]
+extra_checks = false
+check_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+warn_return_any = true
+warn_unreachable = true
+ignore_missing_imports = true
+disallow_any_generics = true
+no_implicit_reexport = true
+warn_no_return = true

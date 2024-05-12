@@ -12,7 +12,7 @@
       "automerge": true,
       "automergeType": "branch",
       "matchUpdateTypes": ["minor", "patch"]
-    },
+    }
   ],
   "regexManagers": [
     {
@@ -23,7 +23,8 @@
       "extractVersionTemplate": "^v?(?<version>.*)$",
     }
   ],
-  "pre-commit": {
-    "enabled": true,
+  "pip_requirements": {
+    "fileMatch": ["requirements_dev.txt"]
   },
+  "pre-commit": {"enabled": true}
 }
