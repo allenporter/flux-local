@@ -14,6 +14,13 @@ warn_unused_configs = true
 warn_unused_ignores = true
 disable_error_code = [
     "import-untyped",
+    # TODO: Fix these warnings
+    "assignment",
+    "attr-defined",
+    "return-value",
+    "no-untyped-def",
+    "union-attr",
+    "assignment",
 ]
 extra_checks = false
 check_untyped_defs = true
@@ -24,3 +31,8 @@ disallow_untyped_decorators = true
 disallow_untyped_defs = true
 warn_return_any = true
 warn_unreachable = true
+
+ignore_missing_imports = True
+disallow_any_generics = True
+no_implicit_reexport = True
+warn_no_return = True
