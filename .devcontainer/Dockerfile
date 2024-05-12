@@ -18,7 +18,7 @@ COPY --from=ghcr.io/kyverno/kyverno-cli:v1.12.1         /ko-app/kubectl-kyverno 
 COPY --from=docker.io/alpine/helm:3.14.4                /usr/bin/helm                    /usr/local/bin/helm
 COPY --from=ghcr.io/fluxcd/flux-cli:v2.2.3              /usr/local/bin/flux              /usr/local/bin/flux
 
-COPY requirements.txt /src/
-RUN pip3 install -r /src/requirements.txt
+COPY requirements_dev.txt /src/
+RUN pip3 install -r /src/requirements_dev.txt
 
 SHELL ["/bin/bash", "-c"]
