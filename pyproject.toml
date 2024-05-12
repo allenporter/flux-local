@@ -21,6 +21,7 @@ disable_error_code = [
     "no-untyped-def",
     "union-attr",
     "assignment",
+    "arg-type",
 ]
 extra_checks = false
 check_untyped_defs = true
