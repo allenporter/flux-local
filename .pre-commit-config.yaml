@@ -1,43 +1,44 @@
 ---
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.6.0
-  hooks:
-  - id: trailing-whitespace
-    exclude: '^tests/.*.ambr$'
-  - id: end-of-file-fixer
-    exclude: '^tests/.*.ambr$'
-  - id: check-yaml
-    args:
-    - --allow-multiple-documents
-  - id: check-added-large-files
-- repo: https://github.com/codespell-project/codespell
-  rev: v2.2.6
-  hooks:
-  - id: codespell
-- repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: 'v0.4.4'
-  hooks:
-  - id: ruff
-    args: [--fix, --exit-non-zero-on-fix]
-- repo: https://github.com/adrienverge/yamllint.git
-  rev: v1.35.1
-  hooks:
-  - id: yamllint
-    args:
-    - -c
-    - ".yaml-lint.yaml"
-- repo: https://github.com/psf/black
-  rev: 24.4.2
-  hooks:
-  - id: black
-    exclude: '^tests/.*.ambr$'
-- repo: local
-  hooks:
-  - id: mypy
-    name: mypy
-    entry: script/run-in-env.sh mypy
-    language: script
-    types: [python]
-    require_serial: true
-    files: ^(flux_local/|tests/)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args:
+          - --fix
+          - --exit-non-zero-on-fix
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: script/run-mypy.sh
+        language: script
+        types: [python]
+        require_serial: true
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        exclude: '^tests/tool/testdata/.*\.yaml$'
+        args:
+          - -c
+          - ".yaml-lint.yaml"
+  - repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v2.5.0
+    hooks:
+      - id: setup-cfg-fmt
