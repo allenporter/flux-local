@@ -24,6 +24,8 @@ jobs:
       - uses: codespell-project/actions-codespell@v2.0
         with:
           check_hidden: false
+          exclude_file: ./tests/testdata/cluster9/clusters/dev/flux-system/gotk-components.yaml
+
       - name: Run yamllint
         uses: ibiqlik/action-yamllint@v3
         with:
