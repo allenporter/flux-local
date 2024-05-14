@@ -16,7 +16,7 @@ COPY --from=docker.io/bitnami/kubectl:1.30.0            /opt/bitnami/kubectl/bin
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.4.1  /app/kustomize                   /usr/local/bin/kustomize
 COPY --from=ghcr.io/kyverno/kyverno-cli:v1.12.1         /ko-app/kubectl-kyverno          /usr/local/bin/kyverno
 COPY --from=docker.io/alpine/helm:3.14.4                /usr/bin/helm                    /usr/local/bin/helm
-COPY --from=ghcr.io/fluxcd/flux-cli:v2.2.3              /usr/local/bin/flux              /usr/local/bin/flux
+COPY --from=ghcr.io/fluxcd/flux-cli:v2.3.0              /usr/local/bin/flux              /usr/local/bin/flux
 
 COPY requirements_dev.txt /src/
 RUN pip3 install -r /src/requirements_dev.txt
