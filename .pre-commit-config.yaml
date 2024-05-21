@@ -36,6 +36,7 @@ repos:
       - id: yamllint
         exclude: '^tests/tool/testdata/.*\.yaml$'
         args:
+          - --strict
           - -c
           - ".yaml-lint.yaml"
   - repo: https://github.com/asottile/setup-cfg-fmt
