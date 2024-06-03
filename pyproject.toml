@@ -1,5 +1,6 @@
 [tool.mypy]
 exclude = [
+  "setup.py",
   "venv/",
 ]
 platform = "linux"
