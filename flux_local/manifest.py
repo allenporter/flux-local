@@ -109,21 +109,14 @@ class HelmChart(BaseManifest):
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any], default_namespace: str) -> "HelmChart":
-        """Parse a HelmChart from a HelmRelease resource object."""
-        _check_version(doc, HELM_RELEASE_DOMAIN)
-        if not (spec := doc.get("spec")):
+        """Parse a HelmChart."""
+        if not (chart_spec := doc.get("spec")):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
-        if not (chart := spec.get("chart")):
-            raise InputException(f"Invalid {cls} missing spec.chart: {doc}")
-        if not (chart_spec := chart.get("spec")):
-            raise InputException(f"Invalid {cls} missing spec.chart.spec: {doc}")
         if not (chart := chart_spec.get("chart")):
-            raise InputException(f"Invalid {cls} missing spec.chart.spec.chart: {doc}")
+            raise InputException(f"Invalid {cls} missing spec.chart: {doc}")
         version = chart_spec.get("version")
         if not (source_ref := chart_spec.get("sourceRef")):
-            raise InputException(
-                f"Invalid {cls} missing spec.chart.spec.sourceRef: {doc}"
-            )
+            raise InputException(f"Invalid {cls} missing spec.sourceRef: {doc}")
         if "name" not in source_ref:
             raise InputException(f"Invalid {cls} missing sourceRef fields: {doc}")
         return cls(
@@ -143,6 +136,39 @@ class HelmChart(BaseManifest):
     def chart_name(self) -> str:
         """Identifier for the HelmChart."""
         return f"{self.repo_full_name}/{self.name}"
+
+
+@dataclass
+class CrossNamespaceSourceReference(BaseManifest):
+    """A representation of an instantiation of a cross-namespace object reference."""
+
+    api_version: Optional[str]
+    """API version of the referent."""
+
+    kind: str
+    """Kind of the referent."""
+
+    name: str
+    """Name of the referent."""
+
+    namespace: Optional[str]
+    """Namespace of the referent."""
+
+    @classmethod
+    def parse_doc(
+        cls, doc: dict[str, Any], default_namespace: str
+    ) -> "CrossNamespaceSourceReference":
+        """Parse a CrossNamespaceSourceReference."""
+        if not (kind := doc.get("kind")):
+            raise InputException(f"Invalid {cls} missing kind: {doc}")
+        if not (name := doc.get("name")):
+            raise InputException(f"Invalid {cls} missing kind: {doc}")
+        return cls(
+            api_version=doc.get("apiVersion"),
+            kind=kind,
+            name=name,
+            namespace=doc.get("namespace", default_namespace),
+        )
 
 
 @dataclass
@@ -179,8 +205,11 @@ class HelmRelease(BaseManifest):
     namespace: str
     """The namespace that owns the HelmRelease."""
 
-    chart: HelmChart
+    chart: HelmChart | None
     """A mapping to a specific helm chart for this HelmRelease."""
+
+    chart_ref: CrossNamespaceSourceReference | None
+    """A mapping to a cross-namespace helm chart object reference for this HelmRelease."""
 
     values: Optional[dict[str, Any]] = field(metadata={"serialize": "omit"})
     """The values to install in the chart."""
@@ -201,7 +230,24 @@ class HelmRelease(BaseManifest):
             raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
         if not (namespace := metadata.get("namespace")):
             raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
-        chart = HelmChart.parse_doc(doc, namespace)
+        if not (spec := doc.get("spec")):
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
+        chart_doc = spec.get("chart")
+        chart_ref_doc = spec.get("chartRef")
+        if not chart_doc and not chart_ref_doc:
+            raise InputException(
+                f"Invalid {cls} none of spec.chart and spec.chartRef: {doc}"
+            )
+        if chart_doc and chart_ref_doc:
+            raise InputException(
+                f"Invalid {cls} both of spec.chart and spec.chartRef: {doc}"
+            )
+        chart = HelmChart.parse_doc(chart_doc, namespace) if chart_doc else None
+        chart_ref = (
+            CrossNamespaceSourceReference.parse_doc(chart_ref_doc, namespace)
+            if chart_ref_doc
+            else None
+        )
         spec = doc["spec"]
         values_from: list[ValuesReference] | None = None
         if values_from_dict := spec.get("valuesFrom"):
@@ -212,6 +258,7 @@ class HelmRelease(BaseManifest):
             name=name,
             namespace=namespace,
             chart=chart,
+            chart_ref=chart_ref,
             values=spec.get("values"),
             values_from=values_from,
         )
@@ -222,9 +269,12 @@ class HelmRelease(BaseManifest):
         return f"{self.namespace}-{self.name}"
 
     @property
-    def repo_name(self) -> str:
+    def repo_name(self) -> str | None:
         """Identifier for the HelmRepository identified in the HelmChart."""
-        return f"{self.chart.repo_namespace}-{self.chart.repo_name}"
+        if self.chart:
+            return f"{self.chart.repo_namespace}-{self.chart.repo_name}"
+        else:
+            return None
 
     @property
     def namespaced_name(self) -> str:

@@ -54,6 +54,7 @@ def test_values_references_with_values_key() -> None:
             name="test-chart",
             version="test-version",
         ),
+        chart_ref=None,
         values={"test": "test"},
         values_from=[
             ValuesReference(
@@ -112,6 +113,7 @@ def test_values_references_with_missing_values_key() -> None:
             name="test-chart",
             version="test-version",
         ),
+        chart_ref=None,
         values={"test": "test"},
         values_from=[
             ValuesReference(
@@ -152,6 +154,7 @@ def test_values_references_with_missing_secret() -> None:
             name="test-chart",
             version="test-version",
         ),
+        chart_ref=None,
         values={"test": "test"},
         values_from=[
             ValuesReference(
@@ -188,6 +191,7 @@ def test_values_references_with_missing_secret_values_key() -> None:
             name="test-chart",
             version="test-version",
         ),
+        chart_ref=None,
         values={"test": "test"},
         values_from=[
             ValuesReference(
@@ -228,6 +232,7 @@ def test_values_references_invalid_yaml() -> None:
             name="test-chart",
             version="test-version",
         ),
+        chart_ref=None,
         values={"test": "test"},
         values_from=[
             ValuesReference(
@@ -264,6 +269,7 @@ def test_values_references_invalid_binary_data() -> None:
             name="test-chart",
             version="test-version",
         ),
+        chart_ref=None,
         values={"test": "test"},
         values_from=[
             ValuesReference(
@@ -304,6 +310,7 @@ def test_values_reference_invalid_target_path() -> None:
             "test": "test",
             "target": ["a", "b", "c"],
         },
+        chart_ref=None,
         values_from=[
             ValuesReference(
                 kind="ConfigMap",
@@ -342,6 +349,7 @@ def test_values_reference_invalid_configmap_and_secret() -> None:
             name="test-chart",
             version="test-version",
         ),
+        chart_ref=None,
         values={"test": "test"},
         values_from=[
             ValuesReference(
@@ -383,6 +391,7 @@ def test_values_references_secret() -> None:
             name="test-chart",
             version="test-version",
         ),
+        chart_ref=None,
         values={"test": "test"},
         values_from=[
             ValuesReference(

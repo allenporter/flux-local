@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - cluster-policies.yaml
   - helm-repositories.yaml
+  - oci-repositories.yaml

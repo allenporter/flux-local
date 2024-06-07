@@ -248,8 +248,11 @@ class HelmVisitor:
     @property
     def active_repos(self) -> list[HelmRepository]:
         """Return HelpRepositories referenced by a HelmRelease."""
+        # NOTE: With Flux 2.3, a HelmRelease may reference an OCIRepository providing the chart.
+        # TODO: Support resolving HelmRepository `chartRef`.
         repo_keys: set[str] = {
             release.chart.repo_full_name for release in self.releases
+            if release.chart
         }
         return [repo for repo in self.repos if repo.repo_name in repo_keys]
 
@@ -296,6 +299,7 @@ class HelmVisitor:
             if active_repos := self.active_repos:
                 helm.add_repos(active_repos)
                 await helm.update()
+            # TODO: Only HelmRelease with `chart` can be inflated. `chartRef` is not supported.
             tasks = [
                 inflate_release(
                     helm,
@@ -304,6 +308,7 @@ class HelmVisitor:
                     options,
                 )
                 for release in self.releases
+                if release.chart
             ]
             _LOGGER.debug("Waiting for inflate tasks to complete")
             await asyncio.gather(*tasks)

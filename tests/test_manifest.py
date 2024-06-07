@@ -28,6 +28,7 @@ def test_parse_helm_release() -> None:
     )
     assert release.name == "metallb"
     assert release.namespace == "metallb"
+    assert release.chart is not None
     assert release.chart.name == "metallb"
     assert release.chart.version == "4.1.14"
     assert release.chart.repo_name == "bitnami"

@@ -97,6 +97,8 @@ class HelmReleaseTest(pytest.Item):
 
     def active_repos(self) -> list[HelmRepository]:
         """Return HelpRepositories referenced by a HelmRelease."""
+        if not self.helm_release.chart:
+            return []
         repo_key = "-".join(
             [
                 self.helm_release.chart.repo_namespace,
@@ -181,13 +183,15 @@ class KustomizationCollector(pytest.Collector):
             test_config=self.test_config,
         )
         for helm_release in self.kustomization.helm_releases:
-            yield HelmReleaseTest.from_parent(
-                parent=self,
-                cluster=self.cluster,
-                kustomization=self.kustomization,
-                helm_release=helm_release,
-                test_config=self.test_config,
-            )
+            # TODO: Only HelmRelease with `chart` can be tested. `chartRef` is not supported.
+            if helm_release.chart:
+                yield HelmReleaseTest.from_parent(
+                    parent=self,
+                    cluster=self.cluster,
+                    kustomization=self.kustomization,
+                    helm_release=helm_release,
+                    test_config=self.test_config,
+                )
 
 
 class ClusterCollector(pytest.Collector):
