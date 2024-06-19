@@ -22,22 +22,21 @@ inputs:
     default: v1.9.0
   python-version:
     description: Python version used for running flux-local
-    default: '3.10'
+    default: "3.10"
   debug:
     description: When true, uses the DEBUG log level
     default: false
   kustomize-build-flags:
     description: Additional flags to pass to kustomize build
-    default: ''
+    default: ""
   sources:
     description: GitRepository or OCIRepository to include with optional source mappings like `flux-system` or `cluster=./kubernetes/`
-    default: ''
+    default: ""
 runs:
   using: "composite"
   steps:
     - name: Verify Flux CLI
-      run:
-        flux --version || (echo "Could not find flux CLI, add https://fluxcd.io/flux/flux-gh-action/" && exit 1)
+      run: flux --version || (echo "Could not find flux CLI, add https://fluxcd.io/flux/flux-gh-action/" && exit 1)
       shell: bash
     - name: Copy requirements locally
       id: copy-requirements
@@ -46,7 +45,7 @@ runs:
         # `cache-dependency-path` seems to need to be within the current directory. Use a temporary directory
         tempdir=$(mktemp --directory --tmpdir=. --suffix=-flux-local-diff-action)
         cp ${{ github.action_path }}/../../requirements.txt $tempdir
-        echo "::set-output name=directory::${tempdir}"
+        echo "directory=${tempdir}" >> $GITHUB_OUTPUT
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -61,7 +60,7 @@ runs:
     - uses: supplypike/setup-bin@v3
       with:
         uri: https://github.com/kyverno/kyverno/releases/download/${{ inputs.kyverno-version }}/kyverno-cli_${{ inputs.kyverno-version }}_linux_x86_64.tar.gz
-        name: 'kyverno-cli'
+        name: "kyverno-cli"
         version: ${{ inputs.kyverno-version }}
       if: ${{ inputs.enable-kyverno == 'true' }}
     - name: Test cluster (flux-local)
