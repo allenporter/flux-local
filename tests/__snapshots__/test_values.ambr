@@ -22,7 +22,24 @@
       'tag': '7.0.6',
     }),
     'tls': dict({
-      'crt': '!!PLACEHOLDER!!',
+      'crt': '..PLACEHOLDER..',
+    }),
+  })
+# ---
+# name: test_value_references.1
+  dict({
+    'apiServerProxyConfig': dict({
+      'mode': 'true',
+    }),
+    'oauth': dict({
+      'clientId': '..PLACEHOLDER..',
+      'clientSecret': '..PLACEHOLDER..',
+    }),
+    'operatorConfig': dict({
+      'defaultTags': list([
+        'tag:k8s',
+      ]),
+      'hostname': 'tailscale-operator',
     }),
   })
 # ---

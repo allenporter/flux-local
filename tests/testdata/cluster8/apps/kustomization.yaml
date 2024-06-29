@@ -6,3 +6,4 @@ resources:
   - podinfo.yaml
   - podinfo-values.yaml
   - podinfo-tls-values.yaml
+  - tailscale.yaml

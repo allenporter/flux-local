@@ -4,8 +4,10 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
+        exclude: '^tests/.*/__snapshots__/.*.ambr$'
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: '^tests/testdata/cluster8/apps/.*\.yaml$'
       - id: check-added-large-files
   - repo: https://github.com/psf/black
     rev: 24.4.2

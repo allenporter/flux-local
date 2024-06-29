@@ -34,9 +34,12 @@ async def test_value_references(snapshot: SnapshotAssertion) -> None:
     assert len(manifest.clusters[0].kustomizations) == 2
     ks = manifest.clusters[0].kustomizations[0]
     assert ks.name == "apps"
-    assert len(ks.helm_releases) == 1
+    assert len(ks.helm_releases) == 2
     hr = ks.helm_releases[0]
     assert hr.name == "podinfo"
+    assert hr.values == snapshot
+    hr = ks.helm_releases[1]
+    assert hr.name == "tailscale-operator"
     assert hr.values == snapshot
 
 
@@ -138,7 +141,6 @@ def test_values_references_with_missing_values_key() -> None:
     }
 
 
-
 def test_values_references_with_missing_secret() -> None:
     """Test for expanding a value reference with a missing secret."""
     hr = HelmRelease(
@@ -170,7 +172,7 @@ def test_values_references_with_missing_secret() -> None:
     assert updated_hr.values == {
         "test": "test",
         "target": {
-            "path": "!!PLACEHOLDER!!",
+            "path": "..PLACEHOLDER..",
         },
     }
 
@@ -435,8 +437,8 @@ def test_values_references_secret() -> None:
     assert updated_hr.values == {
         "test": "test",
         "target": {
-            "path1": "!!PLACEHOLDER!!",
-            "path2": "!!PLACEHOLDER!!",
+            "path1": "..PLACEHOLDER..",
+            "path2": "..PLACEHOLDER..",
         },
     }
 
@@ -569,4 +571,7 @@ def test_cluster_config() -> None:
     config = ks_cluster_config([ks1, ks2])
     # Ensure can be called repeatedly
     assert len(list(config.secrets)) == 2
-    assert [ s.name for s in config.secrets ] == ['test-values-secret','other-values-secret']
+    assert [s.name for s in config.secrets] == [
+        "test-values-secret",
+        "other-values-secret",
+    ]
