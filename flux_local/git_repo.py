@@ -507,6 +507,7 @@ async def kustomization_traversal(
                 _LOGGER.debug("Already visited %s", path)
                 continue
             visited_paths.add(path)
+
             tasks.append(visit_kustomization(selector, builder, path, visit_ks))
 
         # Find new kustomizations
@@ -618,8 +619,7 @@ async def build_kustomization(
         if not kinds:
             return
 
-        regexp = f"kind=^({'|'.join(kinds)})$"
-        docs = await cmd.grep(regexp).objects(
+        docs = await cmd.filter_resources(kinds).objects(
             target_namespace=kustomization.target_namespace
         )
 
