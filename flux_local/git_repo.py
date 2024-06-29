@@ -403,27 +403,54 @@ class CachableBuilder:
                 del self._cache[key]
 
 
+@dataclass
+class VisitResult:
+    """Result of visiting a kustomization."""
+
+    kustomizations: list[Kustomization]
+    config_maps: list[ConfigMap]
+    secrets: list[Secret]
+
+    def __post_init__(self) -> None:
+        """Validate the object"""
+        unique = {ks.namespaced_name for ks in self.kustomizations}
+        if len(unique) != len(self.kustomizations):
+            ks_names = [ks.namespaced_name for ks in self.kustomizations]
+            dupes = list(filter(lambda x: ks_names.count(x) > 1, ks_names))
+            raise FluxException(
+                f"Detected multiple Fluxtomizations with the same name: {dupes}. "
+                "This indicates either (1) an incorrect Kustomization which needs to be fixed "
+                "or (2) a multi-cluster setup which requires flux-local to run with a more strict --path."
+            )
+
+
 async def visit_kustomization(
     selector: PathSelector,
     builder: CachableBuilder,
     path: Path,
     visit_ks: Kustomization | None,
-) -> list[Kustomization]:
+) -> VisitResult:
     """Visit a path and return a list of Kustomizations."""
 
     _LOGGER.debug("Visiting path (%s) %s", selector.path, path)
     label = visit_ks.namespaced_name if visit_ks else str(path)
+
+    kinds = [CLUSTER_KUSTOMIZE_KIND, CONFIG_MAP_KIND, SECRET_KIND]
+
     with trace_context(f"Kustomization '{label}'"):
         cmd: kustomize.Kustomize
         if visit_ks is None:
-            cmd = kustomize.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}", selector.root / path)
+            cmd = kustomize.filter_resources(kinds, selector.root / path)
         else:
             cmd = await builder.build(visit_ks, selector.root / path)
-            cmd = cmd.grep(f"kind={CLUSTER_KUSTOMIZE_KIND}")
-        cmd = cmd.grep(GREP_SOURCE_REF_KIND)
+            cmd = cmd.filter_resources(kinds)
+        cmd = await cmd.stash()
+        ks_cmd = cmd.grep(GREP_SOURCE_REF_KIND)
+        cfg_cmd = cmd.filter_resources([CONFIG_MAP_KIND, SECRET_KIND])
 
         try:
-            docs = await cmd.objects()
+            ks_docs = await ks_cmd.objects()
+            cfg_docs = await cfg_cmd.objects()
         except KustomizePathException as err:
             raise FluxException(err) from err
         except FluxException as err:
@@ -436,25 +463,26 @@ async def visit_kustomization(
                 f"Error building Fluxtomization '{visit_ks.namespaced_name}' "
                 f"path '{path}': {ERROR_DETAIL_BAD_KS} {err}"
             ) from err
-    kustomizations = list(
-        filter(
-            is_allowed_source(selector.sources or []),
-            [
-                Kustomization.parse_doc(doc)
-                for doc in filter(FLUXTOMIZE_DOMAIN_FILTER, docs)
-            ],
-        )
+
+    return VisitResult(
+        kustomizations=list(
+            filter(
+                is_allowed_source(selector.sources or []),
+                [
+                    Kustomization.parse_doc(doc)
+                    for doc in filter(FLUXTOMIZE_DOMAIN_FILTER, ks_docs)
+                ],
+            )
+        ),
+        config_maps=[
+            ConfigMap.parse_doc(doc)
+            for doc in cfg_docs
+            if doc.get("kind") == CONFIG_MAP_KIND
+        ],
+        secrets=[
+            Secret.parse_doc(doc) for doc in cfg_docs if doc.get("kind") == SECRET_KIND
+        ],
     )
-    unique = {ks.namespaced_name for ks in kustomizations}
-    if len(unique) != len(kustomizations):
-        ks_names = [ks.namespaced_name for ks in kustomizations]
-        dupes = list(filter(lambda x: ks_names.count(x) > 1, ks_names))
-        raise FluxException(
-            f"Detected multiple Fluxtomizations with the same name: {dupes}. "
-            "This indicates either (1) an incorrect Kustomization which needs to be fixed "
-            "or (2) a multi-cluster setup which requires flux-local to run with a more strict --path."
-        )
-    return kustomizations
 
 
 async def kustomization_traversal(
@@ -468,6 +496,7 @@ async def kustomization_traversal(
 
     path_queue: deque[tuple[Path, Kustomization | None]] = deque()
     path_queue.append((selector.relative_path, None))
+    cluster_config = values.cluster_config([], [])
     while path_queue:
         # Fully empty the queue, running all tasks in parallel
         tasks = []
@@ -479,12 +508,24 @@ async def kustomization_traversal(
                 continue
             visited_paths.add(path)
 
+            _LOGGER.debug("BEFORE: %s", visit_ks)
+            if visit_ks is not None and visit_ks.postbuild_substitute_from:
+                _LOGGER.debug("Expand: %s", cluster_config)
+                values.expand_postbuild_substitute_reference(
+                    visit_ks,
+                    cluster_config,
+                )
+                _LOGGER.debug("AFTER: %s", visit_ks)
+
             tasks.append(visit_kustomization(selector, builder, path, visit_ks))
 
         # Find new kustomizations
         kustomizations = []
         for result in await asyncio.gather(*tasks):
-            for ks in result:
+            cluster_config = values.merge_cluster_config(
+                cluster_config, result.secrets, result.config_maps
+            )
+            for ks in result.kustomizations:
                 if ks.namespaced_name in visited_ks:
                     continue
                 kustomizations.append(ks)
@@ -705,7 +746,7 @@ async def build_manifest(
                         )
                         # Clear the cache to remove any previous builds that are
                         # missing the postbuild substitutions.
-                        builder.remove(kustomization)
+                        # builder.remove(kustomization)
 
                     build_tasks.append(
                         build_kustomization(

@@ -1,6 +1,57 @@
 # serializer version: 1
 # name: test_diff_ks[apps]
-  ''
+  '''
+  --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/example-com-staging
+  
+  +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/example-com-staging
+  
+  @@ -0,0 +1,18 @@
+  
+  +---
+  +apiVersion: cert-manager.io/v1
+  +kind: Certificate
+  +metadata:
+  +  labels:
+  +    kustomize.toolkit.fluxcd.io/name: apps
+  +    kustomize.toolkit.fluxcd.io/namespace: flux-system
+  +  name: example-com-staging
+  +spec:
+  +  commonName: example.com
+  +  dnsNames:
+  +  - example.com
+  +  - '*.example.com'
+  +  issuerRef:
+  +    kind: ClusterIssuer
+  +    name: letsencrypt-staging
+  +  secretName: example-com-staging-tls
+  +
+  --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/other-com-staging
+  
+  +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/other-com-staging
+  
+  @@ -0,0 +1,19 @@
+  
+  +---
+  +apiVersion: cert-manager.io/v1
+  +kind: Certificate
+  +metadata:
+  +  labels:
+  +    kustomize.toolkit.fluxcd.io/name: apps
+  +    kustomize.toolkit.fluxcd.io/namespace: flux-system
+  +  name: other-com-staging
+  +spec:
+  +  commonName: other.com
+  +  dnsNames:
+  +  - other.com
+  +  - '*.other.com'
+  +  - example-value
+  +  issuerRef:
+  +    kind: ClusterIssuer
+  +    name: letsencrypt-staging
+  +  secretName: other-com-staging-tls
+  +
+  
+  '''
 # ---
 # name: test_diff_ks[ks-external]
   ''

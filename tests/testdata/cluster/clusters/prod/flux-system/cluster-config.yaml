@@ -6,3 +6,5 @@ metadata:
   namespace: flux-system
 data:
   cluster_label: example-value
+  SECRET_DOMAIN: "example.com"
+  SECRET_DOMAIN2: "other.com"
