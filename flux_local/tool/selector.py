@@ -185,6 +185,10 @@ def add_helm_options_flags(args: ArgumentParser) -> None:
         "-a",
         help="Kubernetes api versions used for helm Capabilities.APIVersions",
     )
+    args.add_argument(
+        "--registry-config",
+        help="Path to a helm registry config file",
+    )
 
 
 def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def]
@@ -198,6 +202,7 @@ def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def
         skip_secrets=kwargs["skip_secrets"],
         kube_version=kwargs.get("kube_version"),
         api_versions=kwargs.get("api_versions"),
+        registry_config=kwargs.get("registry_config"),
     )
 
 

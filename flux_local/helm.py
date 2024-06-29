@@ -63,6 +63,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 HELM_BIN = "helm"
+DEFAULT_REGISTRY_CONFIG = "/dev/null"
 
 
 def _chart_name(release: HelmRelease, repo: HelmRepository | None) -> str:
@@ -126,10 +127,18 @@ class Options:
     api_versions: str | None = None
     """Value of the helm --api-versions flag."""
 
+    registry_config: str | None = None
+    """Value of the helm --registry-config flag."""
+
+    @property
+    def base_args(self) -> list[str]:
+        """Helm template CLI arguments built from the options."""
+        return ["--registry-config", self.registry_config or DEFAULT_REGISTRY_CONFIG]
+
     @property
     def template_args(self) -> list[str]:
         """Helm template CLI arguments built from the options."""
-        args = []
+        args = self.base_args
         if self.skip_crds:
             args.append("--skip-crds")
         if self.skip_tests:
@@ -159,8 +168,6 @@ class Helm:
         self._tmp_dir = tmp_dir
         self._repo_config_file = self._tmp_dir / "repository-config.yaml"
         self._flags = [
-            "--registry-config",
-            "/dev/null",
             "--repository-cache",
             str(cache_dir),
             "--repository-config",
@@ -189,11 +196,10 @@ class Helm:
         content = yaml.dump(RepositoryConfig(repos).config, sort_keys=False)
         async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
             await config_file.write(content)
-        await command.run(
-            command.Command(
-                [HELM_BIN, "repo", "update"] + self._flags, exc=HelmException
-            )
-        )
+        args = [HELM_BIN, "repo", "update"]
+        args.extend(Options().base_args)
+        args.extend(self._flags)
+        await command.run(command.Command(args, exc=HelmException))
 
     async def template(
         self,
@@ -226,6 +232,7 @@ class Helm:
             "--namespace",
             release.namespace,
         ]
+        args.extend(self._flags)
         args.extend(options.template_args)
         if release.chart.version:
             args.extend(
@@ -239,7 +246,7 @@ class Helm:
             async with aiofiles.open(values_path, mode="w") as values_file:
                 await values_file.write(yaml.dump(release.values, sort_keys=False))
             args.extend(["--values", str(values_path)])
-        cmd = Kustomize([command.Command(args + self._flags, exc=HelmException)])
+        cmd = Kustomize([command.Command(args, exc=HelmException)])
         if options.skip_resources:
             cmd = cmd.skip_resources(options.skip_resources)
         return cmd
