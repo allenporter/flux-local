@@ -507,16 +507,6 @@ async def kustomization_traversal(
                 _LOGGER.debug("Already visited %s", path)
                 continue
             visited_paths.add(path)
-
-            _LOGGER.debug("BEFORE: %s", visit_ks)
-            if visit_ks is not None and visit_ks.postbuild_substitute_from:
-                _LOGGER.debug("Expand: %s", cluster_config)
-                values.expand_postbuild_substitute_reference(
-                    visit_ks,
-                    cluster_config,
-                )
-                _LOGGER.debug("AFTER: %s", visit_ks)
-
             tasks.append(visit_kustomization(selector, builder, path, visit_ks))
 
         # Find new kustomizations
@@ -543,6 +533,12 @@ async def kustomization_traversal(
             if not (ks_path := adjust_ks_path(ks, selector)):
                 continue
             ks.path = str(ks_path)
+            if ks.postbuild_substitute_from:
+                values.expand_postbuild_substitute_reference(
+                    ks,
+                    cluster_config,
+                )
+
             path_queue.append((ks_path, ks))
             response_kustomizations.append(ks)
 
@@ -746,7 +742,7 @@ async def build_manifest(
                         )
                         # Clear the cache to remove any previous builds that are
                         # missing the postbuild substitutions.
-                        # builder.remove(kustomization)
+                        builder.remove(kustomization)
 
                     build_tasks.append(
                         build_kustomization(
