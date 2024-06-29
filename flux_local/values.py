@@ -59,6 +59,16 @@ def cluster_config(
     )
 
 
+def merge_cluster_config(
+    config: ClusterConfig, secrets: list[Secret], config_maps: list[ConfigMap]
+) -> ClusterConfig:
+    """Create a ClusterConfig from a list of secrets and configmaps."""
+    return ClusterConfig(
+        lambda: list(config.secrets) + secrets,
+        lambda: list(config.config_maps) + config_maps,
+    )
+
+
 def ks_cluster_config(kustomizations: list[Kustomization]) -> ClusterConfig:
     """Create a ClusterConfig from a list of Kustomizations."""
 
@@ -262,7 +272,9 @@ def expand_postbuild_substitute_reference(
             continue
 
         if found_data is None:
-            if not ref.optional and not ref.kind == SECRET_KIND:  # Secrets are commonly filtered
+            if (
+                not ref.optional and not ref.kind == SECRET_KIND
+            ):  # Secrets are commonly filtered
                 _LOGGER.warning(
                     "Unable to find SubstituteReference for %s: %s",
                     ks.namespaced_name,
@@ -271,5 +283,6 @@ def expand_postbuild_substitute_reference(
             continue
 
         values.update(found_data)
+    _LOGGER.debug("update_postbuild_substitutions=%s", values)
     ks.update_postbuild_substitutions(values)
     return ks

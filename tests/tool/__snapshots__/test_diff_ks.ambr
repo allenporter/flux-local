@@ -70,7 +70,7 @@
         -  values:
         -    ingress:
         -      additionalLabels:
-        -        cluster_label: null
+        -        cluster_label: example-value
         -      className: nginx
         -      enabled: true
         -      hosts:
@@ -105,6 +105,65 @@
         -    kustomize.toolkit.fluxcd.io/namespace: flux-system
         -  name: podinfo-config
         -  namespace: podinfo
+        -
+    - kustomization_path: tests/testdata/cluster/apps/prod
+      kind: Certificate
+      namespace: flux-system
+      name: example-com-staging
+      diff: |-
+        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/example-com-staging
+  
+        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/example-com-staging
+  
+        @@ -1,18 +0,0 @@
+  
+        ----
+        -apiVersion: cert-manager.io/v1
+        -kind: Certificate
+        -metadata:
+        -  labels:
+        -    kustomize.toolkit.fluxcd.io/name: apps
+        -    kustomize.toolkit.fluxcd.io/namespace: flux-system
+        -  name: example-com-staging
+        -spec:
+        -  commonName: example.com
+        -  dnsNames:
+        -  - example.com
+        -  - '*.example.com'
+        -  issuerRef:
+        -    kind: ClusterIssuer
+        -    name: letsencrypt-staging
+        -  secretName: example-com-staging-tls
+        -
+    - kustomization_path: tests/testdata/cluster/apps/prod
+      kind: Certificate
+      namespace: flux-system
+      name: other-com-staging
+      diff: |-
+        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/other-com-staging
+  
+        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/other-com-staging
+  
+        @@ -1,19 +0,0 @@
+  
+        ----
+        -apiVersion: cert-manager.io/v1
+        -kind: Certificate
+        -metadata:
+        -  labels:
+        -    kustomize.toolkit.fluxcd.io/name: apps
+        -    kustomize.toolkit.fluxcd.io/namespace: flux-system
+        -  name: other-com-staging
+        -spec:
+        -  commonName: other.com
+        -  dnsNames:
+        -  - other.com
+        -  - '*.other.com'
+        -  - example-value
+        -  issuerRef:
+        -    kind: ClusterIssuer
+        -    name: letsencrypt-staging
+        -  secretName: other-com-staging-tls
         -
   
   

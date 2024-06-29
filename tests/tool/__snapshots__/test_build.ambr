@@ -2740,6 +2740,47 @@
     annotations:
       config.kubernetes.io/index: '2'
       internal.config.kubernetes.io/index: '2'
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: example-com-staging
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    commonName: example.com
+    dnsNames:
+    - example.com
+    - '*.example.com'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: example-com-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: other-com-staging
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    commonName: other.com
+    dnsNames:
+    - other.com
+    - '*.other.com'
+    - example-value
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: other-com-staging-tls
   
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -2811,6 +2852,8 @@
   ---
   apiVersion: v1
   data:
+    SECRET_DOMAIN: example.com
+    SECRET_DOMAIN2: other.com
     cluster_label: example-value
   kind: ConfigMap
   metadata:
@@ -4440,6 +4483,47 @@
     annotations:
       config.kubernetes.io/index: '2'
       internal.config.kubernetes.io/index: '2'
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: example-com-staging
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    commonName: example.com
+    dnsNames:
+    - example.com
+    - '*.example.com'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: example-com-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: other-com-staging
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    commonName: other.com
+    dnsNames:
+    - other.com
+    - '*.other.com'
+    - example-value
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: other-com-staging-tls
   
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -4511,6 +4595,8 @@
   ---
   apiVersion: v1
   data:
+    SECRET_DOMAIN: example.com
+    SECRET_DOMAIN2: other.com
     cluster_label: example-value
   kind: ConfigMap
   metadata:
