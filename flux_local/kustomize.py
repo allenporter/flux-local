@@ -127,7 +127,12 @@ class Kustomize:
         self, target_namespace: str | None = None
     ) -> list[dict[str, Any]]:
         """Run the kustomize command and return the result cluster objects as a list."""
-        return [doc async for doc in self._docs(target_namespace=target_namespace)]
+        try:
+            return [doc async for doc in self._docs(target_namespace=target_namespace)]
+        except yaml.YAMLError as err:
+            raise KustomizeException(
+                f"Unable to parse command output: {self._cmds}: {err}"
+            ) from err
 
     def skip_resources(self, kinds: list[str]) -> "Kustomize":
         """Skip resources kinds of the specified types."""
