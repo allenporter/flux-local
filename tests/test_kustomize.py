@@ -6,7 +6,7 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 import yaml
 
-from flux_local import kustomize, exceptions, manifest
+from flux_local import kustomize, exceptions, manifest, command
 
 TESTDATA_DIR = Path("tests/testdata")
 
@@ -42,6 +42,28 @@ async def test_objects(path: Path, snapshot: SnapshotAssertion) -> None:
     assert result[0].get("kind") == "ConfigMap"
     assert result[0].get("apiVersion") == "v1"
     assert result == snapshot
+
+
+INVALID_YAML = """
+---
+foo: !bar
+"""
+
+
+async def test_objects_failure() -> None:
+    """Test loading yaml documents."""
+
+    class FakeTask(command.Task):
+        async def run(self, stdin: bytes | None = None) -> bytes:
+            """Execute the task and return the result."""
+            return INVALID_YAML.encode()
+
+    cmd = kustomize.Kustomize([FakeTask()])
+    with pytest.raises(
+        exceptions.KustomizeException,
+        match=r"Unable to parse.*could not determine a constructor",
+    ):
+        await cmd.objects()
 
 
 @pytest.mark.parametrize(
@@ -80,8 +102,7 @@ async def test_validate_pass(path: Path) -> None:
 async def test_validate_fail(path: Path) -> None:
     """Test applying policies to validate resources."""
     cmd = kustomize.grep("kind=ConfigMap", path)
-    with pytest.raises(
-        exceptions.CommandException, match="fail: 1"):
+    with pytest.raises(exceptions.CommandException, match="fail: 1"):
         await cmd.validate(TESTDATA_DIR / "policies/fail.yaml")
 
 
