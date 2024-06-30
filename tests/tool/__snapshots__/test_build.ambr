@@ -2988,7 +2988,56 @@
     interval: 120m
     type: oci
     url: oci://ghcr.io/weaveworks/charts
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: OCIRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: kyverno
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    interval: 1h
+    layerSelector:
+      mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+      operation: copy
+    ref:
+      digest: sha256:d363081e45627aa396d6c8cb2d4ee59fcb7a79c223a967ae601c8c8ba4e7b7f3
+      tag: 3.2.3
+    url: oci://ghcr.io/kyverno/charts/kyverno
   
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-controllers
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: kyverno
+    namespace: kyverno
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    chartRef:
+      kind: OCIRepository
+      name: kyverno
+      namespace: flux-system
+    driftDetection:
+      mode: enabled
+    install:
+      remediation:
+        retries: 3
+    interval: 5m
+    upgrade:
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1
   kind: HelmRelease
@@ -2999,8 +3048,8 @@
     name: metallb
     namespace: metallb
     annotations:
-      config.kubernetes.io/index: '0'
-      internal.config.kubernetes.io/index: '0'
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
   spec:
     chart:
       spec:
@@ -3032,8 +3081,8 @@
     name: weave-gitops
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '1'
-      internal.config.kubernetes.io/index: '1'
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
   spec:
     chart:
       spec:
@@ -4731,7 +4780,56 @@
     interval: 120m
     type: oci
     url: oci://ghcr.io/weaveworks/charts
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: OCIRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: kyverno
+    namespace: flux-system
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    interval: 1h
+    layerSelector:
+      mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+      operation: copy
+    ref:
+      digest: sha256:d363081e45627aa396d6c8cb2d4ee59fcb7a79c223a967ae601c8c8ba4e7b7f3
+      tag: 3.2.3
+    url: oci://ghcr.io/kyverno/charts/kyverno
   
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-controllers
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: kyverno
+    namespace: kyverno
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    chartRef:
+      kind: OCIRepository
+      name: kyverno
+      namespace: flux-system
+    driftDetection:
+      mode: enabled
+    install:
+      remediation:
+        retries: 3
+    interval: 5m
+    upgrade:
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1
   kind: HelmRelease
@@ -4742,8 +4840,8 @@
     name: metallb
     namespace: metallb
     annotations:
-      config.kubernetes.io/index: '0'
-      internal.config.kubernetes.io/index: '0'
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
   spec:
     chart:
       spec:
@@ -4775,8 +4873,8 @@
     name: weave-gitops
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '1'
-      internal.config.kubernetes.io/index: '1'
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
   spec:
     chart:
       spec:

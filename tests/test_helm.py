@@ -59,8 +59,9 @@ async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None
     """Test helm template command."""
     await helm.update()
 
-    assert len(helm_releases) == 2
-    release = helm_releases[0]
+    assert len(helm_releases) == 3
+    # metallb release, see tests/testdata/cluster/infrastructure/controllers/kustomization.yaml
+    release = helm_releases[1]
     obj = await helm.template(HelmRelease.parse_doc(release))
     docs = await obj.grep("kind=ServiceAccount").objects()
     names = [doc.get("metadata", {}).get("name") for doc in docs]
