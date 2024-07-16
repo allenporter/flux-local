@@ -27,7 +27,7 @@ inputs:
     required: false
   python-version:
     description: Python version used for running flux-local
-    default: '3.10'
+    default: "3.10"
   strip-attrs:
     description: Labels and annotations that should be stripped to reduce diff noise
     default: helm.sh/chart,checksum/config,app.kubernetes.io/version,chart
@@ -39,13 +39,13 @@ inputs:
     default: 10000
   kustomize-build-flags:
     description: Additional flags to pass to kustomize build
-    default: ''
+    default: ""
   sources:
     description: GitRepository or OCIRepository to include with optional source mappings like `flux-system` or `cluster=./kubernetes/`
-    default: ''
+    default: ""
   token:
     description: Token used for checkout action
-    default: '${{ github.token }}'
+    default: "${{ github.token }}"
     required: false
 outputs:
   diff:
@@ -55,8 +55,7 @@ runs:
   using: "composite"
   steps:
     - name: Verify Flux CLI
-      run:
-        flux --version || (echo "Could not find flux CLI, add https://fluxcd.io/flux/flux-gh-action/" && exit 1)
+      run: flux --version || (echo "Could not find flux CLI, add https://fluxcd.io/flux/flux-gh-action/" && exit 1)
       shell: bash
     - name: Copy requirements locally
       id: copy-requirements
@@ -64,8 +63,8 @@ runs:
       run: |
         # `cache-dependency-path` seems to need to be within the current directory. Use a temporary directory
         tempdir=$(mktemp --directory --tmpdir=. --suffix=-flux-local-diff-action)
-        cp ${{ github.action_path }}/../../requirements.txt $tempdir
-        echo "::set-output name=directory::${tempdir}"
+        cp ${{ github.action_path }}/../../requirements.txt ${tempdir}
+        echo "directory=${tempdir}" >> $GITHUB_OUTPUT
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
