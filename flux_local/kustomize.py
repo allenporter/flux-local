@@ -127,7 +127,12 @@ class Kustomize:
         self, target_namespace: str | None = None
     ) -> list[dict[str, Any]]:
         """Run the kustomize command and return the result cluster objects as a list."""
-        return [doc async for doc in self._docs(target_namespace=target_namespace)]
+        try:
+            return [doc async for doc in self._docs(target_namespace=target_namespace)]
+        except yaml.YAMLError as err:
+            raise KustomizeException(
+                f"Unable to parse command output: {self._cmds}: {err}"
+            ) from err
 
     def skip_resources(self, kinds: list[str]) -> "Kustomize":
         """Skip resources kinds of the specified types."""
@@ -135,6 +140,13 @@ class Kustomize:
             return self
         skip_re = "|".join(kinds)
         return self.grep(f"kind=^({skip_re})$", invert=True)
+
+    def filter_resources(self, kinds: list[str]) -> "Kustomize":
+        """Skip resources kinds of the specified types."""
+        if not kinds:
+            return self
+        skip_re = "|".join(kinds)
+        return self.grep(f"kind=^({skip_re})$", invert=False)
 
     async def validate_policies(self, policies: list[manifest.ClusterPolicy]) -> None:
         """Apply kyverno policies to objects built so far."""
@@ -276,6 +288,12 @@ def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
     else:
         args.append(str(path))
     return Kustomize([Command(args, cwd=cwd, exc=KustomizeException)])
+
+
+def filter_resources(kinds: list[str], path: Path) -> Kustomize:
+    """Filter resources in the specified path based of a specific kind."""
+    regexp = f"kind=^({'|'.join(kinds)})$"
+    return grep(regexp, path)
 
 
 def update_namespace(doc: dict[str, Any], namespace: str) -> dict[str, Any]:
