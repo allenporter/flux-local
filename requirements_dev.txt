@@ -1,7 +1,7 @@
 -e .
 black==24.4.2
 coverage==7.6.0
-mypy==1.11.0
+mypy==1.11.1
 pdoc==14.6.0
 pip==24.2
 pre-commit==3.8.0
