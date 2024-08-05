@@ -95,6 +95,15 @@
             ]),
             'helm_releases': list([
               dict({
+                'chart_ref': dict({
+                  'kind': 'OCIRepository',
+                  'name': 'kyverno',
+                  'namespace': 'flux-system',
+                }),
+                'name': 'kyverno',
+                'namespace': 'kyverno',
+              }),
+              dict({
                 'chart': dict({
                   'name': 'metallb',
                   'repo_kind': 'HelmRepository',
@@ -331,6 +340,15 @@
             ]),
             'helm_releases': list([
               dict({
+                'chart_ref': dict({
+                  'kind': 'OCIRepository',
+                  'name': 'kyverno',
+                  'namespace': 'flux-system',
+                }),
+                'name': 'kyverno',
+                'namespace': 'kyverno',
+              }),
+              dict({
                 'chart': dict({
                   'name': 'metallb',
                   'repo_kind': 'HelmRepository',
@@ -376,6 +394,11 @@
       'tests/testdata/cluster/infrastructure/controllers',
       'flux-system',
       'weave-gitops',
+    ),
+    tuple(
+      'tests/testdata/cluster/infrastructure/controllers',
+      'kyverno',
+      'kyverno',
     ),
     tuple(
       'tests/testdata/cluster/infrastructure/controllers',
@@ -461,6 +484,15 @@
             'config_maps': list([
             ]),
             'helm_releases': list([
+              dict({
+                'chart_ref': dict({
+                  'kind': 'OCIRepository',
+                  'name': 'kyverno',
+                  'namespace': 'flux-system',
+                }),
+                'name': 'kyverno',
+                'namespace': 'kyverno',
+              }),
               dict({
                 'chart': dict({
                   'name': 'metallb',
@@ -591,6 +623,15 @@
             'config_maps': list([
             ]),
             'helm_releases': list([
+              dict({
+                'chart_ref': dict({
+                  'kind': 'OCIRepository',
+                  'name': 'kyverno',
+                  'namespace': 'flux-system',
+                }),
+                'name': 'kyverno',
+                'namespace': 'kyverno',
+              }),
               dict({
                 'chart': dict({
                   'name': 'metallb',
@@ -1123,6 +1164,15 @@
             'config_maps': list([
             ]),
             'helm_releases': list([
+              dict({
+                'chart_ref': dict({
+                  'kind': 'OCIRepository',
+                  'name': 'kyverno',
+                  'namespace': 'flux-system',
+                }),
+                'name': 'kyverno',
+                'namespace': 'kyverno',
+              }),
               dict({
                 'chart': dict({
                   'name': 'metallb',

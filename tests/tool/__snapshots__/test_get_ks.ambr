@@ -99,7 +99,7 @@
   apps                 tests/testdata/cluster/apps/prod                     0            1           
   flux-system          tests/testdata/cluster/clusters/prod                 0            0           
   infra-configs        tests/testdata/cluster/infrastructure/configs        3            0           
-  infra-controllers    tests/testdata/cluster/infrastructure/controllers    0            2           
+  infra-controllers    tests/testdata/cluster/infrastructure/controllers    0            3           
   
   '''
 # ---

@@ -127,6 +127,9 @@ class GetHelmReleaseAction:
         for cluster in manifest.clusters:
             for helmrelease in cluster.helm_releases:
                 value = { k: v for k, v in helmrelease.compact_dict().items() if k in cols }
+                # TODO: Support resolving `chartRef` HelmRepository and OCIRepository.
+                if not helmrelease.chart:
+                    continue
                 value["revision"] = str(helmrelease.chart.version)
                 value["chart"] = f"{helmrelease.namespace}-{helmrelease.chart.name}"
                 value["source"] = helmrelease.chart.repo_name

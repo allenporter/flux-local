@@ -68,6 +68,8 @@ DEFAULT_REGISTRY_CONFIG = "/dev/null"
 
 def _chart_name(release: HelmRelease, repo: HelmRepository | None) -> str:
     """Return the helm chart name used for the helm template command."""
+    if not release.chart:
+        raise HelmException(f"HelmRelease {release.name} has no chart")
     if release.chart.repo_kind == HELM_REPOSITORY:
         if repo and repo.repo_type == REPO_TYPE_OCI:
             return f"{repo.url}/{release.chart.name}"
@@ -210,6 +212,8 @@ class Helm:
 
         The values will come from the `HelmRelease` object.
         """
+        if not release.chart:
+            raise HelmException(f"HelmRelease {release.name} has no chart")
         if options is None:
             options = Options()
         repo = next(
