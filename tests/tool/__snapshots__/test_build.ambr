@@ -1667,6 +1667,46 @@
     upgrade:
       remediation:
         retries: 3
+  ---
+  apiVersion: source.toolkit.fluxcd.io/v1beta2
+  kind: OCIRepository
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps-stack
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    interval: 10m
+    layerSelector:
+      mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+      operation: copy
+    ref:
+      semver: '>= 6.0.0'
+    url: oci://ghcr.io/stefanprodan/charts/podinfo
+  ---
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  kind: HelmRelease
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps-stack
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: podinfo
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    chartRef:
+      kind: OCIRepository
+      name: podinfo
+      namespace: default
+    interval: 10m
+    values:
+      replicaCount: 2
   
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
@@ -2668,6 +2708,128 @@
               path: /
               port: http
           resources: {}
+  
+  ---
+  # Source: podinfo/templates/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.7.0
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.7.0"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    type: ClusterIP
+    ports:
+    - port: 9898
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9999
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    selector:
+      app.kubernetes.io/name: podinfo
+  ---
+  # Source: podinfo/templates/deployment.yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.7.0
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: "6.7.0"
+      app.kubernetes.io/managed-by: Helm
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    replicas: 2
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: podinfo
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: podinfo
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9898"
+      spec:
+        terminationGracePeriodSeconds: 30
+        containers:
+        - name: podinfo
+          image: "ghcr.io/stefanprodan/podinfo:6.7.0"
+          imagePullPolicy: IfNotPresent
+          command:
+          - ./podinfo
+          - --port=9898
+          - --cert-path=/data/cert
+          - --port-metrics=9797
+          - --grpc-port=9999
+          - --grpc-service-name=podinfo
+          - --level=info
+          - --random-delay=false
+          - --random-error=false
+          env:
+          - name: PODINFO_UI_COLOR
+            value: "#34577c"
+          ports:
+          - name: http
+            containerPort: 9898
+            protocol: TCP
+          - name: http-metrics
+            containerPort: 9797
+            protocol: TCP
+          - name: grpc
+            containerPort: 9999
+            protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/healthz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/readyz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          volumeMounts:
+          - name: data
+            mountPath: /data
+          resources:
+            limits: null
+            requests:
+              cpu: 1m
+              memory: 16Mi
+        volumes:
+        - name: data
+          emptyDir: {}
   
   
   '''

@@ -245,11 +245,11 @@ class HelmVisitor:
 
     def __init__(self) -> None:
         """Initialize KustomizationContentOutput."""
-        self.repos: list[HelmRepository] = []
+        self.repos: list[HelmRepository | OCIRepository] = []
         self.releases: list[HelmRelease] = []
 
     @property
-    def active_repos(self) -> list[HelmRepository]:
+    def active_repos(self) -> list[HelmRepository | OCIRepository]:
         """Return HelpRepositories referenced by a HelmRelease."""
         repo_keys: set[str] = {
             release.chart.repo_full_name for release in self.releases
@@ -264,8 +264,10 @@ class HelmVisitor:
             doc: ResourceType,
             cmd: Kustomize | None,
         ) -> None:
-            if not isinstance(doc, HelmRepository):
-                raise ValueError(f"Expected HelmRepository: {doc}")
+            if not isinstance(doc, HelmRepository) and not isinstance(
+                doc, OCIRepository
+            ):
+                raise ValueError(f"Expected HelmRepository or OCIRepository: {doc}")
             self.repos.append(doc)
 
         return git_repo.ResourceVisitor(func=add_repo)

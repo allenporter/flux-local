@@ -41,6 +41,7 @@ FLUXTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
 KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
+OCI_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
 CLUSTER_POLICY_DOMAIN = "kyverno.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
@@ -50,7 +51,8 @@ VALUE_PLACEHOLDER = "..PLACEHOLDER.."
 VALUE_B64_PLACEHOLDER = base64.b64encode(VALUE_PLACEHOLDER.encode())
 HELM_REPOSITORY = "HelmRepository"
 GIT_REPOSITORY = "GitRepository"
-GIT_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
+OCI_REPOSITORY = "OCIRepository"
+
 
 REPO_TYPE_DEFAULT = "default"
 REPO_TYPE_OCI = "oci"
@@ -114,8 +116,28 @@ class HelmChart(BaseManifest):
         _check_version(doc, HELM_RELEASE_DOMAIN)
         if not (spec := doc.get("spec")):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
-        if not (chart := spec.get("chart")):
-            raise InputException(f"Invalid {cls} missing spec.chart: {doc}")
+        chart_ref = spec.get("chartRef")
+        chart = spec.get("chart")
+        if not chart_ref and not chart:
+            raise InputException(
+                f"Invalid {cls} missing spec.chart or spec.chartRef: {doc}"
+            )
+        if chart_ref:
+            if not (kind := chart_ref.get("kind")):
+                raise InputException(f"Invalid {cls} missing spec.chartRef.kind: {doc}")
+            if not (name := chart_ref.get("name")):
+                raise InputException(f"Invalid {cls} missing spec.chartRef.name: {doc}")
+            if not (namespace := chart_ref.get("namespace")):
+                raise InputException(
+                    f"Invalid {cls} missing spec.chartRef.namespace: {doc}"
+                )
+            return cls(
+                name=name,
+                version=None,
+                repo_name=name,
+                repo_namespace=namespace,
+                repo_kind=kind,
+            )
         if not (chart_spec := chart.get("spec")):
             raise InputException(f"Invalid {cls} missing spec.chart.spec: {doc}")
         if not (chart := chart_spec.get("chart")):
@@ -292,7 +314,7 @@ class OCIRepository(BaseManifest):
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "OCIRepository":
         """Parse a HelmRepository from a kubernetes resource."""
-        _check_version(doc, GIT_REPOSITORY_DOMAIN)
+        _check_version(doc, OCI_REPOSITORY_DOMAIN)
         if not (metadata := doc.get("metadata")):
             raise InputException(f"Invalid {cls} missing metadata: {doc}")
         if not (name := metadata.get("name")):
