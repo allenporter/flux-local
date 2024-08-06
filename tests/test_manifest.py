@@ -118,3 +118,26 @@ async def test_serializing_manifest(tmp_path: Path) -> None:
             },
         ]
     }
+
+
+def test_parse_helmrelease_chartref() -> None:
+    """Test parsing a helm release doc."""
+
+    HELM_CHARTREF_FILE = Path("tests/testdata/cluster9/apps/podinfo/podinfo.yaml")
+    docs = list(
+        yaml.load_all(
+            HELM_CHARTREF_FILE.read_text(),
+            Loader=yaml.CLoader,
+        )
+    )
+    assert len(docs) == 1
+    assert docs[0].get("kind") == "HelmRelease"
+
+    release = HelmRelease.parse_doc(docs[0])
+    assert release.name == "podinfo"
+    assert release.namespace == "default"
+    assert release.chart.name == "podinfo"
+    assert release.chart.version is None
+    assert release.chart.repo_name == "podinfo"
+    assert release.chart.repo_namespace == "default"
+    assert release.values

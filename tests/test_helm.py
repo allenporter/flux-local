@@ -11,10 +11,18 @@ from flux_local.helm import Helm
 from flux_local.manifest import (
     HelmRelease,
     HelmRepository,
+    OCIRepository,
 )
 
-REPO_DIR = Path("tests/testdata/cluster/infrastructure/configs")
-RELEASE_DIR = Path("tests/testdata/cluster/infrastructure/controllers")
+
+@pytest.fixture(name="helm_repo_dir")
+def helm_repo_dir_fixture() -> Path | None:
+    return None
+
+
+@pytest.fixture(name="oci_repo_dir")
+def oci_repo_dir_fixture() -> Path | None:
+    return None
 
 
 @pytest.fixture(name="tmp_config_path")
@@ -24,14 +32,29 @@ def tmp_config_path_fixture(tmp_path_factory: Any) -> Generator[Path, None, None
 
 
 @pytest.fixture(name="helm_repos")
-async def helm_repos_fixture() -> list[dict[str, Any]]:
+async def helm_repos_fixture(helm_repo_dir: Path | None) -> list[dict[str, Any]]:
     """Fixture for creating the HelmRepository objects"""
-    cmd = kustomize.grep("kind=^HelmRepository$", REPO_DIR)
+    if not helm_repo_dir:
+        return []
+    cmd = kustomize.grep("kind=^HelmRepository$", helm_repo_dir)
+    return await cmd.objects()
+
+
+@pytest.fixture(name="oci_repos")
+async def oci_repos_fixture(oci_repo_dir: Path) -> list[dict[str, Any]]:
+    """Fixture for creating the OCIRepositoriy objects"""
+    if not oci_repo_dir:
+        return []
+    cmd = kustomize.grep("kind=^OCIRepository$", oci_repo_dir)
     return await cmd.objects()
 
 
 @pytest.fixture(name="helm")
-async def helm_fixture(tmp_config_path: Path, helm_repos: list[dict[str, Any]]) -> Helm:
+async def helm_fixture(
+    tmp_config_path: Path,
+    helm_repos: list[dict[str, Any]],
+    oci_repos: list[dict[str, Any]],
+) -> Helm:
     """Fixture for creating the Helm object."""
     await mkdir(tmp_config_path / "helm")
     await mkdir(tmp_config_path / "cache")
@@ -40,13 +63,14 @@ async def helm_fixture(tmp_config_path: Path, helm_repos: list[dict[str, Any]]) 
         tmp_config_path / "cache",
     )
     helm.add_repos([HelmRepository.parse_doc(repo) for repo in helm_repos])
+    helm.add_repos([OCIRepository.parse_doc(repo) for repo in oci_repos])
     return helm
 
 
 @pytest.fixture(name="helm_releases")
-async def helm_releases_fixture() -> list[dict[str, Any]]:
+async def helm_releases_fixture(release_dir: Path) -> list[dict[str, Any]]:
     """Fixture for creating the HelmRelease objects."""
-    cmd = kustomize.grep("kind=^HelmRelease$", RELEASE_DIR)
+    cmd = kustomize.grep("kind=^HelmRelease$", release_dir)
     return await cmd.objects()
 
 
@@ -55,6 +79,15 @@ async def test_update(helm: Helm) -> None:
     await helm.update()
 
 
+@pytest.mark.parametrize(
+    ("helm_repo_dir", "release_dir"),
+    [
+        (
+            Path("tests/testdata/cluster/infrastructure/configs"),
+            Path("tests/testdata/cluster/infrastructure/controllers"),
+        ),
+    ],
+)
 async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None:
     """Test helm template command."""
     await helm.update()
@@ -65,3 +98,24 @@ async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None
     docs = await obj.grep("kind=ServiceAccount").objects()
     names = [doc.get("metadata", {}).get("name") for doc in docs]
     assert names == ["metallb-controller", "metallb-speaker"]
+
+
+@pytest.mark.parametrize(
+    ("oci_repo_dir", "release_dir"),
+    [
+        (
+            Path("tests/testdata/cluster9/apps/podinfo/"),
+            Path("tests/testdata/cluster9/apps/podinfo/"),
+        ),
+    ],
+)
+async def test_oci_repository(helm: Helm, helm_releases: list[dict[str, Any]]) -> None:
+    """Test helm template command."""
+    await helm.update()
+
+    assert len(helm_releases) == 1
+    release = helm_releases[0]
+    obj = await helm.template(HelmRelease.parse_doc(release))
+    docs = await obj.grep("kind=Deployment").objects()
+    names = [doc.get("metadata", {}).get("name") for doc in docs]
+    assert names == ["podinfo"]

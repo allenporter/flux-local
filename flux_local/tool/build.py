@@ -84,6 +84,7 @@ class BuildAction:
         query.kustomization.visitor = content.visitor()
         helm_visitor = HelmVisitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
+        query.oci_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
         await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)

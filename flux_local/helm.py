@@ -46,11 +46,13 @@ from .kustomize import Kustomize
 from .manifest import (
     HelmRelease,
     HelmRepository,
+    OCIRepository,
     CRD_KIND,
     SECRET_KIND,
     REPO_TYPE_OCI,
     HELM_REPOSITORY,
     GIT_REPOSITORY,
+    OCI_REPOSITORY,
 )
 from .exceptions import HelmException
 
@@ -66,9 +68,23 @@ HELM_BIN = "helm"
 DEFAULT_REGISTRY_CONFIG = "/dev/null"
 
 
-def _chart_name(release: HelmRelease, repo: HelmRepository | None) -> str:
+def _chart_name(
+    release: HelmRelease, repo: HelmRepository | OCIRepository | None
+) -> str:
     """Return the helm chart name used for the helm template command."""
+    if release.chart.repo_kind == OCI_REPOSITORY:
+        assert repo
+        if isinstance(repo, OCIRepository):
+            return repo.url
+        raise HelmException(
+            f"HelmRelease {release.name} expected OCIRepository but got HelmRepository {repo.repo_name}"
+        )
     if release.chart.repo_kind == HELM_REPOSITORY:
+        assert repo
+        if not isinstance(repo, HelmRepository):
+            raise HelmException(
+                f"HelmRelease {release.name} expected HelmRepository but got OCIRepository {repo.repo_name}"
+            )
         if repo and repo.repo_type == REPO_TYPE_OCI:
             return f"{repo.url}/{release.chart.name}"
         return release.chart.chart_name
@@ -173,13 +189,20 @@ class Helm:
             "--repository-config",
             str(self._repo_config_file),
         ]
-        self._repos: list[HelmRepository] = []
+        self._repos: list[HelmRepository | OCIRepository] = []
 
-    def add_repo(self, repo: HelmRepository) -> None:
+    def add_repo(self, repo: HelmRepository | OCIRepository) -> None:
         """Add the specified HelmRepository to the local config."""
         self._repos.append(repo)
 
-    def add_repos(self, repos: list[HelmRepository]) -> None:
+    def add_repos(
+        self,
+        repos: (
+            list[HelmRepository]
+            | list[OCIRepository]
+            | list[HelmRepository | OCIRepository]
+        ),
+    ) -> None:
         """Add the specified HelmRepository to the local config."""
         for repo in repos:
             self._repos.append(repo)
@@ -190,7 +213,11 @@ class Helm:
         Typically the repository must be updated before doing any chart templating.
         """
         _LOGGER.debug("Updating %d repositories", len(self._repos))
-        repos = [repo for repo in self._repos if repo.repo_type != REPO_TYPE_OCI]
+        repos = [
+            repo
+            for repo in self._repos
+            if isinstance(repo, HelmRepository) and repo.repo_type != REPO_TYPE_OCI
+        ]
         if not repos:
             return
         content = yaml.dump(RepositoryConfig(repos).config, sort_keys=False)
@@ -218,11 +245,11 @@ class Helm:
         )
         # We'll attempt to make a chart name for a GitRepository below and it will
         # be somewhat best effort.
-        if not repo and release.chart.repo_kind == HELM_REPOSITORY:
+        if not repo and release.chart.repo_kind != GIT_REPOSITORY:
             raise HelmException(
-                f"Unable to find HelmRepository for {release.chart.chart_name} for "
+                f"Unable to find HelmRepository or OCIRepository for {release.chart.chart_name} for "
                 f"HelmRelease {release.name} "
-                f"({len(self._repos)} other HelmRepositories in --path)"
+                f"({len(self._repos)} other HelmRepositories/OCIRepositories in --path)"
             )
         args: list[str] = [
             HELM_BIN,

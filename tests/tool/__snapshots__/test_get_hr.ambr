@@ -58,8 +58,9 @@
 # ---
 # name: test_get_hr[cluster9]
   '''
-  NAMESPACE    NAME     REVISION    CHART                                                   SOURCE         
-  default      nginx    None        default-./tests/testdata/cluster9/local-charts/nginx    flux-system    
+  NAMESPACE    NAME       REVISION    CHART                                                   SOURCE         
+  default      nginx      None        default-./tests/testdata/cluster9/local-charts/nginx    flux-system    
+  default      podinfo    None        default-podinfo                                         podinfo        
   
   '''
 # ---

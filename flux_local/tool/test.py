@@ -26,6 +26,7 @@ from flux_local.manifest import (
     Kustomization,
     HelmRelease,
     HelmRepository,
+    OCIRepository,
 )
 from . import selector
 
@@ -95,15 +96,19 @@ class HelmReleaseTest(pytest.Item):
             await cmd.objects()
             await cmd.validate_policies(self.cluster.cluster_policies)
 
-    def active_repos(self) -> list[HelmRepository]:
-        """Return HelpRepositories referenced by a HelmRelease."""
+    def active_repos(self) -> list[HelmRepository | OCIRepository]:
+        """Return HelmRepositories referenced by a HelmRelease."""
         repo_key = "-".join(
             [
                 self.helm_release.chart.repo_namespace,
                 self.helm_release.chart.repo_name,
             ]
         )
-        return [repo for repo in self.cluster.helm_repos if repo.repo_name == repo_key]
+        return [
+            repo
+            for repo in self.cluster.helm_repos + self.cluster.oci_repos
+            if repo.repo_name == repo_key
+        ]
 
 
 class KustomizationTest(pytest.Item):
