@@ -68,16 +68,17 @@ class GetKustomizationAction:
         results: list[dict[str, str]] = []
         cols = ["name", "path"]
         if output == "wide":
-            cols.extend(["helmrepos", "releases"])
+            cols.extend(["helmrepos", "ocirepos", "releases"])
         if query.kustomization.namespace is None:
             cols.insert(0, "namespace")
         if len(manifest.clusters) > 1:
             cols.insert(0, "cluster")
         for cluster in manifest.clusters:
             for ks in cluster.kustomizations:
-                value = { k: v for k, v in ks.compact_dict().items() if k in cols }
+                value = {k: v for k, v in ks.compact_dict().items() if k in cols}
                 if output == "wide":
                     value["helmrepos"] = len(ks.helm_repos)
+                    value["ocirepos"] = len(ks.oci_repos)
                     value["releases"] = len(ks.helm_releases)
                 value["cluster"] = cluster.path
                 results.append(value)
@@ -126,7 +127,9 @@ class GetHelmReleaseAction:
         results: list[dict[str, Any]] = []
         for cluster in manifest.clusters:
             for helmrelease in cluster.helm_releases:
-                value = { k: v for k, v in helmrelease.compact_dict().items() if k in cols }
+                value = {
+                    k: v for k, v in helmrelease.compact_dict().items() if k in cols
+                }
                 value["revision"] = str(helmrelease.chart.version)
                 value["chart"] = f"{helmrelease.namespace}-{helmrelease.chart.name}"
                 value["source"] = helmrelease.chart.repo_name
@@ -230,7 +233,7 @@ class GetClusterAction:
         cols = ["path", "kustomizations"]
         results: list[dict[str, Any]] = []
         for cluster in manifest.clusters:
-            value = { k: v for k, v in cluster.compact_dict().items() if k in cols }
+            value = {k: v for k, v in cluster.compact_dict().items() if k in cols}
             value["kustomizations"] = len(cluster.kustomizations)
             results.append(value)
 

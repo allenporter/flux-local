@@ -1,4 +1,15 @@
 # serializer version: 1
+# name: test_get_ks[cluster2-wide]
+  '''
+  NAME                                       PATH                                                                  HELMREPOS    OCIREPOS    RELEASES    
+  cluster                                    tests/testdata/cluster2/flux                                          3            1           0           
+  cluster-apps                               tests/testdata/cluster2/apps                                          0            0           0           
+  cluster-apps-ingress-nginx                 tests/testdata/cluster2/apps/networking/ingress-nginx/app             0            0           1           
+  cluster-apps-ingress-nginx-certificates    tests/testdata/cluster2/apps/networking/ingress-nginx/certificates    0            0           0           
+  cluster-apps-kubernetes-dashboard          tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app      0            0           1           
+  
+  '''
+# ---
 # name: test_get_ks[cluster2]
   '''
   NAME                                       PATH                                                                  
@@ -95,11 +106,11 @@
 # ---
 # name: test_get_ks[wide]
   '''
-  NAME                 PATH                                                 HELMREPOS    RELEASES    
-  apps                 tests/testdata/cluster/apps/prod                     0            1           
-  flux-system          tests/testdata/cluster/clusters/prod                 0            0           
-  infra-configs        tests/testdata/cluster/infrastructure/configs        3            0           
-  infra-controllers    tests/testdata/cluster/infrastructure/controllers    0            2           
+  NAME                 PATH                                                 HELMREPOS    OCIREPOS    RELEASES    
+  apps                 tests/testdata/cluster/apps/prod                     0            0           1           
+  flux-system          tests/testdata/cluster/clusters/prod                 0            0           0           
+  infra-configs        tests/testdata/cluster/infrastructure/configs        3            0           0           
+  infra-controllers    tests/testdata/cluster/infrastructure/controllers    0            0           2           
   
   '''
 # ---

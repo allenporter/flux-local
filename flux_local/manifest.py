@@ -50,6 +50,7 @@ VALUE_PLACEHOLDER = "..PLACEHOLDER.."
 VALUE_B64_PLACEHOLDER = base64.b64encode(VALUE_PLACEHOLDER.encode())
 HELM_REPOSITORY = "HelmRepository"
 GIT_REPOSITORY = "GitRepository"
+GIT_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
 
 REPO_TYPE_DEFAULT = "default"
 REPO_TYPE_OCI = "oci"
@@ -276,6 +277,45 @@ class HelmRepository(BaseManifest):
 
 
 @dataclass
+class OCIRepository(BaseManifest):
+    """A representation of a flux OCIRepository."""
+
+    name: str
+    """The name of the OCIRepository."""
+
+    namespace: str
+    """The namespace of owning the OCIRepository."""
+
+    url: str
+    """The URL to the repository."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "OCIRepository":
+        """Parse a HelmRepository from a kubernetes resource."""
+        _check_version(doc, GIT_REPOSITORY_DOMAIN)
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        if not (namespace := metadata.get("namespace")):
+            raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
+        if not (spec := doc.get("spec")):
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
+        if not (url := spec.get("url")):
+            raise InputException(f"Invalid {cls} missing spec.url: {doc}")
+        return cls(
+            name=name,
+            namespace=namespace,
+            url=url,
+        )
+
+    @property
+    def repo_name(self) -> str:
+        """Identifier for the OCIRepository."""
+        return f"{self.namespace}-{self.name}"
+
+
+@dataclass
 class ClusterPolicy(BaseManifest):
     """A kyverno policy object."""
 
@@ -411,6 +451,9 @@ class Kustomization(BaseManifest):
 
     helm_repos: list[HelmRepository] = field(default_factory=list)
     """The set of HelmRepositories represented in this kustomization."""
+
+    oci_repos: list[OCIRepository] = field(default_factory=list)
+    """The set of OCIRepositories represented in this kustomization."""
 
     helm_releases: list[HelmRelease] = field(default_factory=list)
     """The set of HelmRelease represented in this kustomization."""
@@ -562,6 +605,15 @@ class Cluster(BaseManifest):
             repo
             for kustomization in self.kustomizations
             for repo in kustomization.helm_repos
+        ]
+
+    @property
+    def oci_repos(self) -> list[OCIRepository]:
+        """Return the list of OCIRepository objects from all Kustomizations."""
+        return [
+            repo
+            for kustomization in self.kustomizations
+            for repo in kustomization.oci_repos
         ]
 
     @property
