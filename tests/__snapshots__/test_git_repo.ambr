@@ -29,6 +29,8 @@
             ]),
             'name': 'apps',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/apps/prod',
             'secrets': list([
             ]),
@@ -48,6 +50,8 @@
             ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/clusters/prod',
             'secrets': list([
             ]),
@@ -84,6 +88,8 @@
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/configs',
             'secrets': list([
             ]),
@@ -119,6 +125,8 @@
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/controllers',
             'secrets': list([
             ]),
@@ -155,6 +163,8 @@
             ]),
             'name': 'apps',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/apps/prod',
             'secrets': list([
             ]),
@@ -174,6 +184,8 @@
             ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/clusters/prod',
             'secrets': list([
             ]),
@@ -210,6 +222,8 @@
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/configs',
             'secrets': list([
             ]),
@@ -225,6 +239,8 @@
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/controllers',
             'secrets': list([
             ]),
@@ -265,6 +281,8 @@
             ]),
             'name': 'apps',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/apps/prod',
             'secrets': list([
             ]),
@@ -284,6 +302,8 @@
             ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/clusters/prod',
             'secrets': list([
             ]),
@@ -320,6 +340,8 @@
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/configs',
             'secrets': list([
             ]),
@@ -355,6 +377,8 @@
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/controllers',
             'secrets': list([
             ]),
@@ -414,6 +438,8 @@
             ]),
             'name': 'apps',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/apps/prod',
             'secrets': list([
             ]),
@@ -433,6 +459,8 @@
             ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/clusters/prod',
             'secrets': list([
             ]),
@@ -451,6 +479,8 @@
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/configs',
             'secrets': list([
             ]),
@@ -486,6 +516,8 @@
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/controllers',
             'secrets': list([
             ]),
@@ -526,6 +558,8 @@
             ]),
             'name': 'apps',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/apps/prod',
             'secrets': list([
             ]),
@@ -545,6 +579,8 @@
             ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/clusters/prod',
             'secrets': list([
             ]),
@@ -581,6 +617,8 @@
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/configs',
             'secrets': list([
             ]),
@@ -616,6 +654,8 @@
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/controllers',
             'secrets': list([
             ]),
@@ -651,31 +691,31 @@
       "Build 'flux-system/cluster'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-ingress-nginx'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-ingress-nginx-certificates'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/cluster'": dict({
@@ -734,13 +774,13 @@
       "Build 'flux-system/namespaces'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/tenants'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/namespaces'": dict({
@@ -775,19 +815,19 @@
       "Build 'flux-system/cluster'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/cluster'": dict({
@@ -830,7 +870,7 @@
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/flux-system'": dict({
@@ -857,13 +897,13 @@
       "Build 'flux-system/apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/apps'": dict({
@@ -898,19 +938,19 @@
       "Build 'flux-system/apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/charts'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/apps'": dict({
@@ -954,25 +994,25 @@
         'cmds': list([
           'flux build tests/testdata/cluster/apps/prod (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/infra-configs'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Build 'flux-system/infra-controllers'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|HelmRelease|Secret|ClusterPolicy)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|ClusterPolicy)$'",
         ]),
       }),
       "Kustomization 'flux-system/apps'": dict({
@@ -1058,6 +1098,8 @@
             ]),
             'name': 'apps',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/apps/prod',
             'secrets': list([
             ]),
@@ -1077,6 +1119,8 @@
             ]),
             'name': 'flux-system',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/clusters/prod',
             'secrets': list([
             ]),
@@ -1113,6 +1157,8 @@
             ]),
             'name': 'infra-configs',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/configs',
             'secrets': list([
             ]),
@@ -1148,6 +1194,8 @@
             ]),
             'name': 'infra-controllers',
             'namespace': 'flux-system',
+            'oci_repos': list([
+            ]),
             'path': 'tests/testdata/cluster/infrastructure/controllers',
             'secrets': list([
             ]),
