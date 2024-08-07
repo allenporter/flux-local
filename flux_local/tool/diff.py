@@ -234,7 +234,9 @@ def create_diff_path(
         yield git_repo.PathSelector(path_orig, sources=kwargs.get("sources"))
         return
 
-    with git_repo.create_worktree(selector.repo, existing_branch=kwargs.get("branch_orig")) as worktree:
+    with git_repo.create_worktree(
+        selector.repo, existing_branch=kwargs.get("branch_orig")
+    ) as worktree:
         yield git_repo.PathSelector(pathlib.Path(worktree) / selector.relative_path)
 
 
@@ -366,6 +368,7 @@ class DiffHelmReleaseAction:
         helm_visitor = HelmVisitor()
         query.kustomization.visitor = content.visitor()
         query.helm_repo.visitor = helm_visitor.repo_visitor()
+        query.oci_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
         options = selector.build_helm_options(**kwargs)
         await git_repo.build_manifest(
@@ -378,6 +381,7 @@ class DiffHelmReleaseAction:
             query.path = path_selector
             query.kustomization.visitor = orig_content.visitor()
             query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
+            query.oci_repo.visitor = orig_helm_visitor.repo_visitor()
             query.helm_release.visitor = orig_helm_visitor.release_visitor()
             await git_repo.build_manifest(
                 selector=query, options=selector.options(**kwargs)
