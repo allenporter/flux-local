@@ -1,0 +1,14 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: OCIRepository
+metadata:
+  name: app-template
+  namespace: flux-system
+spec:
+  interval: 12h
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  url: oci://ghcr.io/bjw-s/helm/app-template
+  ref:
+    tag: "3.3.2"
