@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: chartboost/ruff-action@v1.0.0
-      - uses: codespell-project/actions-codespell@v2.0
+      - uses: codespell-project/actions-codespell@v2.1
         with:
           check_hidden: false
           exclude_file: ./tests/testdata/cluster9/clusters/dev/flux-system/gotk-components.yaml
