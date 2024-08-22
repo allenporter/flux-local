@@ -3,7 +3,7 @@ GitPython==3.1.43
 mashumaro==3.13.1
 nest_asyncio==1.6.0
 pytest==8.3.2
-pytest-asyncio==0.23.8
+pytest-asyncio==0.24.0
 pytest-cov==5.0.0
 python-slugify==8.0.4
 PyYAML==6.0.2
