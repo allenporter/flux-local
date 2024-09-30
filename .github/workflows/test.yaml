@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Flux CLI
-        uses: fluxcd/flux2/action@v2.3.0
+        uses: fluxcd/flux2/action@v2.4.0
       - uses: supplypike/setup-bin@v4
         with:
           uri: https://github.com/kyverno/kyverno/releases/download/v1.11.3/kyverno-cli_v1.11.3_linux_x86_64.tar.gz
