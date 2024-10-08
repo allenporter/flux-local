@@ -52,13 +52,13 @@ metallb    4.1.14      metallb-metallb    bitnami
 
 ### flux-local build
 
-You can use the `flux-local` cli to build all objects in a cluster, similar to how you
+You can use the `flux-local` cli to build objects in a cluster, similar to how you
 use `kustomize build`, which is used underneath. Here is an example to build all flux
 `Kustomization` objects within a git repository, using `kustomize cfg count` to parse
 the yaml output:
 
 ```bash
-$ flux-local build tests/testdata/cluster/ | kustomize cfg count
+$ flux-local build ks tests/testdata/cluster/ | kustomize cfg count
 ClusterPolicy: 1
 ConfigMap: 1
 HelmRelease: 2
