@@ -25,7 +25,13 @@ from . import run_command
             ]
         ),
         (["--enable-helm", "--no-skip-secrets", "tests/testdata/cluster8/"]),
-        (["--enable-helm", "--no-skip-secrets", "tests/testdata/cluster9/clusters/dev"]),
+        (
+            [
+                "--enable-helm",
+                "--no-skip-secrets",
+                "tests/testdata/cluster9/clusters/dev",
+            ]
+        ),
     ],
     ids=[
         "build",
@@ -38,7 +44,73 @@ from . import run_command
         "build-helm-cluster9",
     ],
 )
-async def test_build(args: list[str], snapshot: SnapshotAssertion) -> None:
+async def test_build_all(args: list[str], snapshot: SnapshotAssertion) -> None:
     """Test build commands."""
-    result = await run_command(["build"] + args)
+    result = await run_command(["build", "all"] + args)
+    assert result == snapshot
+
+
+@pytest.mark.parametrize(
+    ("args"),
+    [
+        (["--path=tests/testdata/cluster/"]),
+        (["apps", "--path=tests/testdata/cluster/"]),
+        (["apps", "--path=tests/testdata/cluster6/"]),
+        (["apps", "--path=tests/testdata/cluster8/"]),
+        (["apps-stack", "--path=tests/testdata/cluster9/clusters/dev"]),
+    ],
+    ids=[
+        "build-ks",
+        "build-ks-single",
+        "build-ks-single-cluster6",
+        "build-ks-single-cluster8",
+        "build-ks-single-cluster9",
+    ],
+)
+async def test_build_ks(args: list[str], snapshot: SnapshotAssertion) -> None:
+    """Test build commands."""
+    result = await run_command(["build", "ks"] + args)
+    assert result == snapshot
+
+
+@pytest.mark.parametrize(
+    ("args"),
+    [
+        (["--path=tests/testdata/cluster/"]),
+        (["weave-gitops", "--path=tests/testdata/cluster/"]),
+        (
+            [
+                "-A",
+                "--path",
+                "tests/testdata/cluster3",
+                "--sources",
+                "cluster=tests/testdata/cluster3",
+            ]
+        ),
+        (
+            [
+                "renovate",
+                "-A",
+                "--skip-crds",
+                "--path",
+                "tests/testdata/cluster6/",
+                "-a",
+                "batch/v1/CronJob",
+            ]
+        ),
+        (["podinfo", "-n", "podinfo", "--path=tests/testdata/cluster8/"]),
+        (["podinfo", "-n", "default", "--path=tests/testdata/cluster9/clusters/dev"]),
+    ],
+    ids=[
+        "build-hr",
+        "build-hr-single",
+        "build-hr-cluster3",
+        "build-hr-single-cluster6",
+        "build-hr-single-cluster8",
+        "build-hr-single-cluster9",
+    ],
+)
+async def test_build_hr(args: list[str], snapshot: SnapshotAssertion) -> None:
+    """Test build commands."""
+    result = await run_command(["build", "hr"] + args)
     assert result == snapshot

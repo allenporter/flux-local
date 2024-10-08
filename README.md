@@ -52,45 +52,33 @@ metallb    4.1.14      metallb-metallb    bitnami
 
 ### flux-local build
 
-You can use the `flux-local` cli to build all objects in a cluster, similar to how you
+You can use the `flux-local` cli to build objects in a cluster, similar to how you
 use `kustomize build`, which is used underneath. Here is an example to build all flux
 `Kustomization` objects within a git repository, using `kustomize cfg count` to parse
 the yaml output:
 
 ```bash
-$ flux-local build tests/testdata/cluster/ | kustomize cfg count
+$ flux-local build ks --path tests/testdata/cluster/ | kustomize cfg count
+Certificate: 2
 ClusterPolicy: 1
-ConfigMap: 1
-HelmRelease: 2
-HelmRepository: 2
+ConfigMap: 2
+GitRepository: 1
+HelmRelease: 3
+HelmRepository: 3
+Kustomization: 4
 Namespace: 1
 ```
 
-You can also specify the root to build all clusters.
-
-Additionally, you can inflate `HelmRelease` objects inside each `Kustomization` by adding
-the `--enable-helm` command line flag. This example again shows `kustomize cfg count`
-to parse the yaml output which now includes the resources from `HelmRelease` objects
-defined in the cluster:
+Additionally, you can inflate `HelmRelease` objects inside a `Kustomization`. This example
+again shows `kustomize cfg count` to parse the yaml output of an inflated `HelmRelease`
+objects defined in the cluster:
 
 ```bash
-$ flux-local build tests/testdata/cluster/ --enable-helm --skip-crds | kustomize cfg count
-ClusterPolicy: 1
-ClusterRole: 2
-ClusterRoleBinding: 2
-ConfigMap: 3
-DaemonSet: 1
-Deployment: 3
-HelmRelease: 2
-HelmRepository: 2
+$ flux-local build hr podinfo -n podinfo --path tests/testdata/cluster/ | kustomize cfg count
+ConfigMap: 1
+Deployment: 2
 Ingress: 1
-Namespace: 1
-Role: 3
-RoleBinding: 3
-Secret: 1
-Service: 3
-ServiceAccount: 2
-ValidatingWebhookConfiguration: 1
+Service: 2
 ```
 
 ### flux-local diff

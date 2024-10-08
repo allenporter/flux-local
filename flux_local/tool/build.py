@@ -5,9 +5,9 @@ from argparse import (
     _SubParsersAction as SubParsersAction,
     BooleanOptionalAction,
 )
-import logging
-import pathlib
 import tempfile
+import pathlib
+import logging
 from typing import cast
 
 
@@ -20,8 +20,8 @@ from .visitor import ContentOutput, HelmVisitor
 _LOGGER = logging.getLogger(__name__)
 
 
-class BuildAction:
-    """Flux-local build action."""
+class BuildAllAction:
+    """Flux-local build all action."""
 
     @classmethod
     def register(
@@ -31,8 +31,8 @@ class BuildAction:
         args = cast(
             ArgumentParser,
             subparsers.add_parser(
-                "build",
-                help="Build local flux Kustomization target from a local directory",
+                "all",
+                help="Build all local flux Kustomization target from a local directory",
                 description="""You can use the flux-local cli to build all
                     objects in a cluster, similar to how you use kustomize build.
                     This uses kustomize build internally.""",
@@ -117,3 +117,151 @@ class BuildAction:
             for key in keys:
                 for line in helm_content.content[key]:
                     print(line, file=file)
+
+
+class BuildKustomizationAction:
+    """Flux-local build for Kustomizations."""
+
+    @classmethod
+    def register(
+        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+    ) -> ArgumentParser:
+        """Register the subparser commands."""
+        args: ArgumentParser = cast(
+            ArgumentParser,
+            subparsers.add_parser(
+                "kustomizations",
+                aliases=["ks", "kustomization"],
+                help="Build Kustomization objects",
+                description=("The build command does a local kustomize build."),
+            ),
+        )
+        args.add_argument(
+            "--output-file",
+            type=str,
+            default="/dev/stdout",
+            help="Output file for the results of the command",
+        )
+        selector.add_ks_selector_flags(args)
+        args.set_defaults(cls=cls)
+        return args
+
+    async def run(  # type: ignore[no-untyped-def]
+        self,
+        output_file: str,
+        **kwargs,  # pylint: disable=unused-argument
+    ) -> None:
+        """Async Action implementation."""
+        query = selector.build_ks_selector(**kwargs)
+        query.helm_release.enabled = False
+
+        content = ContentOutput()
+        query.kustomization.visitor = content.visitor()
+        await git_repo.build_manifest(
+            selector=query, options=selector.options(**kwargs)
+        )
+
+        with open(output_file, "w") as file:
+            keys = list(content.content)
+            keys.sort()
+            for key in keys:
+                for line in content.content[key]:
+                    print(line, file=file)
+
+
+class BuildHelmReleaseAction:
+    """Flux-local diff for HelmRelease."""
+
+    @classmethod
+    def register(
+        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+    ) -> ArgumentParser:
+        """Register the subparser commands."""
+        args: ArgumentParser = cast(
+            ArgumentParser,
+            subparsers.add_parser(
+                "helmreleases",
+                aliases=["hr", "helmrelease"],
+                help="Build HelmRelease objects",
+                description=(
+                    "The build command does a local kustomize build, then inflates "
+                    "the helm template."
+                ),
+            ),
+        )
+        args.add_argument(
+            "--output-file",
+            type=str,
+            default="/dev/stdout",
+            help="Output file for the results of the command",
+        )
+        selector.add_hr_selector_flags(args)
+        selector.add_helm_options_flags(args)
+        args.set_defaults(cls=cls)
+        return args
+
+    async def run(  # type: ignore[no-untyped-def]
+        self,
+        output_file: str,
+        **kwargs,  # pylint: disable=unused-argument
+    ) -> None:
+        """Async Action implementation."""
+        query = selector.build_hr_selector(**kwargs)
+        content = ContentOutput()
+        helm_visitor = HelmVisitor()
+        query.kustomization.visitor = content.visitor()
+        query.helm_repo.visitor = helm_visitor.repo_visitor()
+        query.oci_repo.visitor = helm_visitor.repo_visitor()
+        query.helm_release.visitor = helm_visitor.release_visitor()
+        helm_options = selector.build_helm_options(**kwargs)
+        await git_repo.build_manifest(
+            selector=query, options=selector.options(**kwargs)
+        )
+
+        helm_content = ContentOutput()
+        with tempfile.TemporaryDirectory() as helm_cache_dir:
+            await helm_visitor.inflate(
+                pathlib.Path(helm_cache_dir),
+                helm_content.visitor(),
+                helm_options,
+            )
+
+            with open(output_file, "w") as file:
+                keys = list(helm_content.content)
+                keys.sort()
+                for key in keys:
+                    for line in helm_content.content[key]:
+                        print(line, file=file)
+
+
+class BuildAction:
+    """Flux-local build action."""
+
+    @classmethod
+    def register(
+        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+    ) -> ArgumentParser:
+        """Register the subparser commands."""
+        args: ArgumentParser = subparsers.add_parser(
+            "build",
+            help="Build a local flux resource",
+            description="""You can use the flux-local cli to build all
+                    objects in a cluster, similar to how you use kustomize build.
+                    This uses kustomize build internally.""",
+        )
+        subcmds = args.add_subparsers(
+            title="Available commands",
+            required=True,
+        )
+        BuildKustomizationAction.register(subcmds)
+        BuildHelmReleaseAction.register(subcmds)
+        BuildAllAction.register(subcmds)
+        args.set_defaults(cls=cls)
+        return args
+
+    async def run(  # type: ignore[no-untyped-def]
+        self,
+        **kwargs,  # pylint: disable=unused-argument
+    ) -> None:
+        """Async Action implementation."""
+        # No-op given subcommands are dispatched
