@@ -42,6 +42,6 @@ repos:
           - -c
           - ".yaml-lint.yaml"
   - repo: https://github.com/asottile/setup-cfg-fmt
-    rev: v2.5.0
+    rev: v2.7.0
     hooks:
       - id: setup-cfg-fmt
