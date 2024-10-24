@@ -12,7 +12,7 @@ ruff==0.7.0
 
 aiofiles==24.1.0
 GitPython==3.1.43
-mashumaro==3.13.1
+mashumaro==3.14
 nest_asyncio==1.6.0
 pytest-asyncio==0.24.0
 python-slugify==8.0.4
