@@ -5,7 +5,7 @@ mypy==1.13.0
 pdoc==15.0.0
 pip==24.3.1
 pre-commit==4.0.1
-pytest-cov==5.0.0
+pytest-cov==6.0.0
 pytest==8.3.3
 ruff==0.7.1
 
