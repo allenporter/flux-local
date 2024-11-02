@@ -22,7 +22,7 @@
       'tag': '7.0.6',
     }),
     'tls': dict({
-      'crt': '..PLACEHOLDER..',
+      'crt': '..PLACEHOLDER_podinfo-tls-values..',
     }),
   })
 # ---
@@ -32,8 +32,8 @@
       'mode': 'true',
     }),
     'oauth': dict({
-      'clientId': '..PLACEHOLDER..',
-      'clientSecret': '..PLACEHOLDER..',
+      'clientId': '..PLACEHOLDER_tailscale-operator..',
+      'clientSecret': '..PLACEHOLDER_tailscale-operator..',
     }),
     'operatorConfig': dict({
       'defaultTags': list([

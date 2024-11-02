@@ -14,7 +14,7 @@ from .manifest import (
     CONFIG_MAP_KIND,
     ConfigMap,
     Secret,
-    VALUE_PLACEHOLDER,
+    VALUE_PLACEHOLDER_TEMPLATE,
     ValuesReference,
 )
 from .exceptions import HelmException, InputException, InvalidValuesReference
@@ -163,7 +163,7 @@ def _lookup_value_reference(
             # When a target path is specified, the value is expected to be
             # a simple value type. Create a synthetic placeholder value, otherwise
             # there is nothing to replace.
-            return VALUE_PLACEHOLDER
+            return VALUE_PLACEHOLDER_TEMPLATE.format(name=ref.name)
         return None
 
     elif (found_value := found_data.get(ref.values_key)) is None:

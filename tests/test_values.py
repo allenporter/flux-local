@@ -172,7 +172,7 @@ def test_values_references_with_missing_secret() -> None:
     assert updated_hr.values == {
         "test": "test",
         "target": {
-            "path": "..PLACEHOLDER..",
+            "path": "..PLACEHOLDER_test-values-secret..",
         },
     }
 
@@ -437,8 +437,8 @@ def test_values_references_secret() -> None:
     assert updated_hr.values == {
         "test": "test",
         "target": {
-            "path1": "..PLACEHOLDER..",
-            "path2": "..PLACEHOLDER..",
+            "path1": "..PLACEHOLDER_some-key1..",
+            "path2": "..PLACEHOLDER_some-key2..",
         },
     }
 

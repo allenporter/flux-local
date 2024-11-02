@@ -1149,8 +1149,8 @@
       config.kubernetes.io/index: '2'
       internal.config.kubernetes.io/index: '2'
   stringData:
-    client_id: ..PLACEHOLDER..
-    client_secret: ..PLACEHOLDER..
+    client_id: ..PLACEHOLDER_tailscale-operator..
+    client_secret: ..PLACEHOLDER_tailscale-operator..
   ---
   # Source: tailscale-operator/templates/apiserverproxy-rbac.yaml
   # Copyright (c) Tailscale Inc & AUTHORS
@@ -2943,6 +2943,46 @@
       kind: ClusterIssuer
       name: letsencrypt-staging
     secretName: other-com-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    commonName: ..PLACEHOLDER_SECRET_DOMAIN3..
+    dnsNames:
+    - ..PLACEHOLDER_SECRET_DOMAIN3..
+    - '*...PLACEHOLDER_SECRET_DOMAIN3..'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: -.PLACEHOLDER_SECRET_DOMAIN3..-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
+    annotations:
+      config.kubernetes.io/index: '6'
+      internal.config.kubernetes.io/index: '6'
+  spec:
+    commonName: ..PLACEHOLDER_SECRET_DOMAIN4..
+    dnsNames:
+    - ..PLACEHOLDER_SECRET_DOMAIN4..
+    - '*...PLACEHOLDER_SECRET_DOMAIN4..'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: -.PLACEHOLDER_SECRET_DOMAIN4..-staging-tls
   
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -2967,6 +3007,8 @@
       substituteFrom:
       - kind: ConfigMap
         name: cluster-config
+      - kind: Secret
+        name: cluster-secrets
     prune: true
     sourceRef:
       kind: GitRepository
@@ -4686,6 +4728,46 @@
       kind: ClusterIssuer
       name: letsencrypt-staging
     secretName: other-com-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    commonName: ..PLACEHOLDER_SECRET_DOMAIN3..
+    dnsNames:
+    - ..PLACEHOLDER_SECRET_DOMAIN3..
+    - '*...PLACEHOLDER_SECRET_DOMAIN3..'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: -.PLACEHOLDER_SECRET_DOMAIN3..-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
+    annotations:
+      config.kubernetes.io/index: '6'
+      internal.config.kubernetes.io/index: '6'
+  spec:
+    commonName: ..PLACEHOLDER_SECRET_DOMAIN4..
+    dnsNames:
+    - ..PLACEHOLDER_SECRET_DOMAIN4..
+    - '*...PLACEHOLDER_SECRET_DOMAIN4..'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: -.PLACEHOLDER_SECRET_DOMAIN4..-staging-tls
   
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -4710,6 +4792,8 @@
       substituteFrom:
       - kind: ConfigMap
         name: cluster-config
+      - kind: Secret
+        name: cluster-secrets
     prune: true
     sourceRef:
       kind: GitRepository
@@ -6529,6 +6613,46 @@
       kind: ClusterIssuer
       name: letsencrypt-staging
     secretName: other-com-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    commonName: ..PLACEHOLDER_SECRET_DOMAIN3..
+    dnsNames:
+    - ..PLACEHOLDER_SECRET_DOMAIN3..
+    - '*...PLACEHOLDER_SECRET_DOMAIN3..'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: -.PLACEHOLDER_SECRET_DOMAIN3..-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
+    annotations:
+      config.kubernetes.io/index: '6'
+      internal.config.kubernetes.io/index: '6'
+  spec:
+    commonName: ..PLACEHOLDER_SECRET_DOMAIN4..
+    dnsNames:
+    - ..PLACEHOLDER_SECRET_DOMAIN4..
+    - '*...PLACEHOLDER_SECRET_DOMAIN4..'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: -.PLACEHOLDER_SECRET_DOMAIN4..-staging-tls
   
   
   '''
@@ -6642,6 +6766,46 @@
       kind: ClusterIssuer
       name: letsencrypt-staging
     secretName: other-com-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    commonName: ..PLACEHOLDER_SECRET_DOMAIN3..
+    dnsNames:
+    - ..PLACEHOLDER_SECRET_DOMAIN3..
+    - '*...PLACEHOLDER_SECRET_DOMAIN3..'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: -.PLACEHOLDER_SECRET_DOMAIN3..-staging-tls
+  ---
+  apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
+    annotations:
+      config.kubernetes.io/index: '6'
+      internal.config.kubernetes.io/index: '6'
+  spec:
+    commonName: ..PLACEHOLDER_SECRET_DOMAIN4..
+    dnsNames:
+    - ..PLACEHOLDER_SECRET_DOMAIN4..
+    - '*...PLACEHOLDER_SECRET_DOMAIN4..'
+    issuerRef:
+      kind: ClusterIssuer
+      name: letsencrypt-staging
+    secretName: -.PLACEHOLDER_SECRET_DOMAIN4..-staging-tls
   
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -6666,6 +6830,8 @@
       substituteFrom:
       - kind: ConfigMap
         name: cluster-config
+      - kind: Secret
+        name: cluster-secrets
     prune: true
     sourceRef:
       kind: GitRepository
