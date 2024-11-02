@@ -1,98 +1,9 @@
 # serializer version: 1
 # name: test_diff_ks[apps]
-  '''
-  --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN3..-staging
-  
-  +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN3..-staging
-  
-  @@ -0,0 +1,18 @@
-  
-  +---
-  +apiVersion: cert-manager.io/v1
-  +kind: Certificate
-  +metadata:
-  +  labels:
-  +    kustomize.toolkit.fluxcd.io/name: apps
-  +    kustomize.toolkit.fluxcd.io/namespace: flux-system
-  +  name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
-  +spec:
-  +  commonName: ..PLACEHOLDER_SECRET_DOMAIN3..
-  +  dnsNames:
-  +  - ..PLACEHOLDER_SECRET_DOMAIN3..
-  +  - '*...PLACEHOLDER_SECRET_DOMAIN3..'
-  +  issuerRef:
-  +    kind: ClusterIssuer
-  +    name: letsencrypt-staging
-  +  secretName: -.PLACEHOLDER_SECRET_DOMAIN3..-staging-tls
-  +
-  --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN4..-staging
-  
-  +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN4..-staging
-  
-  @@ -0,0 +1,18 @@
-  
-  +---
-  +apiVersion: cert-manager.io/v1
-  +kind: Certificate
-  +metadata:
-  +  labels:
-  +    kustomize.toolkit.fluxcd.io/name: apps
-  +    kustomize.toolkit.fluxcd.io/namespace: flux-system
-  +  name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
-  +spec:
-  +  commonName: ..PLACEHOLDER_SECRET_DOMAIN4..
-  +  dnsNames:
-  +  - ..PLACEHOLDER_SECRET_DOMAIN4..
-  +  - '*...PLACEHOLDER_SECRET_DOMAIN4..'
-  +  issuerRef:
-  +    kind: ClusterIssuer
-  +    name: letsencrypt-staging
-  +  secretName: -.PLACEHOLDER_SECRET_DOMAIN4..-staging-tls
-  +
-  
-  '''
+  ''
 # ---
 # name: test_diff_ks[ks-external]
-  '''
-  97a98,114
-  > ---
-  > apiVersion: cert-manager.io/v1
-  > kind: Certificate
-  > metadata:
-  >   labels:
-  >     kustomize.toolkit.fluxcd.io/name: apps
-  >     kustomize.toolkit.fluxcd.io/namespace: flux-system
-  >   name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
-  > spec:
-  >   commonName: ..PLACEHOLDER_SECRET_DOMAIN3..
-  >   dnsNames:
-  >   - ..PLACEHOLDER_SECRET_DOMAIN3..
-  >   - '*...PLACEHOLDER_SECRET_DOMAIN3..'
-  >   issuerRef:
-  >     kind: ClusterIssuer
-  >     name: letsencrypt-staging
-  >   secretName: -.PLACEHOLDER_SECRET_DOMAIN3..-staging-tls
-  98a116,132
-  > ---
-  > apiVersion: cert-manager.io/v1
-  > kind: Certificate
-  > metadata:
-  >   labels:
-  >     kustomize.toolkit.fluxcd.io/name: apps
-  >     kustomize.toolkit.fluxcd.io/namespace: flux-system
-  >   name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
-  > spec:
-  >   commonName: ..PLACEHOLDER_SECRET_DOMAIN4..
-  >   dnsNames:
-  >   - ..PLACEHOLDER_SECRET_DOMAIN4..
-  >   - '*...PLACEHOLDER_SECRET_DOMAIN4..'
-  >   issuerRef:
-  >     kind: ClusterIssuer
-  >     name: letsencrypt-staging
-  >   secretName: -.PLACEHOLDER_SECRET_DOMAIN4..-staging-tls
-  
-  
-  '''
+  ''
 # ---
 # name: test_diff_ks[yaml-empty-sources]
   '''
@@ -254,147 +165,71 @@
         -    name: letsencrypt-staging
         -  secretName: other-com-staging-tls
         -
+    - kustomization_path: tests/testdata/cluster/apps/prod
+      kind: Certificate
+      namespace: flux-system
+      name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
+      diff: |-
+        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN3..-staging
+  
+        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN3..-staging
+  
+        @@ -1,18 +0,0 @@
+  
+        ----
+        -apiVersion: cert-manager.io/v1
+        -kind: Certificate
+        -metadata:
+        -  labels:
+        -    kustomize.toolkit.fluxcd.io/name: apps
+        -    kustomize.toolkit.fluxcd.io/namespace: flux-system
+        -  name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
+        -spec:
+        -  commonName: ..PLACEHOLDER_SECRET_DOMAIN3..
+        -  dnsNames:
+        -  - ..PLACEHOLDER_SECRET_DOMAIN3..
+        -  - '*...PLACEHOLDER_SECRET_DOMAIN3..'
+        -  issuerRef:
+        -    kind: ClusterIssuer
+        -    name: letsencrypt-staging
+        -  secretName: -.PLACEHOLDER_SECRET_DOMAIN3..-staging-tls
+        -
+    - kustomization_path: tests/testdata/cluster/apps/prod
+      kind: Certificate
+      namespace: flux-system
+      name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
+      diff: |-
+        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN4..-staging
+  
+        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN4..-staging
+  
+        @@ -1,18 +0,0 @@
+  
+        ----
+        -apiVersion: cert-manager.io/v1
+        -kind: Certificate
+        -metadata:
+        -  labels:
+        -    kustomize.toolkit.fluxcd.io/name: apps
+        -    kustomize.toolkit.fluxcd.io/namespace: flux-system
+        -  name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
+        -spec:
+        -  commonName: ..PLACEHOLDER_SECRET_DOMAIN4..
+        -  dnsNames:
+        -  - ..PLACEHOLDER_SECRET_DOMAIN4..
+        -  - '*...PLACEHOLDER_SECRET_DOMAIN4..'
+        -  issuerRef:
+        -    kind: ClusterIssuer
+        -    name: letsencrypt-staging
+        -  secretName: -.PLACEHOLDER_SECRET_DOMAIN4..-staging-tls
+        -
   
   
   '''
 # ---
 # name: test_diff_ks[yaml-limit]
-  '''
-  ---
-  - kustomization_path: tests/testdata/cluster/apps/prod
-    kind: Kustomization
-    namespace: flux-system
-    name: apps
-    diffs:
-    - kustomization_path: tests/testdata/cluster/apps/prod
-      kind: Certificate
-      namespace: flux-system
-      name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
-      diff: |-
-        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN3..-staging
-  
-        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN3..-staging
-  
-        @@ -0,0 +1,18 @@
-  
-        +---
-        +apiVersion: cert-manager.io/v1
-        +kind: Certificate
-        +metadata:
-        +  labels:
-        +    kustomize.toolkit.fluxcd.io/name: apps
-        +    kustomize.toolkit.fluxcd.io/namespace: flux-system
-        +  name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
-        +spec:
-        +  commonName: ..PLACEHOLDER_SECRET_DOMAIN3..
-        +  dnsNames:
-        +  - ..PLACEHOLDER_SECRET_DOMAIN3..
-        +  - '*...PLACEHOLDER_SECRET_DOMAIN3..'
-        +  issuerRef:
-        +    kind: ClusterIssuer
-        +    name: letsencrypt-staging
-        +  secretName: -.PLACEHOLDER_SECRET_DOMAIN3..-staging-tls
-        +
-    - kustomization_path: tests/testdata/cluster/apps/prod
-      kind: Certificate
-      namespace: flux-system
-      name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
-      diff: |-
-        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN4..-staging
-  
-        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN4..-staging
-  
-        @@ -0,0 +1,18 @@
-  
-        +---
-        +apiVersion: cert-manager.io/v1
-        +kind: Certificate
-        +metadata:
-        +  labels:
-        +    kustomize.toolkit.fluxcd.io/name: apps
-        +    kustomize.toolkit.fluxcd.io/namespace: flux-system
-        +  name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
-        +spec:
-        +  commonName: ..PLACEHOLDER_SECRET_DOMAIN4..
-        +  dnsNames:
-        +  - ..PLACEHOLDER_SECRET_DOMAIN4..
-        +  - '*...PLACEHOLDER_SECRET_DOMAIN4..'
-        +  issuerRef:
-        +    kind: ClusterIssuer
-        +    name: letsencrypt-staging
-        +  secretName: -.PLACEHOLDER_SECRET_DOMAIN4..-staging-tls
-        +
-  
-  
-  '''
+  ''
 # ---
 # name: test_diff_ks[yaml]
-  '''
-  ---
-  - kustomization_path: tests/testdata/cluster/apps/prod
-    kind: Kustomization
-    namespace: flux-system
-    name: apps
-    diffs:
-    - kustomization_path: tests/testdata/cluster/apps/prod
-      kind: Certificate
-      namespace: flux-system
-      name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
-      diff: |-
-        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN3..-staging
-  
-        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN3..-staging
-  
-        @@ -0,0 +1,18 @@
-  
-        +---
-        +apiVersion: cert-manager.io/v1
-        +kind: Certificate
-        +metadata:
-        +  labels:
-        +    kustomize.toolkit.fluxcd.io/name: apps
-        +    kustomize.toolkit.fluxcd.io/namespace: flux-system
-        +  name: -.PLACEHOLDER_SECRET_DOMAIN3..-staging
-        +spec:
-        +  commonName: ..PLACEHOLDER_SECRET_DOMAIN3..
-        +  dnsNames:
-        +  - ..PLACEHOLDER_SECRET_DOMAIN3..
-        +  - '*...PLACEHOLDER_SECRET_DOMAIN3..'
-        +  issuerRef:
-        +    kind: ClusterIssuer
-        +    name: letsencrypt-staging
-        +  secretName: -.PLACEHOLDER_SECRET_DOMAIN3..-staging-tls
-        +
-    - kustomization_path: tests/testdata/cluster/apps/prod
-      kind: Certificate
-      namespace: flux-system
-      name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
-      diff: |-
-        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN4..-staging
-  
-        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps Certificate: flux-system/-.PLACEHOLDER_SECRET_DOMAIN4..-staging
-  
-        @@ -0,0 +1,18 @@
-  
-        +---
-        +apiVersion: cert-manager.io/v1
-        +kind: Certificate
-        +metadata:
-        +  labels:
-        +    kustomize.toolkit.fluxcd.io/name: apps
-        +    kustomize.toolkit.fluxcd.io/namespace: flux-system
-        +  name: -.PLACEHOLDER_SECRET_DOMAIN4..-staging
-        +spec:
-        +  commonName: ..PLACEHOLDER_SECRET_DOMAIN4..
-        +  dnsNames:
-        +  - ..PLACEHOLDER_SECRET_DOMAIN4..
-        +  - '*...PLACEHOLDER_SECRET_DOMAIN4..'
-        +  issuerRef:
-        +    kind: ClusterIssuer
-        +    name: letsencrypt-staging
-        +  secretName: -.PLACEHOLDER_SECRET_DOMAIN4..-staging-tls
-        +
-  
-  
-  '''
+  ''
 # ---
