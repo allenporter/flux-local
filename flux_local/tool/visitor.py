@@ -187,9 +187,11 @@ def strip_resource_attributes(resource: dict[str, Any], strip_attributes: list[s
         and (meta := templ.get("metadata"))
     ):
         strip_attrs(meta, strip_attributes)
-    if resource["kind"] == "List" and (items := resource.get("items")):
+    if resource["kind"] == "List" and (items := resource.get("items")) and isinstance(items, list):
         for item in items:
-            strip_attrs(item["metadata"], strip_attributes)
+            if not (item_meta := item.get("metadata")):
+                continue
+            strip_attrs(item_meta, strip_attributes)
 
 
 class ObjectOutput(ResourceOutput):

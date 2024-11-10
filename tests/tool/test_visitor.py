@@ -195,7 +195,7 @@ metadata:
     )
 
 
-def test_strip_list_corner_cases() -> None:
+def test_strip_list_null_items() -> None:
     """Test corner cases of handling metadata."""
     resource = yaml.load(
         """apiVersion: v1
@@ -218,5 +218,33 @@ metadata:
   resourceVersion: ''
   selfLink: ''
 items: null
+"""
+    )
+
+
+def test_strip_list_item_without_metdata() -> None:
+    """Test corner cases of handling metadata."""
+    resource = yaml.load(
+        """apiVersion: v1
+kind: List
+metadata:
+  resourceVersion: ''
+  selfLink: ''
+items:
+- kind: CronTab
+""",
+        Loader=yaml.Loader,
+    )
+
+    strip_resource_attributes(resource, STRIP_ATTRIBUTES)
+    assert (
+        yaml.dump(resource, sort_keys=False)
+        == """apiVersion: v1
+kind: List
+metadata:
+  resourceVersion: ''
+  selfLink: ''
+items:
+- kind: CronTab
 """
     )
