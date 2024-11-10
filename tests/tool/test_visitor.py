@@ -1,29 +1,18 @@
 """Tests for the visitor module."""
 
-import base64
-from pathlib import Path
 from typing import Any
 import yaml
 
 import pytest
 
-from flux_local.exceptions import HelmException
-from flux_local.manifest import (
-    HelmRelease,
-    ValuesReference,
-    Secret,
-    ConfigMap,
-    Kustomization,
-    HelmChart,
-    SubstituteReference,
-)
-from flux_local.git_repo import ResourceSelector, PathSelector, build_manifest
+
 from flux_local.tool.visitor import strip_resource_attributes
 
 STRIP_ATTRIBUTES = [
     "app.kubernetes.io/version",
     "chart",
 ]
+
 
 @pytest.mark.parametrize(
     ("metadata", "expected_metadata"),
@@ -39,10 +28,10 @@ STRIP_ATTRIBUTES = [
                 "labels": {
                     "app.kubernetes.io/managed-by": "Helm",
                 },
-            }
+            },
         ),
         (
-            {                
+            {
                 "annotations": {
                     "app.kubernetes.io/version": "1.0.0",
                     "app.kubernetes.io/managed-by": "Helm",
@@ -52,15 +41,17 @@ STRIP_ATTRIBUTES = [
                 "annotations": {
                     "app.kubernetes.io/managed-by": "Helm",
                 },
-            }
+            },
         ),
         (
             {},
             {},
         ),
-    ]
+    ],
 )
-def test_strip_resource_attributes(metadata: dict[str, Any], expected_metadata: dict[str, Any]) -> None:
+def test_strip_resource_attributes(
+    metadata: dict[str, Any], expected_metadata: dict[str, Any]
+) -> None:
     """Test the strip_resource_attributes function."""
     resource = {
         "apiVersion": "v1",
@@ -93,7 +84,8 @@ def test_strip_resource_attributes(metadata: dict[str, Any], expected_metadata: 
 
 def test_strip_deployment_metadata() -> None:
     """Test the strip_resource_attributes function."""
-    resource = yaml.load("""apiVersion: apps/v1
+    resource = yaml.load(
+        """apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
@@ -115,10 +107,14 @@ spec:
         image: nginx:1.14.2
         ports:
         - containerPort: 80
-""", Loader=yaml.Loader)
-    
+""",
+        Loader=yaml.Loader,
+    )
+
     strip_resource_attributes(resource, STRIP_ATTRIBUTES)
-    assert yaml.dump(resource, sort_keys=False) == """apiVersion: apps/v1
+    assert (
+        yaml.dump(resource, sort_keys=False)
+        == """apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
@@ -140,12 +136,13 @@ spec:
         ports:
         - containerPort: 80
 """
-
+    )
 
 
 def test_strip_list_metadata() -> None:
     """Test the stripping metadata from a list resource."""
-    resource = yaml.load("""apiVersion: v1
+    resource = yaml.load(
+        """apiVersion: v1
 items:
 - apiVersion: stable.example.com/v1
   kind: CronTab
@@ -166,11 +163,15 @@ kind: List
 metadata:
   resourceVersion: ''
   selfLink: ''
-                         
-""", Loader=yaml.Loader)
-    
+
+""",
+        Loader=yaml.Loader,
+    )
+
     strip_resource_attributes(resource, STRIP_ATTRIBUTES)
-    assert yaml.dump(resource, sort_keys=False) == """apiVersion: v1
+    assert (
+        yaml.dump(resource, sort_keys=False)
+        == """apiVersion: v1
 items:
 - apiVersion: stable.example.com/v1
   kind: CronTab
@@ -191,24 +192,31 @@ metadata:
   resourceVersion: ''
   selfLink: ''
 """
+    )
 
 
 def test_strip_list_corner_cases() -> None:
     """Test corner cases of handling metadata."""
-    resource = yaml.load("""apiVersion: v1
+    resource = yaml.load(
+        """apiVersion: v1
 kind: List
 metadata:
   resourceVersion: ''
   selfLink: ''
 items:
-                         
-""", Loader=yaml.Loader)
-    
+
+""",
+        Loader=yaml.Loader,
+    )
+
     strip_resource_attributes(resource, STRIP_ATTRIBUTES)
-    assert yaml.dump(resource, sort_keys=False) == """apiVersion: v1
+    assert (
+        yaml.dump(resource, sort_keys=False)
+        == """apiVersion: v1
 kind: List
 metadata:
   resourceVersion: ''
   selfLink: ''
 items: null
 """
+    )
