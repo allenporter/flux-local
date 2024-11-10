@@ -177,6 +177,23 @@ class ImageOutput(ResourceOutput):
                         helm_release.images.sort()
 
 
+def strip_resource_attributes(resource: dict[str, Any], strip_attributes: list[str]) -> None:
+    """Strip any annotations from kustomize that contribute to diff noise when objects are re-ordered in the output."""
+    strip_attrs(resource["metadata"], strip_attributes)
+    # Remove common noisy labels in commonly used templates
+    if (
+        (spec := resource.get("spec"))
+        and (templ := spec.get("template"))
+        and (meta := templ.get("metadata"))
+    ):
+        strip_attrs(meta, strip_attributes)
+    if resource["kind"] == "List" and (items := resource.get("items")) and isinstance(items, list):
+        for item in items:
+            if not (item_meta := item.get("metadata")):
+                continue
+            strip_attrs(item_meta, strip_attributes)
+
+
 class ObjectOutput(ResourceOutput):
     """Resource visitor that builds outputs for objects within the kustomization."""
 
@@ -208,14 +225,8 @@ class ObjectOutput(ResourceOutput):
                     )
                     continue
                 # Remove common noisy labels
-                strip_attrs(metadata, self.strip_attributes)
-                # Remove common noisy labels in commonly used templates
-                if (
-                    (spec := resource.get("spec"))
-                    and (templ := spec.get("template"))
-                    and (meta := templ.get("metadata"))
-                ):
-                    strip_attrs(meta, self.strip_attributes)
+                strip_resource_attributes(resource, self.strip_attributes)
+
                 resource_key = ResourceKey(
                     kind=kind,
                     kustomization_path=str(kustomization_path),
