@@ -9,7 +9,7 @@ on:
     - cron: "0 0 * * *"
 
 env:
-  PYTHON_VERSION: 3.12
+  PYTHON_VERSION: 3.13
 
 jobs:
   update:
