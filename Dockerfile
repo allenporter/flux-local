@@ -10,7 +10,7 @@ COPY setup.cfg .
 RUN pip install -e .
 
 COPY --from=ghcr.io/fluxcd/flux-cli:v2.4.0              /usr/local/bin/flux              /usr/local/bin/flux
-COPY --from=docker.io/alpine/helm:3.16.2                /usr/bin/helm                    /usr/local/bin/helm
+COPY --from=docker.io/alpine/helm:3.16.3                /usr/bin/helm                    /usr/local/bin/helm
 COPY --from=docker.io/bitnami/kubectl:1.31.2            /opt/bitnami/kubectl/bin/kubectl /usr/local/bin/kubectl
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.4.3  /app/kustomize                   /usr/local/bin/kustomize
 COPY --from=ghcr.io/kyverno/kyverno-cli:v1.13.1         /ko-app/kubectl-kyverno          /usr/local/bin/kyverno
