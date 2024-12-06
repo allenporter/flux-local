@@ -40,7 +40,7 @@ jobs:
       - name: Test with pytest
         run: |
           SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing --snapshot-warn-unused
-      - uses: codecov/codecov-action@v5.0.7
+      - uses: codecov/codecov-action@v5.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           env_vars: OS,PYTHON
