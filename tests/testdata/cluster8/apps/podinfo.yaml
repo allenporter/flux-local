@@ -31,8 +31,15 @@ spec:
   valuesFrom:
     - kind: ConfigMap
       name: podinfo-values
+    - kind: ConfigMap
+      name: podinfo-values
+      valuesKey: empty-values.yaml
+    - kind: ConfigMap
+      name: podinfo-values
+      valuesKey: patch-values.yaml
     - kind: Secret
       name: podinfo-tls-values
       valuesKey: crt
       targetPath: tls.crt
       optional: true
+

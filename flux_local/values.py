@@ -173,6 +173,19 @@ def _lookup_value_reference(
 
     return found_value
 
+def deep_merge(base: dict, override: dict) -> dict:
+    """
+    Recursively merge two dictionaries, similar to how Helm merges values.
+    Lists are replaced entirely (Helm behavior).
+    """
+    result = base.copy()
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
 
 def _update_helmrelease_values(
     ref: ValuesReference,
@@ -196,14 +209,16 @@ def _update_helmrelease_values(
         inner_values[parts[-1]] = found_value
     else:
         obj = yaml.load(found_value, Loader=yaml.SafeLoader)
-        if not obj or not isinstance(obj, dict):
+        # Handle empty YAML file case
+        if obj is None:
+            obj = {}
+        if not isinstance(obj, dict):
             raise InputException(
                 f"Expected '{ref.name}' field '{ref.target_path}' values to be valid yaml, found {type(values)}"
             )
-        values.update(obj)
+        values = deep_merge(values, obj)
 
     return values
-
 
 def expand_value_references(
     helm_release: HelmRelease, kustomization: Kustomization
@@ -286,3 +301,4 @@ def expand_postbuild_substitute_reference(
     _LOGGER.debug("update_postbuild_substitutions=%s", values)
     ks.update_postbuild_substitutions(values)
     return ks
+

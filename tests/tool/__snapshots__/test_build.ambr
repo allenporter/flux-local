@@ -948,6 +948,12 @@
     valuesFrom:
     - kind: ConfigMap
       name: podinfo-values
+    - kind: ConfigMap
+      name: podinfo-values
+      valuesKey: empty-values.yaml
+    - kind: ConfigMap
+      name: podinfo-values
+      valuesKey: patch-values.yaml
     - kind: Secret
       name: podinfo-tls-values
       optional: true
@@ -956,11 +962,15 @@
   ---
   apiVersion: v1
   data:
+    empty-values.yaml: ""
+    patch-values.yaml: |-
+      redis:
+        tag: 7.0.6
     values.yaml: |-
       redis:
         enabled: true
         repository: public.ecr.aws/docker/library/redis
-        tag: 7.0.6
+        tag: 7.0.5
       ingress:
         enabled: true
         className: nginx
@@ -6333,6 +6343,12 @@
     valuesFrom:
     - kind: ConfigMap
       name: podinfo-values
+    - kind: ConfigMap
+      name: podinfo-values
+      valuesKey: empty-values.yaml
+    - kind: ConfigMap
+      name: podinfo-values
+      valuesKey: patch-values.yaml
     - kind: Secret
       name: podinfo-tls-values
       optional: true
@@ -6341,11 +6357,15 @@
   ---
   apiVersion: v1
   data:
+    empty-values.yaml: ""
+    patch-values.yaml: |-
+      redis:
+        tag: 7.0.6
     values.yaml: |-
       redis:
         enabled: true
         repository: public.ecr.aws/docker/library/redis
-        tag: 7.0.6
+        tag: 7.0.5
       ingress:
         enabled: true
         className: nginx
