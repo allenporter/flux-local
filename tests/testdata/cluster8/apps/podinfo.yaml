@@ -42,4 +42,3 @@ spec:
       valuesKey: crt
       targetPath: tls.crt
       optional: true
-

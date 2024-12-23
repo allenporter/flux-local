@@ -22,4 +22,3 @@ data:
   patch-values.yaml: |-
     redis:
       tag: 7.0.6
-

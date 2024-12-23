@@ -179,7 +179,11 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     result = base.copy()
     for key, override_value in override.items():
         base_value = result.get(key)
-        if base_value is not None and isinstance(base_value, dict) and isinstance(override_value, dict):
+        if (
+            base_value is not None
+            and isinstance(base_value, dict)
+            and isinstance(override_value, dict)
+        ):
             result[key] = _deep_merge(base_value, override_value)
         else:
             result[key] = override_value
@@ -301,4 +305,3 @@ def expand_postbuild_substitute_reference(
     _LOGGER.debug("update_postbuild_substitutions=%s", values)
     ks.update_postbuild_substitutions(values)
     return ks
-
