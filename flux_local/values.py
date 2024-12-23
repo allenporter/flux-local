@@ -174,8 +174,8 @@ def _lookup_value_reference(
     return found_value
 
 def deep_merge(base: dict, override: dict) -> dict:
-    """
-    Recursively merge two dictionaries, similar to how Helm merges values.
+    """Recursively merge two dictionaries, similar to how Helm merges values.
+
     Lists are replaced entirely (Helm behavior).
     """
     result = base.copy()
