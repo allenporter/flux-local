@@ -174,6 +174,22 @@ def _lookup_value_reference(
     return found_value
 
 
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """Recursively merge two dictionaries, similar to how Helm merges values. Lists are replaced entirely (Helm behavior)."""
+    result = base.copy()
+    for key, override_value in override.items():
+        base_value = result.get(key)
+        if (
+            base_value is not None
+            and isinstance(base_value, dict)
+            and isinstance(override_value, dict)
+        ):
+            result[key] = _deep_merge(base_value, override_value)
+        else:
+            result[key] = override_value
+    return result
+
+
 def _update_helmrelease_values(
     ref: ValuesReference,
     found_value: str,
@@ -196,11 +212,14 @@ def _update_helmrelease_values(
         inner_values[parts[-1]] = found_value
     else:
         obj = yaml.load(found_value, Loader=yaml.SafeLoader)
-        if not obj or not isinstance(obj, dict):
+        # Handle empty YAML file case
+        if obj is None:
+            obj = {}
+        if not isinstance(obj, dict):
             raise InputException(
                 f"Expected '{ref.name}' field '{ref.target_path}' values to be valid yaml, found {type(values)}"
             )
-        values.update(obj)
+        values = _deep_merge(values, obj)
 
     return values
 

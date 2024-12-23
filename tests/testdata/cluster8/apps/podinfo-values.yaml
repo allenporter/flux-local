@@ -9,7 +9,7 @@ data:
     redis:
       enabled: true
       repository: public.ecr.aws/docker/library/redis
-      tag: 7.0.6
+      tag: 7.0.5
     ingress:
       enabled: true
       className: nginx
@@ -18,3 +18,7 @@ data:
           paths:
             - path: /
               pathType: ImplementationSpecific
+  empty-values.yaml: ""
+  patch-values.yaml: |-
+    redis:
+      tag: 7.0.6
