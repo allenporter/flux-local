@@ -230,7 +230,7 @@ def expand_value_references(
     if not helm_release.values_from:
         return helm_release
 
-    values = {}
+    values: dict[str, Any] = {}
     cluster_config = ks_cluster_config([kustomization])
     for ref in helm_release.values_from:
         _LOGGER.debug("Expanding value reference %s", ref)
