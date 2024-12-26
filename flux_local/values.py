@@ -168,7 +168,7 @@ def _lookup_value_reference(
 
     elif (found_value := found_data.get(ref.values_key)) is None:
         raise InvalidValuesReference(
-            "Unable to find key {ref.values_key} in {namespace}/{ref.name}"
+            f"Unable to find key {ref.values_key} in {namespace}/{ref.name}"
         )
 
     return found_value
@@ -230,7 +230,7 @@ def expand_value_references(
     if not helm_release.values_from:
         return helm_release
 
-    values = helm_release.values or {}
+    values = {}
     cluster_config = ks_cluster_config([kustomization])
     for ref in helm_release.values_from:
         _LOGGER.debug("Expanding value reference %s", ref)
@@ -256,6 +256,9 @@ def expand_value_references(
             raise HelmException(
                 f"Error building HelmRelease '{helm_release.namespaced_name}': {err}"
             )
+
+    if helm_release.values:
+        values = _deep_merge(values, helm_release.values)
 
     helm_release.values = values
     return helm_release
