@@ -28,6 +28,9 @@ spec:
   install:
     remediation:
       retries: 3
+  values:
+    redis:
+      enabled: true
   valuesFrom:
     - kind: ConfigMap
       name: podinfo-values

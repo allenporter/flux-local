@@ -945,6 +945,9 @@
         retries: 3
     interval: 50m
     releaseName: podinfo
+    values:
+      redis:
+        enabled: true
     valuesFrom:
     - kind: ConfigMap
       name: podinfo-values
@@ -968,7 +971,6 @@
         tag: 7.0.6
     values.yaml: |-
       redis:
-        enabled: true
         repository: public.ecr.aws/docker/library/redis
         tag: 7.0.5
       ingress:
@@ -6340,6 +6342,9 @@
         retries: 3
     interval: 50m
     releaseName: podinfo
+    values:
+      redis:
+        enabled: true
     valuesFrom:
     - kind: ConfigMap
       name: podinfo-values
@@ -6363,7 +6368,6 @@
         tag: 7.0.6
     values.yaml: |-
       redis:
-        enabled: true
         repository: public.ecr.aws/docker/library/redis
         tag: 7.0.5
       ingress:

@@ -2,6 +2,8 @@
 
 import base64
 from pathlib import Path
+import yaml
+from typing import Any
 
 import pytest
 from syrupy.assertion import SnapshotAssertion
@@ -99,6 +101,75 @@ def test_values_references_with_values_key() -> None:
         },
         "encoded_key": "encoded_value",
     }
+
+
+
+@pytest.mark.parametrize(
+    ("inline_values", "expected_values"),
+    [
+        (
+            {
+                "redis": {
+                    "enabled": True,
+                }
+            },
+            {
+                "redis": {
+                    "enabled": True,
+                }
+            }
+        ),
+        (
+            {},
+            {
+                "redis": {
+                    "enabled": False,
+                }
+            }
+        )
+    ]
+)
+def test_value_reference_ordering(inline_values: dict[str, Any], expected_values: dict[str, Any]) -> None:
+    """Test for expanding a value reference with inline values that overwrite."""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values={
+            **inline_values,
+        },
+        values_from=[
+            ValuesReference(
+                kind="ConfigMap",
+                name="test-binary-data-configmap",
+                values_key="some-key",
+            ),
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+        config_maps=[
+            ConfigMap(
+                name="test-binary-data-configmap",
+                namespace="test",
+                binary_data={
+                    "some-key": base64.b64encode(
+                        "redis:\n  enabled: False".encode("utf-8")
+                    )
+                },
+            ),
+        ],
+    )
+    updated_hr = expand_value_references(hr, ks)
+    assert updated_hr.values == expected_values
 
 
 def test_values_references_with_missing_values_key() -> None:
@@ -300,11 +371,12 @@ def test_values_reference_invalid_target_path() -> None:
             name="test-chart",
             version="test-version",
         ),
-        values={
-            "test": "test",
-            "target": ["a", "b", "c"],
-        },
+        values={},
         values_from=[
+            ValuesReference(
+                kind="ConfigMap",
+                name="test-values-original-configmap",
+            ),
             ValuesReference(
                 kind="ConfigMap",
                 name="test-values-configmap",
@@ -324,6 +396,16 @@ def test_values_reference_invalid_target_path() -> None:
                 name="test-values-configmap",
                 namespace="test",
                 data={"some-key": "example_value"},
+            ),
+            ConfigMap(
+                name="test-values-original-configmap",
+                namespace="test",
+                data={
+                    "values.yaml": yaml.dump({
+                        "test": "test",
+                        "target": ["a", "b", "c"],
+                    }),
+                }
             )
         ],
     )
