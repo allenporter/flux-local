@@ -6,7 +6,7 @@ import yaml
 import pytest
 
 
-from flux_local.tool.visitor import strip_resource_attributes
+from flux_local.visitor import strip_resource_attributes
 
 STRIP_ATTRIBUTES = [
     "app.kubernetes.io/version",

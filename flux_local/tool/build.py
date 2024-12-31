@@ -12,9 +12,9 @@ from typing import cast
 
 
 from flux_local import git_repo
+from flux_local.visitor import ContentOutput, HelmVisitor
 
 from . import selector
-from .visitor import ContentOutput, HelmVisitor
 
 
 _LOGGER = logging.getLogger(__name__)

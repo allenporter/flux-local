@@ -12,10 +12,10 @@ import pathlib
 import tempfile
 
 from flux_local import git_repo, image, helm
+from flux_local.visitor import HelmVisitor, ImageOutput
 
 from .format import PrintFormatter, YamlFormatter
 from . import selector
-from .visitor import HelmVisitor, ImageOutput
 
 
 _LOGGER = logging.getLogger(__name__)
