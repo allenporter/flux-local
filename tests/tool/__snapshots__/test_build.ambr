@@ -1073,8 +1073,6 @@
       config.kubernetes.io/index: '0'
       internal.config.kubernetes.io/index: '0'
   spec:
-    dependsOn:
-    - name: infra-configs
     interval: 10m0s
     path: ./tests/testdata/cluster8/apps
     prune: true
