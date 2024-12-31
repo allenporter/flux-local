@@ -46,6 +46,7 @@ SECRET_KIND = "Secret"
 CONFIG_MAP_KIND = "ConfigMap"
 DEFAULT_NAMESPACE = "flux-system"
 VALUE_PLACEHOLDER_TEMPLATE = "..PLACEHOLDER_{name}.."
+HELM_RELEASE = "HelmRelease"
 HELM_REPOSITORY = "HelmRepository"
 GIT_REPOSITORY = "GitRepository"
 OCI_REPOSITORY = "OCIRepository"
@@ -86,6 +87,21 @@ class BaseManifest(DataClassDictMixin):
 
     class Config(BaseConfig):
         omit_none = True
+
+
+@dataclass(frozen=True, order=True)
+class NamedResource:
+    """Identifier for a kubernetes resource."""
+
+    kind: str
+    namespace: str | None
+    name: str
+
+    @property
+    def namespaced_name(self) -> str:
+        if self.namespace:
+            return f"{self.namespace}/{self.name}"
+        return self.name
 
 
 @dataclass
@@ -202,10 +218,14 @@ class HelmRelease(BaseManifest):
     chart: HelmChart
     """A mapping to a specific helm chart for this HelmRelease."""
 
-    values: Optional[dict[str, Any]] = field(metadata={"serialize": "omit"})
+    values: Optional[dict[str, Any]] = field(
+        metadata={"serialize": "omit"}, default=None
+    )
     """The values to install in the chart."""
 
-    values_from: Optional[list[ValuesReference]] = field(metadata={"serialize": "omit"})
+    values_from: Optional[list[ValuesReference]] = field(
+        metadata={"serialize": "omit"}, default=None
+    )
     """A list of values to reference from an ConfigMap or Secret."""
 
     images: list[str] | None = field(default=None)
@@ -250,6 +270,34 @@ class HelmRelease(BaseManifest):
     def namespaced_name(self) -> str:
         """Return the namespace and name concatenated as an id."""
         return f"{self.namespace}/{self.name}"
+
+    @property
+    def resource_dependencies(self) -> list[NamedResource]:
+        """Return the list of input dependencies for the HelmRelease."""
+        deps = [
+            NamedResource(
+                kind=HELM_RELEASE,
+                name=self.name,
+                namespace=self.namespace,
+            )
+        ]
+        if self.chart:
+            deps.append(
+                NamedResource(
+                    kind=self.chart.repo_kind,
+                    name=self.chart.repo_name,
+                    namespace=self.chart.repo_namespace,
+                )
+            )
+        names_seen = set()
+        for ref in self.values_from or ():
+            if ref.name in names_seen:
+                continue
+            names_seen.add(ref.name)
+            deps.append(
+                NamedResource(kind=ref.kind, name=ref.name, namespace=self.namespace)
+            )
+        return deps
 
 
 @dataclass

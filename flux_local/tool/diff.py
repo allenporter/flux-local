@@ -19,6 +19,7 @@ from flux_local.resource_diff import (
     perform_yaml_diff,
     perform_external_diff,
     perform_object_diff,
+    build_helm_dependency_map,
 )
 
 from . import selector
@@ -248,10 +249,11 @@ class DiffHelmReleaseAction:
 
         # Find HelmRelease objects with diffs and prune all other HelmReleases from
         # the helm visitors. We assume that the only way for a HelmRelease output
-        # to have a diff is if the HelmRelease in the kustomization has a diff.
-        # This avoid building unnecessary resources and churn from things like
-        # random secret generation.
-        diff_resource_keys = get_helm_release_diff_keys(orig_content, content)
+        # to have a diff is if any of the resources that the HelmRelease
+        # depends on in the kustomization has a diff. This avoids needing to
+        # template every possible helm chart when nothing as changed.
+        dependency_map = build_helm_dependency_map(orig_helm_visitor, helm_visitor)
+        diff_resource_keys = get_helm_release_diff_keys(orig_content, content, dependency_map)
         diff_names = {
             resource_key.namespaced_name for resource_key in diff_resource_keys
         }
