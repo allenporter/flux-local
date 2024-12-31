@@ -137,7 +137,6 @@ def build_ks_selector(  # type: ignore[no-untyped-def]
         selector.kustomization.namespace = None
     selector.kustomization.skip_crds = kwargs["skip_crds"]
     selector.kustomization.skip_secrets = kwargs["skip_secrets"]
-    selector.cluster_policy.enabled = False
     return selector
 
 
@@ -170,7 +169,6 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     selector.helm_release.skip_secrets = kwargs["skip_secrets"]
     selector.kustomization.name = None
     selector.kustomization.namespace = None
-    selector.cluster_policy.enabled = False
     return selector
 
 

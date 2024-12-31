@@ -27,7 +27,6 @@ __all__ = [
     "HelmRepository",
     "HelmRelease",
     "HelmChart",
-    "ClusterPolicy",
     "ConfigMap",
     "Secret",
 ]
@@ -42,7 +41,6 @@ KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
 OCI_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
-CLUSTER_POLICY_DOMAIN = "kyverno.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
 CONFIG_MAP_KIND = "ConfigMap"
@@ -337,33 +335,6 @@ class OCIRepository(BaseManifest):
 
 
 @dataclass
-class ClusterPolicy(BaseManifest):
-    """A kyverno policy object."""
-
-    name: str
-    """The name of the kustomization."""
-
-    namespace: str | None = None
-    """The namespace of the kustomization."""
-
-    doc: dict[str, Any] | None = field(metadata={"serialize": "omit"}, default=None)
-    """The raw ClusterPolicy document."""
-
-    @classmethod
-    def parse_doc(cls, doc: dict[str, Any]) -> "ClusterPolicy":
-        """Parse a cluster policy object from a kubernetes resource."""
-        _check_version(doc, CLUSTER_POLICY_DOMAIN)
-        if not (metadata := doc.get("metadata")):
-            raise InputException(f"Invalid {cls} missing metadata: {doc}")
-        if not (name := metadata.get("name")):
-            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
-        namespace = metadata.get("namespace")
-        if not doc.get("spec"):
-            raise InputException(f"Invalid {cls} missing spec: {doc}")
-        return ClusterPolicy(name=name, namespace=namespace, doc=doc)
-
-
-@dataclass
 class ConfigMap(BaseManifest):
     """A ConfigMap is an API object used to store data in key-value pairs."""
 
@@ -480,9 +451,6 @@ class Kustomization(BaseManifest):
 
     helm_releases: list[HelmRelease] = field(default_factory=list)
     """The set of HelmRelease represented in this kustomization."""
-
-    cluster_policies: list[ClusterPolicy] = field(default_factory=list)
-    """The set of ClusterPolicies represented in this kustomization."""
 
     config_maps: list[ConfigMap] = field(default_factory=list)
     """The list of config maps referenced in the kustomization."""
@@ -646,15 +614,6 @@ class Cluster(BaseManifest):
             release
             for kustomization in self.kustomizations
             for release in kustomization.helm_releases
-        ]
-
-    @property
-    def cluster_policies(self) -> list[ClusterPolicy]:
-        """Return the list of ClusterPolicy objects from all Kustomizations."""
-        return [
-            policy
-            for kustomization in self.kustomizations
-            for policy in kustomization.cluster_policies
         ]
 
 

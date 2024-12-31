@@ -84,7 +84,6 @@
         images:
         - ghcr.io/stefanprodan/podinfo:6.3.2
         - public.ecr.aws/docker/library/redis:7.0.6
-      cluster_policies: []
       config_maps:
       - name: podinfo-config
         namespace: podinfo
@@ -95,7 +94,6 @@
       helm_repos: []
       oci_repos: []
       helm_releases: []
-      cluster_policies: []
       config_maps:
       - name: cluster-config
         namespace: flux-system
@@ -118,8 +116,6 @@
         repo_type: oci
       oci_repos: []
       helm_releases: []
-      cluster_policies:
-      - name: test-allow-policy
       config_maps: []
       secrets: []
     - name: infra-controllers
@@ -147,7 +143,6 @@
           repo_kind: HelmRepository
         images:
         - ghcr.io/weaveworks/wego-app:v0.24.0
-      cluster_policies: []
       config_maps: []
       secrets: []
   
@@ -172,7 +167,6 @@
           repo_name: podinfo
           repo_namespace: flux-system
           repo_kind: HelmRepository
-      cluster_policies: []
       config_maps:
       - name: podinfo-config
         namespace: podinfo
@@ -183,7 +177,6 @@
       helm_repos: []
       oci_repos: []
       helm_releases: []
-      cluster_policies: []
       config_maps:
       - name: cluster-config
         namespace: flux-system
@@ -206,8 +199,6 @@
         repo_type: oci
       oci_repos: []
       helm_releases: []
-      cluster_policies:
-      - name: test-allow-policy
       config_maps: []
       secrets: []
     - name: infra-controllers
@@ -230,7 +221,6 @@
           repo_name: weave-charts
           repo_namespace: flux-system
           repo_kind: HelmRepository
-      cluster_policies: []
       config_maps: []
       secrets: []
   
@@ -275,7 +265,6 @@
           repo_kind: HelmRepository
         images:
         - tailscale/k8s-operator:v1.68.1
-      cluster_policies: []
       config_maps:
       - name: podinfo-values
         namespace: podinfo
@@ -290,7 +279,6 @@
       helm_repos: []
       oci_repos: []
       helm_releases: []
-      cluster_policies: []
       config_maps: []
       secrets: []
   
@@ -335,7 +323,6 @@
           repo_kind: HelmRepository
         images:
         - tailscale/k8s-operator:v1.68.1
-      cluster_policies: []
       config_maps:
       - name: podinfo-values
         namespace: podinfo
@@ -349,7 +336,6 @@
       helm_repos: []
       oci_repos: []
       helm_releases: []
-      cluster_policies: []
       config_maps: []
       secrets: []
   
@@ -389,7 +375,6 @@
           repo_name: tailscale
           repo_namespace: flux-system
           repo_kind: HelmRepository
-      cluster_policies: []
       config_maps:
       - name: podinfo-values
         namespace: podinfo
@@ -400,7 +385,6 @@
       helm_repos: []
       oci_repos: []
       helm_releases: []
-      cluster_policies: []
       config_maps: []
       secrets: []
   

@@ -16,7 +16,6 @@ from flux_local.manifest import (
     HelmRelease,
     Kustomization,
     HelmRepository,
-    ClusterPolicy,
     Manifest,
     OCIRepository,
 )
@@ -34,7 +33,7 @@ STRIP_ATTRIBUTES = [
 
 
 ResourceType = (
-    Kustomization | HelmRelease | HelmRepository | ClusterPolicy | OCIRepository
+    Kustomization | HelmRelease | HelmRepository | OCIRepository
 )
 
 
