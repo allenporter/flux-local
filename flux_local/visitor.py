@@ -1,4 +1,8 @@
-"""Visitors used by multiple commands."""
+"""Module for holding state while visiting resources.
+
+This is used internally primarily for keeping state when building output
+or computing diffs.
+"""
 
 import asyncio
 from abc import ABC, abstractmethod
@@ -32,9 +36,7 @@ STRIP_ATTRIBUTES = [
 ]
 
 
-ResourceType = (
-    Kustomization | HelmRelease | HelmRepository | OCIRepository
-)
+ResourceType = Kustomization | HelmRelease | HelmRepository | OCIRepository
 
 
 @dataclass(frozen=True, order=True)
@@ -176,7 +178,9 @@ class ImageOutput(ResourceOutput):
                         helm_release.images.sort()
 
 
-def strip_resource_attributes(resource: dict[str, Any], strip_attributes: list[str]) -> None:
+def strip_resource_attributes(
+    resource: dict[str, Any], strip_attributes: list[str]
+) -> None:
     """Strip any annotations from kustomize that contribute to diff noise when objects are re-ordered in the output."""
     strip_attrs(resource["metadata"], strip_attributes)
     # Remove common noisy labels in commonly used templates
@@ -186,7 +190,11 @@ def strip_resource_attributes(resource: dict[str, Any], strip_attributes: list[s
         and (meta := templ.get("metadata"))
     ):
         strip_attrs(meta, strip_attributes)
-    if resource["kind"] == "List" and (items := resource.get("items")) and isinstance(items, list):
+    if (
+        resource["kind"] == "List"
+        and (items := resource.get("items"))
+        and isinstance(items, list)
+    ):
         for item in items:
             if not (item_meta := item.get("metadata")):
                 continue
