@@ -12,9 +12,11 @@ from flux_local.manifest import (
     Manifest,
     read_manifest,
     write_manifest,
+    NamedResource,
 )
 
 TESTDATA_DIR = Path("tests/testdata/cluster/infrastructure")
+TEST_PODINFO_HELMRELEASE = Path("tests/testdata/cluster8/apps/podinfo.yaml")
 
 
 def test_parse_helm_release() -> None:
@@ -141,3 +143,27 @@ def test_parse_helmrelease_chartref() -> None:
     assert release.chart.repo_name == "podinfo"
     assert release.chart.repo_namespace == "default"
     assert release.values
+
+
+def test_helmrelease_dependencies() -> None:
+    """Test parsing a helm release doc."""
+
+    docs = list(
+        yaml.load_all(
+            TEST_PODINFO_HELMRELEASE.read_text(),
+            Loader=yaml.CLoader,
+        )
+    )
+    assert len(docs) == 2
+    release = HelmRelease.parse_doc(docs[1])
+    assert release.name == "podinfo"
+    assert release.namespace == "podinfo"
+    # Assert on all the input dependencies that might cause HelmRelease
+    # output to change. This means the HelmRepository, and any input
+    # values used for substitute references.
+    assert release.resource_dependencies == [
+        NamedResource(kind="HelmRelease", name="podinfo", namespace="podinfo"),
+        NamedResource(kind="HelmRepository", name="podinfo", namespace="flux-system"),
+        NamedResource(kind="ConfigMap", name="podinfo-values", namespace="podinfo"),
+        NamedResource(kind="Secret", name="podinfo-tls-values", namespace="podinfo"),
+    ]

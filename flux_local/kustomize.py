@@ -49,7 +49,7 @@ from .exceptions import (
     KustomizeException,
     KustomizePathException,
 )
-from .manifest import Kustomization
+from .manifest import Kustomization, HELM_RELEASE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,7 +61,6 @@ __all__ = [
 
 KUSTOMIZE_BIN = "kustomize"
 FLUX_BIN = "flux"
-HELM_RELEASE_KIND = "HelmRelease"
 
 # Used to limit access to specific resources
 _LOCK_MAP: dict[str, asyncio.Lock] = {}
@@ -98,10 +97,10 @@ class Kustomize:
             return (
                 self.grep(f"metadata.namespace=^{helm_release.namespace}$")
                 .grep(f"metadata.name=^{helm_release.name}$")
-                .grep(f"kind=^{HELM_RELEASE_KIND}$")
+                .grep(f"kind=^{HELM_RELEASE}$")
             )
         if invert:
-            return self.grep(f"kind=^{HELM_RELEASE_KIND}$", invert=True)
+            return self.grep(f"kind=^{HELM_RELEASE}$", invert=True)
         raise InputException("Must specify either helm_release or invert")
 
     async def run(self) -> str:

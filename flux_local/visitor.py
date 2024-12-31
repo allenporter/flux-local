@@ -22,6 +22,7 @@ from flux_local.manifest import (
     HelmRepository,
     Manifest,
     OCIRepository,
+    NamedResource,
 )
 
 
@@ -74,6 +75,14 @@ class ResourceKey:
     @property
     def compact_label(self) -> str:
         return f"{self.kind}: {self.namespaced_name}"
+
+    @property
+    def named_resource(self) -> NamedResource:
+        return NamedResource(
+            kind=self.kind,
+            name=self.name,
+            namespace=self.namespace,
+        )
 
 
 class ResourceOutput(ABC):

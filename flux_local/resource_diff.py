@@ -14,7 +14,8 @@ import yaml
 
 
 from . import command
-from .visitor import ObjectOutput, ResourceKey
+from .visitor import ObjectOutput, ResourceKey, HelmVisitor
+from .manifest import HelmRelease, NamedResource
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -152,16 +153,88 @@ def perform_yaml_diff(
         yield yaml.dump(diffs, sort_keys=False, explicit_start=True, default_style=None)
 
 
-def get_helm_release_diff_keys(a: ObjectOutput, b: ObjectOutput) -> list[ResourceKey]:
+def merge_helm_releases(
+    a: list[HelmRelease], b: list[HelmRelease]
+) -> Generator[tuple[HelmRelease | None, HelmRelease | None], None, None]:
+    """Return HelmReleases joined by name."""
+    a_dict = {r.release_name: r for r in a}
+    b_dict = {r.release_name: r for r in b}
+    for name in _unique_keys(a_dict, b_dict):
+        yield a_dict.get(name), b_dict.get(name)
+
+
+def merge_named_resources(
+    a: list[NamedResource], b: list[NamedResource]
+) -> Generator[NamedResource, None, None]:
+    """Return HelmReleases joined by name."""
+    a_dict = {f"{r.kind}-{r.namespaced_name}": r for r in a}
+    b_dict = {f"{r.kind}-{r.namespaced_name}": r for r in b}
+    for name in _unique_keys(a_dict, b_dict):
+        # Emit either the left or right since they should be identical
+        value: NamedResource = a_dict.get(name) or b_dict.get(name)  # type: ignore[assignment]
+        yield value
+
+
+def build_helm_dependency_map(
+    a_visitor: HelmVisitor, b_visitor: HelmVisitor
+) -> dict[NamedResource, NamedResource]:
+    """Return a map of all resources to the HelmRelease resource that depends on them.
+
+    This is a mapping of all the named resources. If any of them changed, then we
+    need to diff the HelmRelease to look for changes in the rendered output.
+    """
+    results: dict[NamedResource, NamedResource] = {}
+    for helmrelease_a, helmrelease_b in merge_helm_releases(
+        a_visitor.releases, b_visitor.releases
+    ):
+        resources_a = helmrelease_a.resource_dependencies if helmrelease_a else []
+        resources_b = helmrelease_b.resource_dependencies if helmrelease_b else []
+        hr: HelmRelease = helmrelease_a or helmrelease_b  # type: ignore[assignment]
+        hr_named_resource = NamedResource(
+            kind="HelmRelease",
+            namespace=hr.namespace,
+            name=hr.name,
+        )
+        for named_resource in merge_named_resources(resources_a, resources_b):
+            results[named_resource] = hr_named_resource
+
+    return results
+
+
+def get_helm_release_diff_keys(
+    a: ObjectOutput, b: ObjectOutput, dependency_map: dict[NamedResource, NamedResource]
+) -> list[ResourceKey]:
     """Return HelmRelease resource keys with diffs, by cluster."""
-    results: list[ResourceKey] = []
+
+    # Pass #1: Check all named resources that are upstream dependencies of a
+    # HelmRelease and have a content change. Save the HelmRelease name.
+    hrs_to_check: set[NamedResource] = set()
+    _LOGGER.debug("Checking HelmRelease dependencies")
     for kustomization_key in _unique_keys(a.content, b.content):
         _LOGGER.debug("Diffing results for Kustomization %s", kustomization_key)
         a_resources = a.content.get(kustomization_key, {})
         b_resources = b.content.get(kustomization_key, {})
         for resource_key in _unique_keys(a_resources, b_resources):
-            if resource_key.kind != "HelmRelease":
+            if (
+                hr_named_resource := dependency_map.get(resource_key.named_resource)
+            ) is None:
                 continue
             if a_resources.get(resource_key) != b_resources.get(resource_key):
+                _LOGGER.info(
+                    "HelmRelease %s detected potential change in resource %s (Kustomization %s)",
+                    hr_named_resource.namespaced_name,
+                    resource_key.namespaced_name,
+                    kustomization_key.namespaced_name,
+                )
+                hrs_to_check.add(hr_named_resource)
+
+    # Pass #2: Find the ResourceKey of all the changed HelmReleases
+    results: list[ResourceKey] = []
+    for kustomization_key in _unique_keys(a.content, b.content):
+        a_resources = a.content.get(kustomization_key, {})
+        b_resources = b.content.get(kustomization_key, {})
+        for resource_key in _unique_keys(a_resources, b_resources):
+            if resource_key.named_resource in hrs_to_check:
                 results.append(resource_key)
+
     return results
