@@ -38,7 +38,6 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 import logging
 from pathlib import Path
-import tempfile
 from typing import Any, AsyncGenerator
 
 import yaml
