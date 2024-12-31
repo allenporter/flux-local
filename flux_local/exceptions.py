@@ -31,10 +31,6 @@ class HelmException(CommandException):
     """Raised when there is a failure running a helm command."""
 
 
-class KyvernoException(CommandException):
-    """Raised when there is an error running kyverno policy command."""
-
-
 class InvalidValuesReference(FluxException):
     """Exception raised for an unsupported ValuesReference."""
 

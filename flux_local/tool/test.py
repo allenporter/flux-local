@@ -94,7 +94,6 @@ class HelmReleaseTest(pytest.Item):
                 self.test_config.helm_options,
             )
             await cmd.objects()
-            await cmd.validate_policies(self.cluster.cluster_policies)
 
     def active_repos(self) -> list[HelmRepository | OCIRepository]:
         """Return HelmRepositories referenced by a HelmRelease."""
@@ -148,7 +147,6 @@ class KustomizationTest(pytest.Item):
             self.kustomization, Path(self.kustomization.path)
         ).stash()
         await cmd.objects()
-        await cmd.validate_policies(self.cluster.cluster_policies)
 
 
 class KustomizationCollector(pytest.Collector):
@@ -360,12 +358,6 @@ class TestAction:
             action=BooleanOptionalAction,
             help="Enable use of HelmRelease inflation",
         )
-        args.add_argument(
-            "--enable-kyverno",
-            type=bool,
-            action=BooleanOptionalAction,
-            help="Enable testing of resources against Kyverno policies",
-        )
         # Flags consistent with pytest for pass through
         args.add_argument(
             "test_path",
@@ -398,7 +390,6 @@ class TestAction:
     async def run(  # type: ignore[no-untyped-def]
         self,
         enable_helm: bool,
-        enable_kyverno: bool,
         test_path: str | None,
         verbosity: int,
         **kwargs,  # pylint: disable=unused-argument
@@ -416,7 +407,6 @@ class TestAction:
         query.kustomization.skip_crds = True
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
-        query.cluster_policy.enabled = enable_kyverno
         options = selector.options(**kwargs)
         helm_options = selector.build_helm_options(**kwargs)
 

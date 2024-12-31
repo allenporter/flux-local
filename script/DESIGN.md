@@ -47,7 +47,7 @@ The second step is to then process the results of the cluster by rebuilding
 all the kustomizations again. Any CRDs and Secrets are filtered out if needed.
 The results from the previous steps are cached with a brittle very specific
 cache. Specifically, a few types of resources are collected: `HelmRepository`,
-`HelmRelease`, and `ClusterPolicy`. Additional, generic objects are collected
+`HelmRelease`, etc. Additional, generic objects are collected
 with an object listener that supports arbitrary doc kinds, which in practice
 is used for tracking images used. Each of the objects built are associated
 with the generated `Kustomization` object.

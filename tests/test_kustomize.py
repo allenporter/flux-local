@@ -85,27 +85,6 @@ async def test_stash(path: Path) -> None:
     assert len(result) == 0
 
 
-@pytest.mark.parametrize(
-    "path",
-    [TESTDATA_DIR / "repo", (TESTDATA_DIR / "repo").absolute()],
-)
-async def test_validate_pass(path: Path) -> None:
-    """Test applying policies to validate resources."""
-    cmd = kustomize.grep("kind=ConfigMap", path)
-    await cmd.validate(TESTDATA_DIR / "policies/pass.yaml")
-
-
-@pytest.mark.parametrize(
-    "path",
-    [TESTDATA_DIR / "repo", (TESTDATA_DIR / "repo").absolute()],
-)
-async def test_validate_fail(path: Path) -> None:
-    """Test applying policies to validate resources."""
-    cmd = kustomize.grep("kind=ConfigMap", path)
-    with pytest.raises(exceptions.CommandException, match="fail: 1"):
-        await cmd.validate(TESTDATA_DIR / "policies/fail.yaml")
-
-
 async def test_target_namespace() -> None:
     """Test a kustomization with a target namespace."""
     ks = kustomize.grep("kind=ConfigMap", TESTDATA_DIR / "repo")

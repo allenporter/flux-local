@@ -209,18 +209,7 @@ collected 18 items
 
 You may also validate `HelmRelease` objects can be templated properly with the `--enable-helm`
 flag. This will run `kustomize build` then run `helm template` on all the `HelmRelease` objects
-found. Additionally the `--enable-kyverno` flag will apply any found `ClusterPolicy` objects to
-all objects in the cluster and verify they pass:
-```
-$ flux-local test --enable-helm --enable-kyverno
-============================================= test session starts =============================================
-collected 81 items
-
-clusters/dev .....................................                                                      [ 45%]
-clusters/prod ............................................                                              [100%]
-
-======================================== 81 passed in 75.40s (0:01:15) ========================================
-```
+found.
 
 ## GitHub Action
 
@@ -230,9 +219,7 @@ or PRs. The actions expect to find the `flux` and `kustomize` binaries installed
 ### test action
 
 The `test` action will validate the cluster will build, and can optionally
-validate flux `HelmRelease` builds and also verify that all objects pass
-kyverno policies (e.g. for determining there are no deprecated api resources
-or that ingress objects are valid).
+validate flux `HelmRelease` builds.
 
 This example will run `flux-local test` against the cluster in `clusters/prod` with
 helm release expansion enabled.
@@ -244,7 +231,6 @@ helm release expansion enabled.
   with:
     path: clusters/prod
     enable-helm: true
-    enable-kyverno: false
 ```
 
 ### diff action

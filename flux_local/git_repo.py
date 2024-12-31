@@ -49,7 +49,6 @@ from .manifest import (
     FLUXTOMIZE_DOMAIN,
     KUSTOMIZE_DOMAIN,
     Cluster,
-    ClusterPolicy,
     HelmRelease,
     HelmRepository,
     Kustomization,
@@ -77,7 +76,6 @@ CLUSTER_KUSTOMIZE_KIND = "Kustomization"
 KUSTOMIZE_KIND = "Kustomization"
 HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
-CLUSTER_POLICY_KIND = "ClusterPolicy"
 GIT_REPO_KIND = "GitRepository"
 OCI_REPO_KIND = "OCIRepository"
 DEFAULT_NAMESPACE = "flux-system"
@@ -208,7 +206,6 @@ class ResourceVisitor:
             Kustomization
             | HelmRelease
             | HelmRepository
-            | ClusterPolicy
             | OCIRepository,
             kustomize.Kustomize | None,
         ],
@@ -271,7 +268,7 @@ class MetadataSelector:
     def predicate(
         self,
     ) -> Callable[
-        [Kustomization | HelmRelease | HelmRepository | ClusterPolicy | OCIRepository],
+        [Kustomization | HelmRelease | HelmRepository | OCIRepository],
         bool,
     ]:
         """A predicate that selects Kustomization objects."""
@@ -281,7 +278,6 @@ class MetadataSelector:
                 Kustomization
                 | HelmRelease
                 | HelmRepository
-                | ClusterPolicy
                 | OCIRepository
             ),
         ) -> bool:
@@ -339,9 +335,6 @@ class ResourceSelector:
 
     oci_repo: MetadataSelector = field(default_factory=MetadataSelector)
     """OCIRepository objects to return."""
-
-    cluster_policy: MetadataSelector = field(default_factory=MetadataSelector)
-    """ClusterPolicy objects to return."""
 
     doc_visitor: DocumentVisitor | None = None
     """Raw objects to visit."""
@@ -587,13 +580,11 @@ async def build_kustomization(
     helm_repo_selector: MetadataSelector = selector.helm_repo
     oci_repo_selector: MetadataSelector = selector.oci_repo
     helm_release_selector: MetadataSelector = selector.helm_release
-    cluster_policy_selector: MetadataSelector = selector.cluster_policy
     if (
         not kustomization_selector.enabled
         and not helm_repo_selector.enabled
         and not oci_repo_selector.visitor
         and not helm_release_selector.enabled
-        and not cluster_policy_selector.enabled
         and not selector.doc_visitor
     ):
         return
@@ -633,8 +624,6 @@ async def build_kustomization(
             kinds.append(HELM_RELEASE_KIND)
             # Needed for expanding value references
             kinds.append(SECRET_KIND)
-        if cluster_policy_selector.enabled:
-            kinds.append(CLUSTER_POLICY_KIND)
         if selector.doc_visitor:
             kinds.extend(selector.doc_visitor.kinds)
         if not kinds:
@@ -678,16 +667,6 @@ async def build_kustomization(
                     HelmRelease.parse_doc(doc)
                     for doc in docs
                     if doc.get("kind") == HELM_RELEASE_KIND
-                ],
-            )
-        )
-        kustomization.cluster_policies = list(
-            filter(
-                cluster_policy_selector.predicate,
-                [
-                    ClusterPolicy.parse_doc(doc)
-                    for doc in docs
-                    if doc.get("kind") == CLUSTER_POLICY_KIND
                 ],
             )
         )
@@ -839,15 +818,6 @@ async def build_manifest(
                         await selector.helm_release.visitor.func(
                             Path(kustomization.path),
                             helm_release,
-                            None,
-                        )
-
-            if selector.cluster_policy.visitor:
-                for kustomization in cluster.kustomizations:
-                    for cluster_policy in kustomization.cluster_policies:
-                        await selector.cluster_policy.visitor.func(
-                            Path(kustomization.path),
-                            cluster_policy,
                             None,
                         )
 
