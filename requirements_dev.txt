@@ -14,7 +14,7 @@ aiofiles==24.1.0
 GitPython==3.1.43
 mashumaro==3.15
 nest_asyncio==1.6.0
-pytest-asyncio==0.25.0
+pytest-asyncio==0.25.1
 python-slugify==8.0.4
 PyYAML==6.0.2
 types-aiofiles==24.1.0.20241221
