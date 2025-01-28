@@ -40,7 +40,7 @@ runs:
         cp ${{ github.action_path }}/../../requirements.txt $tempdir
         echo "directory=${tempdir}" >> $GITHUB_OUTPUT
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
         cache: pip
