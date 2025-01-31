@@ -10,7 +10,7 @@ repos:
         exclude: '^tests/testdata/cluster8/apps/.*\.yaml|tests/testdata/cluster/apps/prod/.*\.yaml$'
       - id: check-added-large-files
   - repo: https://github.com/psf/black
-    rev: 24.10.0
+    rev: 25.1.0
     hooks:
       - id: black
   - repo: https://github.com/charliermarsh/ruff-pre-commit
