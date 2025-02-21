@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Flux CLI
-        uses: fluxcd/flux2/action@v2.4.0
+        uses: fluxcd/flux2/action@v2.5.0
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
