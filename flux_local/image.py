@@ -72,7 +72,7 @@ class ImageVisitor:
 
             Updates the image set with the images found in the document.
             """
-            kind = doc.get("kind")
+            kind: str = doc["kind"]
             images = _extract_images(kind, doc)
             if not images:
                 return
