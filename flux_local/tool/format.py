@@ -71,3 +71,20 @@ class YamlFormatter:
         print(
             yaml.dump_all(data, sort_keys=False, explicit_start=True), end="", file=file
         )
+
+
+
+class YamlListFormatter:
+    """A formatter that prints yaml output for a list instead of a document."""
+
+    def format(self, data: list[Any]) -> Generator[str, None, None]:
+        """Format the data objects."""
+        content = yaml.dump(data, sort_keys=False, explicit_start=True)
+        for line in content.split("\n"):
+            yield line
+
+    def print(self, data: list[Any], file: TextIO = sys.stdout) -> None:
+        """Format the data objects."""
+        print(
+            yaml.dump(data, sort_keys=False, explicit_start=True), end="", file=file
+        )

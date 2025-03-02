@@ -14,7 +14,7 @@ import tempfile
 from flux_local import git_repo, image, helm
 from flux_local.visitor import HelmVisitor, ImageOutput
 
-from .format import PrintFormatter, YamlFormatter
+from .format import PrintFormatter, YamlFormatter, YamlListFormatter
 from . import selector
 
 
@@ -168,6 +168,13 @@ class GetClusterAction:
             help="Output container images when traversing the cluster",
         )
         args.add_argument(
+            "--only-images",
+            type=str,
+            default=False,
+            action=BooleanOptionalAction,
+            help="Output only container images when traversing the cluster",
+        )
+        args.add_argument(
             "--output",
             "-o",
             choices=["diff", "yaml"],
@@ -188,21 +195,30 @@ class GetClusterAction:
         output: str,
         output_file: str,
         enable_images: bool,
+        only_images: bool,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
+        if output != "yaml":
+            if enable_images:
+                print(
+                    "Flag --enable-images only works with --output yaml",
+                    file=sys.stderr,
+                )
+                return
+        if only_images and not enable_images:
+            print(
+                "Flag --only-images only works with --enable-images",
+                file=sys.stderr,
+            )
+            return
+
         query = selector.build_cluster_selector(**kwargs)
         query.helm_release.enabled = output == "yaml"
 
         image_visitor: image.ImageVisitor | None = None
         helm_content: ImageOutput | None = None
         if enable_images:
-            if output != "yaml":
-                print(
-                    "Flag --enable-images only works with --output yaml",
-                    file=sys.stderr,
-                )
-                return
             image_visitor = image.ImageVisitor()
             query.doc_visitor = image_visitor.repo_visitor()
 
@@ -226,8 +242,29 @@ class GetClusterAction:
                     )
                     helm_content.update_manifest(manifest)
 
+            output_content: Any
+            formatter: YamlFormatter | YamlListFormatter
+            if only_images:
+                output_content = sorted(list({
+                    *[
+                        image
+                        for cluster in manifest.clusters
+                        for hr in cluster.helm_releases
+                        for image in hr.images or ()
+                    ],
+                    *[
+                        image
+                        for cluster in manifest.clusters
+                        for ks in cluster.kustomizations
+                        for image in ks.images or ()
+                    ],
+                }))
+                formatter = YamlListFormatter()
+            else:
+                output_content = [manifest.compact_dict()]
+                formatter = YamlFormatter()
             with open(output_file, "w") as file:
-                YamlFormatter().print([manifest.compact_dict()], file=file)
+                formatter.print(output_content, file=file)
             return
 
         cols = ["path", "kustomizations"]
