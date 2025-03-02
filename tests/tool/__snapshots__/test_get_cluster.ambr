@@ -390,3 +390,14 @@
   
   '''
 # ---
+# name: test_get_cluster[yaml-cluster8-only-images]
+  '''
+  ---
+  - alpine
+  - busybox
+  - ghcr.io/stefanprodan/podinfo:6.5.4
+  - public.ecr.aws/docker/library/redis:7.0.6
+  - tailscale/k8s-operator:v1.68.1
+  
+  '''
+# ---
