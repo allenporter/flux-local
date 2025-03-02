@@ -205,7 +205,7 @@ class GetClusterAction:
                     "Flag --enable-images only works with --output yaml",
                     file=sys.stderr,
                 )
-            return
+                return
         if only_images and not enable_images:
             print(
                 "Flag --only-images only works with --enable-images",
