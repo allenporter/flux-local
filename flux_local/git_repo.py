@@ -261,6 +261,9 @@ class MetadataSelector:
     skip_secrets: bool = True
     """If false, Secrets may be processed, depending on the resource type."""
 
+    skip_kinds: list[str] | None = None
+    """A list of potential CRDs to skip when emitting objects."""
+
     visitor: ResourceVisitor | None = None
     """Visitor for the specified object type that can be used for building."""
 
@@ -600,6 +603,8 @@ async def build_kustomization(
             skips.append(CRD_KIND)
         if kustomization_selector.skip_secrets:
             skips.append(SECRET_KIND)
+        if kustomization_selector.skip_kinds:
+            skips.extend(kustomization_selector.skip_kinds)
         cmd = cmd.skip_resources(skips)
         try:
             cmd = await cmd.stash()

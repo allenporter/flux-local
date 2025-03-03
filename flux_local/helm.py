@@ -137,6 +137,9 @@ class Options:
     skip_secrets: bool = False
     """Don't emit secrets in the output."""
 
+    skip_kinds: list[str] | None = None
+    """Omit these kinds in the output."""
+
     kube_version: str | None = None
     """Value of the helm --kube-version flag."""
 
@@ -173,6 +176,8 @@ class Options:
             skips.append(CRD_KIND)
         if self.skip_secrets:
             skips.append(SECRET_KIND)
+        if self.skip_kinds:
+            skips.extend(self.skip_kinds)
         return skips
 
 

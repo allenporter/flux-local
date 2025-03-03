@@ -65,6 +65,7 @@ class BuildAllAction:
         enable_helm: bool,
         skip_crds: bool,
         skip_secrets: bool,
+        skip_kinds: list[str],
         output_file: str,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
@@ -74,10 +75,11 @@ class BuildAllAction:
         query.kustomization.namespace = None
         query.kustomization.skip_crds = skip_crds
         query.kustomization.skip_secrets = skip_secrets
+        query.kustomization.skip_kinds = skip_kinds
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
         helm_options = selector.build_helm_options(
-            skip_crds=skip_crds, skip_secrets=skip_secrets, **kwargs
+            skip_crds=skip_crds, skip_secrets=skip_secrets, skip_kinds=skip_kinds, **kwargs
         )
 
         content = ContentOutput()
