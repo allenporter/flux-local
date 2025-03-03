@@ -173,6 +173,8 @@ class Options:
             skips.append(CRD_KIND)
         if self.skip_secrets:
             skips.append(SECRET_KIND)
+        if self.skip_kinds:
+            skips.extend(self.skip_kinds)
         return skips
 
 

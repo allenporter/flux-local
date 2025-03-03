@@ -600,6 +600,8 @@ async def build_kustomization(
             skips.append(CRD_KIND)
         if kustomization_selector.skip_secrets:
             skips.append(SECRET_KIND)
+        if kustomization_selector.skip_kinds:
+            skips.extend(kustomization_selector.skip_kinds)
         cmd = cmd.skip_resources(skips)
         try:
             cmd = await cmd.stash()

@@ -123,6 +123,11 @@ def add_common_flags(args: ArgumentParser) -> None:
         help="When true do not include Secrets to reduce output size and randomness",
     )
     args.add_argument(
+        "--skip-kinds",
+        type=lambda x: x.split(","),
+        help="A comma separated list of CRDs to omit from the output.",
+    )
+    args.add_argument(
         "--kustomize-build-flags",
         type=str,
         default="",
@@ -166,6 +171,7 @@ def build_ks_selector(  # type: ignore[no-untyped-def]
     selector.kustomization.label_selector = kwargs["label_selector"]
     selector.kustomization.skip_crds = kwargs["skip_crds"]
     selector.kustomization.skip_secrets = kwargs["skip_secrets"]
+    selector.kustomization.skip_kinds = kwargs["skip_kinds"]
     return selector
 
 
@@ -197,6 +203,7 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     selector.helm_release.label_selector = kwargs["label_selector"]
     selector.helm_release.skip_crds = kwargs["skip_crds"]
     selector.helm_release.skip_secrets = kwargs["skip_secrets"]
+    selector.helm_release.skip_kinds = kwargs["skip_kinds"]
     selector.kustomization.name = None
     selector.kustomization.namespace = None
     return selector
@@ -228,6 +235,7 @@ def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def
     return helm.Options(
         skip_crds=kwargs["skip_crds"],
         skip_secrets=kwargs["skip_secrets"],
+        skip_kinds=kwargs["skip_kinds"],
         kube_version=kwargs.get("kube_version"),
         api_versions=kwargs.get("api_versions"),
         registry_config=kwargs.get("registry_config"),
@@ -255,6 +263,7 @@ def build_cluster_selector(  # type: ignore[no-untyped-def]
     selector.kustomization.label_selector = kwargs["label_selector"]
     selector.kustomization.skip_crds = kwargs["skip_crds"]
     selector.kustomization.skip_secrets = kwargs["skip_secrets"]
+    selector.kustomization.skip_kinds = kwargs["skip_kinds"]
     return selector
 
 
