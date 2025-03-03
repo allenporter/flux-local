@@ -360,6 +360,9 @@ class OCIRepository(BaseManifest):
     url: str
     """The URL to the repository."""
 
+    ref_tag: str | None = None
+    """The version tag of the repository."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "OCIRepository":
         """Parse a HelmRepository from a kubernetes resource."""
@@ -374,10 +377,12 @@ class OCIRepository(BaseManifest):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (url := spec.get("url")):
             raise InputException(f"Invalid {cls} missing spec.url: {doc}")
+        ref_tag = spec.get("ref", {}).get("tag")
         return cls(
             name=name,
             namespace=namespace,
             url=url,
+            ref_tag=ref_tag,
         )
 
     @property

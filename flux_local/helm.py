@@ -273,6 +273,13 @@ class Helm:
                     release.chart.version,
                 ]
             )
+        elif isinstance(repo, OCIRepository) and repo.ref_tag:
+            args.extend(
+                [
+                    "--version",
+                    repo.ref_tag,
+                ]
+            )
         if release.values:
             values_path = self._tmp_dir / f"{release.release_name}-values.yaml"
             async with aiofiles.open(values_path, mode="w") as values_file:
