@@ -1,31 +1,9 @@
 # serializer version: 1
 # name: test_diff_ks[apps]
-  '''
-  --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps HelmRelease: podinfo/podinfo
-  
-  +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps HelmRelease: podinfo/podinfo
-  
-  @@ -3,6 +3,8 @@
-  
-   kind: HelmRelease
-   metadata:
-     labels:
-  +    app.kubernetes.io/instance: podinfo
-  +    app.kubernetes.io/name: podinfo
-       kustomize.toolkit.fluxcd.io/name: apps
-       kustomize.toolkit.fluxcd.io/namespace: flux-system
-     name: podinfo
-  
-  '''
+  ''
 # ---
 # name: test_diff_ks[ks-external]
-  '''
-  14a15,16
-  >     app.kubernetes.io/instance: podinfo
-  >     app.kubernetes.io/name: podinfo
-  
-  
-  '''
+  ''
 # ---
 # name: test_diff_ks[yaml-empty-sources]
   '''
@@ -64,13 +42,15 @@
   
         +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps HelmRelease: podinfo/podinfo
   
-        @@ -1,39 +0,0 @@
+        @@ -1,41 +0,0 @@
   
         ----
         -apiVersion: helm.toolkit.fluxcd.io/v2beta1
         -kind: HelmRelease
         -metadata:
         -  labels:
+        -    app.kubernetes.io/instance: podinfo
+        -    app.kubernetes.io/name: podinfo
         -    kustomize.toolkit.fluxcd.io/name: apps
         -    kustomize.toolkit.fluxcd.io/namespace: flux-system
         -  name: podinfo
@@ -250,64 +230,8 @@
   '''
 # ---
 # name: test_diff_ks[yaml-limit]
-  '''
-  ---
-  - kustomization_path: tests/testdata/cluster/apps/prod
-    kind: Kustomization
-    namespace: flux-system
-    name: apps
-    diffs:
-    - kustomization_path: tests/testdata/cluster/apps/prod
-      kind: HelmRelease
-      namespace: podinfo
-      name: podinfo
-      diff: |-
-        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps HelmRelease: podinfo/podinfo
-  
-        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps HelmRelease: podinfo/podinfo
-  
-        @@ -3,6 +3,8 @@
-  
-         kind: HelmRelease
-         metadata:
-           labels:
-        +    app.kubernetes.io/instance: podinfo
-        +    app.kubernetes.io/name: podinfo
-             kustomize.toolkit.fluxcd.io/name: apps
-             kustomize.toolkit.fluxcd.io/namespace: flux-system
-           name: podinfo
-  
-  
-  '''
+  ''
 # ---
 # name: test_diff_ks[yaml]
-  '''
-  ---
-  - kustomization_path: tests/testdata/cluster/apps/prod
-    kind: Kustomization
-    namespace: flux-system
-    name: apps
-    diffs:
-    - kustomization_path: tests/testdata/cluster/apps/prod
-      kind: HelmRelease
-      namespace: podinfo
-      name: podinfo
-      diff: |-
-        --- tests/testdata/cluster/apps/prod Kustomization: flux-system/apps HelmRelease: podinfo/podinfo
-  
-        +++ tests/testdata/cluster/apps/prod Kustomization: flux-system/apps HelmRelease: podinfo/podinfo
-  
-        @@ -3,6 +3,8 @@
-  
-         kind: HelmRelease
-         metadata:
-           labels:
-        +    app.kubernetes.io/instance: podinfo
-        +    app.kubernetes.io/name: podinfo
-             kustomize.toolkit.fluxcd.io/name: apps
-             kustomize.toolkit.fluxcd.io/namespace: flux-system
-           name: podinfo
-  
-  
-  '''
+  ''
 # ---
