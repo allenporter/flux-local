@@ -203,10 +203,7 @@ class ResourceVisitor:
     func: Callable[
         [
             Path,
-            Kustomization
-            | HelmRelease
-            | HelmRepository
-            | OCIRepository,
+            Kustomization | HelmRelease | HelmRepository | OCIRepository,
             kustomize.Kustomize | None,
         ],
         Awaitable[None],
@@ -255,6 +252,9 @@ class MetadataSelector:
     namespace: str | None = None
     """Resources returned will be from this namespace."""
 
+    label_selector: dict[str, str] | None = None
+    """Resources returned must have these labels."""
+
     skip_crds: bool = True
     """If false, CRDs may be processed, depending on the resource type."""
 
@@ -274,12 +274,7 @@ class MetadataSelector:
         """A predicate that selects Kustomization objects."""
 
         def predicate(
-            obj: (
-                Kustomization
-                | HelmRelease
-                | HelmRepository
-                | OCIRepository
-            ),
+            obj: Kustomization | HelmRelease | HelmRepository | OCIRepository,
         ) -> bool:
             if not self.enabled:
                 return False
@@ -287,6 +282,15 @@ class MetadataSelector:
                 return False
             if self.namespace and obj.namespace != self.namespace:
                 return False
+            if self.label_selector and isinstance(obj, (Kustomization, HelmRelease)):
+                obj_labels = obj.labels or {}
+                for name, value in self.label_selector.items():
+                    _LOGGER.debug("Checking %s=%s", name, value)
+                    if (
+                        obj_value := obj_labels.get(name)
+                    ) is None or obj_value != value:
+                        _LOGGER.debug("mismatch v=%s", obj_value)
+                        return False
             return True
 
         return predicate

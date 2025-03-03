@@ -5,6 +5,9 @@ kind: Kustomization
 metadata:
   name: apps
   namespace: flux-system
+  labels:
+    app.kubernetes.io/name: apps
+    app.kubernetes.io/instance: apps
 spec:
   interval: 10m0s
   dependsOn:
