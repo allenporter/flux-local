@@ -14,7 +14,13 @@ import tempfile
 from flux_local import git_repo, image, helm
 from flux_local.visitor import HelmVisitor, ImageOutput
 
-from .format import PrintFormatter, YamlFormatter, YamlListFormatter
+from .format import (
+    PrintFormatter,
+    YamlFormatter,
+    YamlListFormatter,
+    JsonFormatter,
+    StructFormatter,
+)
 from . import selector
 
 
@@ -177,7 +183,7 @@ class GetClusterAction:
         args.add_argument(
             "--output",
             "-o",
-            choices=["diff", "yaml"],
+            choices=["diff", "yaml", "json"],
             default="diff",
             help="Output format of the command",
         )
@@ -199,10 +205,10 @@ class GetClusterAction:
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
-        if output != "yaml":
+        if output not in {"yaml", "json"}:
             if enable_images:
                 print(
-                    "Flag --enable-images only works with --output yaml",
+                    "Flag --enable-images only works with --output yaml or json",
                     file=sys.stderr,
                 )
                 return
@@ -214,7 +220,7 @@ class GetClusterAction:
             return
 
         query = selector.build_cluster_selector(**kwargs)
-        query.helm_release.enabled = output == "yaml"
+        query.helm_release.enabled = output in {"yaml", "json"}
 
         image_visitor: image.ImageVisitor | None = None
         helm_content: ImageOutput | None = None
@@ -230,7 +236,7 @@ class GetClusterAction:
         manifest = await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
         )
-        if output == "yaml":
+        if output == "yaml" or output == "json":
             if image_visitor:
                 image_visitor.update_manifest(manifest)
             if helm_content:
@@ -243,26 +249,32 @@ class GetClusterAction:
                     helm_content.update_manifest(manifest)
 
             output_content: Any
-            formatter: YamlFormatter | YamlListFormatter
+            formatter: StructFormatter
             if only_images:
-                output_content = sorted(list({
-                    *[
-                        image
-                        for cluster in manifest.clusters
-                        for hr in cluster.helm_releases
-                        for image in hr.images or ()
-                    ],
-                    *[
-                        image
-                        for cluster in manifest.clusters
-                        for ks in cluster.kustomizations
-                        for image in ks.images or ()
-                    ],
-                }))
-                formatter = YamlListFormatter()
+                output_content = sorted(
+                    list(
+                        {
+                            *[
+                                image
+                                for cluster in manifest.clusters
+                                for hr in cluster.helm_releases
+                                for image in hr.images or ()
+                            ],
+                            *[
+                                image
+                                for cluster in manifest.clusters
+                                for ks in cluster.kustomizations
+                                for image in ks.images or ()
+                            ],
+                        }
+                    )
+                )
+                formatter = YamlListFormatter() if output == "yaml" else JsonFormatter()
             else:
-                output_content = [manifest.compact_dict()]
-                formatter = YamlFormatter()
+                output_content = manifest.compact_dict()
+                if output == "yaml":  # Yaml is printing multiple docs
+                    output_content = [output_content]
+                formatter = YamlFormatter() if output == "yaml" else JsonFormatter()
             with open(output_file, "w") as file:
                 formatter.print(output_content, file=file)
             return
