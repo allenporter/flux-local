@@ -29,6 +29,24 @@ from . import run_command
         (["metallb", "-A", "--path", "tests/testdata/cluster"]),
         (["-n", "metallb", "--path", "tests/testdata/cluster"]),
         (["-A", "--path", "tests/testdata/cluster9/clusters/dev"]),
+        (
+            [
+                "-A",
+                "--path",
+                "tests/testdata/cluster",
+                "-l",
+                "app.kubernetes.io/name=podinfo",
+            ]
+        ),
+        (
+            [
+                "-A",
+                "--path",
+                "tests/testdata/cluster",
+                "-l",
+                "app.kubernetes.io/name=kubernetes-dashboard",
+            ]
+        ),
     ],
     ids=[
         "cluster",
@@ -42,6 +60,8 @@ from . import run_command
         "all_namespace",
         "name",
         "cluster9",
+        "label-selector-match",
+        "label-selector-no-match",
     ],
 )
 async def test_get_hr(args: list[str], snapshot: SnapshotAssertion) -> None:

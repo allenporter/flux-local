@@ -74,6 +74,19 @@
   
   '''
 # ---
+# name: test_get_hr[label-selector-match]
+  '''
+  NAMESPACE    NAME       REVISION    CHART              SOURCE     
+  podinfo      podinfo    6.3.2       podinfo-podinfo    podinfo    
+  
+  '''
+# ---
+# name: test_get_hr[label-selector-no-match]
+  '''
+  no HelmRelease objects found in cluster
+  
+  '''
+# ---
 # name: test_get_hr[name]
   '''
   NAME       REVISION    CHART              SOURCE     
