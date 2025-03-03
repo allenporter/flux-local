@@ -50,6 +50,15 @@ from . import run_command
                 "--only-images",
             ]
         ),
+        (
+            [
+                "--path",
+                "tests/testdata/cluster9/clusters/dev",
+                "--output",
+                "yaml",
+                "--enable-images",
+            ]
+        ),
         (["--path", "tests/testdata/cluster", "-o", "json"]),
         (["--path", "tests/testdata/cluster", "-o", "json", "--enable-images"]),
         (
@@ -79,6 +88,7 @@ from . import run_command
         "yaml-cluster8-images",
         "yaml-cluster8-images-allow-secrets",
         "yaml-cluster8-only-images",
+        "yaml-cluster9-only-images-with-oci",
         "json-cluster",
         "json-cluster-images",
         "json-cluster-only-images",

@@ -651,3 +651,54 @@
   
   '''
 # ---
+# name: test_get_cluster[yaml-cluster9-only-images-with-oci]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster9/clusters/dev
+    kustomizations:
+    - name: apps-stack
+      namespace: flux-system
+      path: tests/testdata/cluster9/apps
+      helm_repos: []
+      oci_repos:
+      - name: podinfo
+        namespace: default
+        url: oci://ghcr.io/stefanprodan/charts/podinfo
+      helm_releases:
+      - name: nginx
+        namespace: default
+        chart:
+          name: ./tests/testdata/cluster9/local-charts/nginx
+          repo_name: flux-system
+          repo_namespace: flux-system
+          repo_kind: GitRepository
+        images:
+        - nginx:1.16.0
+      - name: podinfo
+        namespace: default
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: default
+          repo_kind: OCIRepository
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.7.1
+      config_maps: []
+      secrets: []
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster9/clusters/dev
+      helm_repos: []
+      oci_repos: []
+      helm_releases: []
+      config_maps: []
+      secrets: []
+      images:
+      - ghcr.io/fluxcd/helm-controller:v0.37.4
+      - ghcr.io/fluxcd/kustomize-controller:v1.2.2
+      - ghcr.io/fluxcd/notification-controller:v1.2.4
+      - ghcr.io/fluxcd/source-controller:v1.2.4
+  
+  '''
+# ---
