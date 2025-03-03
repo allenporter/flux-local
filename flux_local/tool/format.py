@@ -1,10 +1,12 @@
 """Library for formatting output."""
 
+from abc import ABC, abstractmethod
 from typing import Generator, Any
 
 import sys
 from typing import TextIO
 import yaml
+import json
 
 
 PADDING = 4
@@ -56,18 +58,57 @@ class PrintFormatter:
             print(result, file=file)
 
 
-class YamlFormatter:
+class StructFormatter(ABC):
+    """A formatter that prints objects."""
+
+    @abstractmethod
+    def format(self, data: Any) -> Generator[str, None, None]:
+        """Format the data objects."""
+
+    @abstractmethod
+    def print(self, data: Any, file: TextIO = sys.stdout) -> None:
+        """Print the data objects."""
+
+
+class YamlFormatter(StructFormatter):
     """A formatter that prints yaml output."""
 
-    def format(self, data: list[dict[str, Any]]) -> Generator[str, None, None]:
+    def format(self, data: Any) -> Generator[str, None, None]:
         """Format the data objects."""
         for line in yaml.dump_all(data, sort_keys=False, explicit_start=True).split(
             "\n"
         ):
             yield line
 
-    def print(self, data: list[dict[str, Any]], file: TextIO = sys.stdout) -> None:
+    def print(self, data: Any, file: TextIO = sys.stdout) -> None:
         """Format the data objects."""
         print(
             yaml.dump_all(data, sort_keys=False, explicit_start=True), end="", file=file
         )
+
+
+class YamlListFormatter(StructFormatter):
+    """A formatter that prints yaml output for a list instead of a document."""
+
+    def format(self, data: Any) -> Generator[str, None, None]:
+        """Format the data objects."""
+        content = yaml.dump(data, sort_keys=False, explicit_start=True)
+        for line in content.split("\n"):
+            yield line
+
+    def print(self, data: Any, file: TextIO = sys.stdout) -> None:
+        """Format the data objects."""
+        print(yaml.dump(data, sort_keys=False, explicit_start=True), end="", file=file)
+
+
+class JsonFormatter(StructFormatter):
+    """A formatter that prints json output."""
+
+    def format(self, data: Any) -> Generator[str, None, None]:
+        """Format the data objects."""
+        for line in json.dumps(data, indent=4, sort_keys=False).split("\n"):
+            yield line
+
+    def print(self, data: Any, file: TextIO = sys.stdout) -> None:
+        """Format the data objects."""
+        json.dump(data, sort_keys=False, indent=4, fp=file)

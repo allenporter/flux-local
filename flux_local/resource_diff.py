@@ -3,7 +3,7 @@
 This is used internally, primarily by the diff tool.
 """
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Callable
 from dataclasses import asdict
 import difflib
 import logging
@@ -11,6 +11,7 @@ import pathlib
 import tempfile
 from typing import Generator, Any, AsyncGenerator, TypeVar
 import yaml
+import json
 
 
 from . import command
@@ -118,7 +119,40 @@ def perform_yaml_diff(
 ) -> Generator[str, None, None]:
     """Generate diffs between the two output objects."""
 
-    diffs = []
+    def diff_func(diffs: list[dict[str, Any]]) -> str:
+        return yaml.dump(
+            diffs, sort_keys=False, explicit_start=True, default_style=None
+        )
+
+    for result in _perform_function_diff(a, b, n, limit_bytes, diff_func):
+        yield result
+
+
+def perform_json_diff(
+    a: ObjectOutput,
+    b: ObjectOutput,
+    n: int,
+    limit_bytes: int,
+) -> Generator[str, None, None]:
+    """Generate diffs between the two output objects."""
+
+    def diff_func(diffs: list[dict[str, Any]]) -> str:
+        return json.dumps(diffs, sort_keys=False, indent=4)
+
+    for result in _perform_function_diff(a, b, n, limit_bytes, diff_func):
+        yield result
+
+
+def _perform_function_diff(
+    a: ObjectOutput,
+    b: ObjectOutput,
+    n: int,
+    limit_bytes: int,
+    diff_func: Callable[[list[dict[str, Any]]], str],
+) -> Generator[str, None, None]:
+    """Generate diffs between the two output objects."""
+
+    diffs: list[dict[str, Any]] = []
     for kustomization_key in _unique_keys(a.content, b.content):
         _LOGGER.debug("Diffing results for %s (n=%d)", kustomization_key, n)
         a_resources = a.content.get(kustomization_key, {})
@@ -150,7 +184,7 @@ def perform_yaml_diff(
                 }
             )
     if diffs:
-        yield yaml.dump(diffs, sort_keys=False, explicit_start=True, default_style=None)
+        yield diff_func(diffs)
 
 
 def merge_helm_releases(

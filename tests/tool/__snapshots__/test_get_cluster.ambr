@@ -62,6 +62,256 @@
   
   '''
 # ---
+# name: test_get_cluster[json-cluster-images]
+  '''
+  {
+      "clusters": [
+          {
+              "path": "tests/testdata/cluster",
+              "kustomizations": [
+                  {
+                      "name": "apps",
+                      "namespace": "flux-system",
+                      "path": "tests/testdata/cluster/apps/prod",
+                      "helm_repos": [],
+                      "oci_repos": [],
+                      "helm_releases": [
+                          {
+                              "name": "podinfo",
+                              "namespace": "podinfo",
+                              "chart": {
+                                  "name": "podinfo",
+                                  "repo_name": "podinfo",
+                                  "repo_namespace": "flux-system",
+                                  "repo_kind": "HelmRepository"
+                              },
+                              "images": [
+                                  "ghcr.io/stefanprodan/podinfo:6.3.2",
+                                  "public.ecr.aws/docker/library/redis:7.0.6"
+                              ]
+                          }
+                      ],
+                      "config_maps": [
+                          {
+                              "name": "podinfo-config",
+                              "namespace": "podinfo"
+                          }
+                      ],
+                      "secrets": []
+                  },
+                  {
+                      "name": "flux-system",
+                      "namespace": "flux-system",
+                      "path": "tests/testdata/cluster/clusters/prod",
+                      "helm_repos": [],
+                      "oci_repos": [],
+                      "helm_releases": [],
+                      "config_maps": [
+                          {
+                              "name": "cluster-config",
+                              "namespace": "flux-system"
+                          }
+                      ],
+                      "secrets": []
+                  },
+                  {
+                      "name": "infra-configs",
+                      "namespace": "flux-system",
+                      "path": "tests/testdata/cluster/infrastructure/configs",
+                      "helm_repos": [
+                          {
+                              "name": "bitnami",
+                              "namespace": "flux-system",
+                              "url": "https://charts.bitnami.com/bitnami",
+                              "repo_type": "default"
+                          },
+                          {
+                              "name": "podinfo",
+                              "namespace": "flux-system",
+                              "url": "oci://ghcr.io/stefanprodan/charts",
+                              "repo_type": "oci"
+                          },
+                          {
+                              "name": "weave-charts",
+                              "namespace": "flux-system",
+                              "url": "oci://ghcr.io/weaveworks/charts",
+                              "repo_type": "oci"
+                          }
+                      ],
+                      "oci_repos": [],
+                      "helm_releases": [],
+                      "config_maps": [],
+                      "secrets": []
+                  },
+                  {
+                      "name": "infra-controllers",
+                      "namespace": "flux-system",
+                      "path": "tests/testdata/cluster/infrastructure/controllers",
+                      "helm_repos": [],
+                      "oci_repos": [],
+                      "helm_releases": [
+                          {
+                              "name": "metallb",
+                              "namespace": "metallb",
+                              "chart": {
+                                  "name": "metallb",
+                                  "repo_name": "bitnami",
+                                  "repo_namespace": "flux-system",
+                                  "repo_kind": "HelmRepository"
+                              },
+                              "images": [
+                                  "docker.io/bitnami/metallb-controller:0.13.7-debian-11-r29",
+                                  "docker.io/bitnami/metallb-speaker:0.13.7-debian-11-r28"
+                              ]
+                          },
+                          {
+                              "name": "weave-gitops",
+                              "namespace": "flux-system",
+                              "chart": {
+                                  "name": "weave-gitops",
+                                  "repo_name": "weave-charts",
+                                  "repo_namespace": "flux-system",
+                                  "repo_kind": "HelmRepository"
+                              },
+                              "images": [
+                                  "ghcr.io/weaveworks/wego-app:v0.24.0"
+                              ]
+                          }
+                      ],
+                      "config_maps": [],
+                      "secrets": []
+                  }
+              ]
+          }
+      ]
+  }
+  '''
+# ---
+# name: test_get_cluster[json-cluster-only-images]
+  '''
+  [
+      "alpine",
+      "busybox",
+      "ghcr.io/stefanprodan/podinfo:6.5.4",
+      "public.ecr.aws/docker/library/redis:7.0.6",
+      "tailscale/k8s-operator:v1.68.1"
+  ]
+  '''
+# ---
+# name: test_get_cluster[json-cluster]
+  '''
+  {
+      "clusters": [
+          {
+              "path": "tests/testdata/cluster",
+              "kustomizations": [
+                  {
+                      "name": "apps",
+                      "namespace": "flux-system",
+                      "path": "tests/testdata/cluster/apps/prod",
+                      "helm_repos": [],
+                      "oci_repos": [],
+                      "helm_releases": [
+                          {
+                              "name": "podinfo",
+                              "namespace": "podinfo",
+                              "chart": {
+                                  "name": "podinfo",
+                                  "repo_name": "podinfo",
+                                  "repo_namespace": "flux-system",
+                                  "repo_kind": "HelmRepository"
+                              }
+                          }
+                      ],
+                      "config_maps": [
+                          {
+                              "name": "podinfo-config",
+                              "namespace": "podinfo"
+                          }
+                      ],
+                      "secrets": []
+                  },
+                  {
+                      "name": "flux-system",
+                      "namespace": "flux-system",
+                      "path": "tests/testdata/cluster/clusters/prod",
+                      "helm_repos": [],
+                      "oci_repos": [],
+                      "helm_releases": [],
+                      "config_maps": [
+                          {
+                              "name": "cluster-config",
+                              "namespace": "flux-system"
+                          }
+                      ],
+                      "secrets": []
+                  },
+                  {
+                      "name": "infra-configs",
+                      "namespace": "flux-system",
+                      "path": "tests/testdata/cluster/infrastructure/configs",
+                      "helm_repos": [
+                          {
+                              "name": "bitnami",
+                              "namespace": "flux-system",
+                              "url": "https://charts.bitnami.com/bitnami",
+                              "repo_type": "default"
+                          },
+                          {
+                              "name": "podinfo",
+                              "namespace": "flux-system",
+                              "url": "oci://ghcr.io/stefanprodan/charts",
+                              "repo_type": "oci"
+                          },
+                          {
+                              "name": "weave-charts",
+                              "namespace": "flux-system",
+                              "url": "oci://ghcr.io/weaveworks/charts",
+                              "repo_type": "oci"
+                          }
+                      ],
+                      "oci_repos": [],
+                      "helm_releases": [],
+                      "config_maps": [],
+                      "secrets": []
+                  },
+                  {
+                      "name": "infra-controllers",
+                      "namespace": "flux-system",
+                      "path": "tests/testdata/cluster/infrastructure/controllers",
+                      "helm_repos": [],
+                      "oci_repos": [],
+                      "helm_releases": [
+                          {
+                              "name": "metallb",
+                              "namespace": "metallb",
+                              "chart": {
+                                  "name": "metallb",
+                                  "repo_name": "bitnami",
+                                  "repo_namespace": "flux-system",
+                                  "repo_kind": "HelmRepository"
+                              }
+                          },
+                          {
+                              "name": "weave-gitops",
+                              "namespace": "flux-system",
+                              "chart": {
+                                  "name": "weave-gitops",
+                                  "repo_name": "weave-charts",
+                                  "repo_namespace": "flux-system",
+                                  "repo_kind": "HelmRepository"
+                              }
+                          }
+                      ],
+                      "config_maps": [],
+                      "secrets": []
+                  }
+              ]
+          }
+      ]
+  }
+  '''
+# ---
 # name: test_get_cluster[yaml-cluster-images]
   '''
   ---
@@ -390,6 +640,68 @@
       helm_releases: []
       config_maps: []
       secrets: []
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster8-only-images]
+  '''
+  ---
+  - alpine
+  - busybox
+  - ghcr.io/stefanprodan/podinfo:6.5.4
+  - public.ecr.aws/docker/library/redis:7.0.6
+  - tailscale/k8s-operator:v1.68.1
+  
+  '''
+# ---
+# name: test_get_cluster[yaml-cluster9-only-images-with-oci]
+  '''
+  ---
+  clusters:
+  - path: tests/testdata/cluster9/clusters/dev
+    kustomizations:
+    - name: apps-stack
+      namespace: flux-system
+      path: tests/testdata/cluster9/apps
+      helm_repos: []
+      oci_repos:
+      - name: podinfo
+        namespace: default
+        url: oci://ghcr.io/stefanprodan/charts/podinfo
+      helm_releases:
+      - name: nginx
+        namespace: default
+        chart:
+          name: ./tests/testdata/cluster9/local-charts/nginx
+          repo_name: flux-system
+          repo_namespace: flux-system
+          repo_kind: GitRepository
+        images:
+        - nginx:1.16.0
+      - name: podinfo
+        namespace: default
+        chart:
+          name: podinfo
+          repo_name: podinfo
+          repo_namespace: default
+          repo_kind: OCIRepository
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.7.1
+      config_maps: []
+      secrets: []
+    - name: flux-system
+      namespace: flux-system
+      path: tests/testdata/cluster9/clusters/dev
+      helm_repos: []
+      oci_repos: []
+      helm_releases: []
+      config_maps: []
+      secrets: []
+      images:
+      - ghcr.io/fluxcd/helm-controller:v0.37.4
+      - ghcr.io/fluxcd/kustomize-controller:v1.2.2
+      - ghcr.io/fluxcd/notification-controller:v1.2.4
+      - ghcr.io/fluxcd/source-controller:v1.2.4
   
   '''
 # ---

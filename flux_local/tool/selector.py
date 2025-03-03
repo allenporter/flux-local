@@ -44,6 +44,28 @@ class SourceAppendAction(Action):
         setattr(namespace, self.dest, result)
 
 
+class SelectorAppendAction(Action):
+    """Append a key=value pair to the argument dict."""
+
+    def __call__(
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        values: Any,
+        option_string: str | None = None,
+    ) -> None:
+        values = values.split(",")
+        if not values[0]:
+            return
+        result = getattr(namespace, self.dest) or {}
+        for value in values:
+            if "=" not in value:
+                raise ValueError(f"Expected key=value format but got '{value}'")
+            k, v = value.split("=")
+            result[k] = v
+        setattr(namespace, self.dest, result)
+
+
 def add_selector_flags(args: ArgumentParser) -> None:
     """Add common selector flags to the arguments object."""
     args.add_argument(
@@ -75,6 +97,12 @@ def add_selector_flags(args: ArgumentParser) -> None:
         default=DEFAULT_NAMESPACE,
         help="If present, the namespace scope for this request",
     )
+    args.add_argument(
+        "--label-selector",
+        "-l",
+        action=SelectorAppendAction,
+        help="Filter objects by label selector by name=value",
+    )
     add_common_flags(args)
 
 
@@ -93,6 +121,11 @@ def add_common_flags(args: ArgumentParser) -> None:
         default=True,
         action=BooleanOptionalAction,
         help="When true do not include Secrets to reduce output size and randomness",
+    )
+    args.add_argument(
+        "--skip-kinds",
+        type=lambda x: x.split(","),
+        help="A comma separated list of CRDs to omit from the output.",
     )
     args.add_argument(
         "--kustomize-build-flags",
@@ -135,8 +168,10 @@ def build_ks_selector(  # type: ignore[no-untyped-def]
     selector.kustomization.namespace = kwargs["namespace"]
     if kwargs["all_namespaces"]:
         selector.kustomization.namespace = None
+    selector.kustomization.label_selector = kwargs["label_selector"]
     selector.kustomization.skip_crds = kwargs["skip_crds"]
     selector.kustomization.skip_secrets = kwargs["skip_secrets"]
+    selector.kustomization.skip_kinds = kwargs["skip_kinds"]
     return selector
 
 
@@ -165,8 +200,10 @@ def build_hr_selector(  # type: ignore[no-untyped-def]
     selector.helm_release.namespace = kwargs["namespace"]
     if kwargs["all_namespaces"]:
         selector.helm_release.namespace = None
+    selector.helm_release.label_selector = kwargs["label_selector"]
     selector.helm_release.skip_crds = kwargs["skip_crds"]
     selector.helm_release.skip_secrets = kwargs["skip_secrets"]
+    selector.helm_release.skip_kinds = kwargs["skip_kinds"]
     selector.kustomization.name = None
     selector.kustomization.namespace = None
     return selector
@@ -198,6 +235,7 @@ def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def
     return helm.Options(
         skip_crds=kwargs["skip_crds"],
         skip_secrets=kwargs["skip_secrets"],
+        skip_kinds=kwargs["skip_kinds"],
         kube_version=kwargs.get("kube_version"),
         api_versions=kwargs.get("api_versions"),
         registry_config=kwargs.get("registry_config"),
@@ -222,8 +260,10 @@ def build_cluster_selector(  # type: ignore[no-untyped-def]
     if kwargs.get("all_namespaces"):
         selector.cluster.namespace = None
         selector.kustomization.namespace = None
+    selector.kustomization.label_selector = kwargs["label_selector"]
     selector.kustomization.skip_crds = kwargs["skip_crds"]
     selector.kustomization.skip_secrets = kwargs["skip_secrets"]
+    selector.kustomization.skip_kinds = kwargs["skip_kinds"]
     return selector
 
 

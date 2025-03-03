@@ -30,7 +30,47 @@ from . import run_command
         (["--path", "tests/testdata/cluster", "-o", "yaml", "--enable-images"]),
         (["--path", "tests/testdata/cluster8", "-o", "yaml"]),
         (["--path", "tests/testdata/cluster8", "-o", "yaml", "--enable-images"]),
-        (["--path", "tests/testdata/cluster8", "-o", "yaml", "--enable-images", "--no-skip-secrets"]),
+        (
+            [
+                "--path",
+                "tests/testdata/cluster8",
+                "-o",
+                "yaml",
+                "--enable-images",
+                "--no-skip-secrets",
+            ]
+        ),
+        (
+            [
+                "--path",
+                "tests/testdata/cluster8",
+                "-o",
+                "yaml",
+                "--enable-images",
+                "--only-images",
+            ]
+        ),
+        (
+            [
+                "--path",
+                "tests/testdata/cluster9/clusters/dev",
+                "--output",
+                "yaml",
+                "--enable-images",
+            ]
+        ),
+        (["--path", "tests/testdata/cluster", "-o", "json"]),
+        (["--path", "tests/testdata/cluster", "-o", "json", "--enable-images"]),
+        (
+            [
+                "--path",
+                "tests/testdata/cluster8",
+                "-o",
+                "json",
+                "--enable-images",
+                "--only-images",
+            ]
+        ),
     ],
     ids=[
         "cluster",
@@ -47,6 +87,11 @@ from . import run_command
         "yaml-cluster8-no-images",
         "yaml-cluster8-images",
         "yaml-cluster8-images-allow-secrets",
+        "yaml-cluster8-only-images",
+        "yaml-cluster9-only-images-with-oci",
+        "json-cluster",
+        "json-cluster-images",
+        "json-cluster-only-images",
     ],
 )
 async def test_get_cluster(args: list[str], snapshot: SnapshotAssertion) -> None:

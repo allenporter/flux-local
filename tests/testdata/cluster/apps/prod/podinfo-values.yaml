@@ -4,6 +4,9 @@ kind: HelmRelease
 metadata:
   name: podinfo
   namespace: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+    app.kubernetes.io/instance: podinfo
 spec:
   chart:
     spec:

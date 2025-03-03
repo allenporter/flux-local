@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from collections.abc import Generator
 
 import yaml
+from syrupy.assertion import SnapshotAssertion
 
 from flux_local import git_repo
 from flux_local.resource_diff import (
@@ -14,6 +15,8 @@ from flux_local.resource_diff import (
     merge_helm_releases,
     merge_named_resources,
     build_helm_dependency_map,
+    perform_json_diff,
+    perform_yaml_diff,
 )
 from flux_local.visitor import ObjectOutput, HelmVisitor, ResourceKey
 from flux_local.manifest import HelmRelease, HelmChart, NamedResource
@@ -198,3 +201,49 @@ async def test_merge_named_resources() -> None:
         NamedResource(name="secret", namespace="podinfo", kind="Secret"),
         NamedResource(name="podinfo", namespace="flux-system", kind="HelmRepository"),
     ]
+
+
+async def test_perform_yaml_diff(snapshot: SnapshotAssertion) -> None:
+    """Test perform_yaml_diff where an input HelmRepository change causes a diff."""
+
+    content, helm_visitor = await visit_helm_content(TESTDATA_PATH)
+    with mirror_worktree(TESTDATA_PATH) as new_cluster_path:
+
+        # Generate a diff by changing a value in the HelmRelease
+        podinfo_path = new_cluster_path / "apps/podinfo.yaml"
+        podinfo_doc = list(
+            yaml.load_all(podinfo_path.read_text(), Loader=yaml.SafeLoader)
+        )
+        assert len(podinfo_doc) == 2
+        assert podinfo_doc[0]["kind"] == "HelmRepository"
+        assert podinfo_doc[0]["spec"]["url"] == "oci://ghcr.io/stefanprodan/charts"
+        podinfo_doc[0]["spec"]["url"] = "oci://ghcr.io/stefanprodan/charts2"
+        podinfo_path.write_text(yaml.dump_all(podinfo_doc))
+
+        content_new, helm_visitor_new = await visit_helm_content(new_cluster_path)
+
+    diff = "\n".join(list(perform_yaml_diff(content, content_new, 5, 50000)))
+    assert diff == snapshot
+
+
+async def test_perform_json_diff(snapshot: SnapshotAssertion) -> None:
+    """Test perform_yaml_diff where an input HelmRepository change causes a diff."""
+
+    content, helm_visitor = await visit_helm_content(TESTDATA_PATH)
+    with mirror_worktree(TESTDATA_PATH) as new_cluster_path:
+
+        # Generate a diff by changing a value in the HelmRelease
+        podinfo_path = new_cluster_path / "apps/podinfo.yaml"
+        podinfo_doc = list(
+            yaml.load_all(podinfo_path.read_text(), Loader=yaml.SafeLoader)
+        )
+        assert len(podinfo_doc) == 2
+        assert podinfo_doc[0]["kind"] == "HelmRepository"
+        assert podinfo_doc[0]["spec"]["url"] == "oci://ghcr.io/stefanprodan/charts"
+        podinfo_doc[0]["spec"]["url"] = "oci://ghcr.io/stefanprodan/charts2"
+        podinfo_path.write_text(yaml.dump_all(podinfo_doc))
+
+        content_new, helm_visitor_new = await visit_helm_content(new_cluster_path)
+
+    diff = "\n".join(list(perform_json_diff(content, content_new, 5, 50000)))
+    assert diff == snapshot

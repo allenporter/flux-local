@@ -231,6 +231,9 @@ class HelmRelease(BaseManifest):
     images: list[str] | None = field(default=None)
     """The list of images referenced in the HelmRelease."""
 
+    labels: dict[str, str] | None = field(metadata={"serialize": "omit"}, default=None)
+    """A list of labels on the HelmRelease."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "HelmRelease":
         """Parse a HelmRelease from a kubernetes resource object."""
@@ -254,6 +257,7 @@ class HelmRelease(BaseManifest):
             chart=chart,
             values=spec.get("values"),
             values_from=values_from,
+            labels=metadata.get("labels"),
         )
 
     @property
@@ -356,6 +360,9 @@ class OCIRepository(BaseManifest):
     url: str
     """The URL to the repository."""
 
+    ref_tag: str | None = None
+    """The version tag of the repository."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "OCIRepository":
         """Parse a HelmRepository from a kubernetes resource."""
@@ -370,10 +377,12 @@ class OCIRepository(BaseManifest):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (url := spec.get("url")):
             raise InputException(f"Invalid {cls} missing spec.url: {doc}")
+        ref_tag = spec.get("ref", {}).get("tag")
         return cls(
             name=name,
             namespace=namespace,
             url=url,
+            ref_tag=ref_tag,
         )
 
     @property
@@ -542,6 +551,9 @@ class Kustomization(BaseManifest):
     depends_on: list[str] | None = field(metadata={"serialize": "omit"}, default=None)
     """A list of namespaced names that this Kustomization depends on."""
 
+    labels: dict[str, str] | None = field(metadata={"serialize": "omit"}, default=None)
+    """A list of labels on the Kustomization."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "Kustomization":
         """Parse a partial Kustomization from a kubernetes resource."""
@@ -582,6 +594,7 @@ class Kustomization(BaseManifest):
             postbuild_substitute=postbuild.get("substitute"),
             postbuild_substitute_from=substitute_from,
             depends_on=depends_on,
+            labels=metadata.get("labels"),
         )
 
     @property
