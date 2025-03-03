@@ -110,8 +110,6 @@
   kind: HelmRelease
   metadata:
     labels:
-      app.kubernetes.io/instance: kubernetes-dashboard
-      app.kubernetes.io/name: kubernetes-dashboard
       kustomize.toolkit.fluxcd.io/name: cluster-apps-kubernetes-dashboard
       kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: kubernetes-dashboard
@@ -2862,6 +2860,8 @@
   kind: HelmRelease
   metadata:
     labels:
+      app.kubernetes.io/instance: podinfo
+      app.kubernetes.io/name: podinfo
       kustomize.toolkit.fluxcd.io/name: apps
       kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: podinfo
@@ -2999,6 +2999,8 @@
   kind: Kustomization
   metadata:
     labels:
+      app.kubernetes.io/instance: apps
+      app.kubernetes.io/name: apps
       kustomize.toolkit.fluxcd.io/name: flux-system
       kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: apps
@@ -4647,6 +4649,8 @@
   kind: HelmRelease
   metadata:
     labels:
+      app.kubernetes.io/instance: podinfo
+      app.kubernetes.io/name: podinfo
       kustomize.toolkit.fluxcd.io/name: apps
       kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: podinfo
@@ -4784,6 +4788,8 @@
   kind: Kustomization
   metadata:
     labels:
+      app.kubernetes.io/instance: apps
+      app.kubernetes.io/name: apps
       kustomize.toolkit.fluxcd.io/name: flux-system
       kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: apps
@@ -6544,6 +6550,8 @@
   kind: HelmRelease
   metadata:
     labels:
+      app.kubernetes.io/instance: podinfo
+      app.kubernetes.io/name: podinfo
       kustomize.toolkit.fluxcd.io/name: apps
       kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: podinfo
@@ -6697,6 +6705,8 @@
   kind: HelmRelease
   metadata:
     labels:
+      app.kubernetes.io/instance: podinfo
+      app.kubernetes.io/name: podinfo
       kustomize.toolkit.fluxcd.io/name: apps
       kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: podinfo
@@ -6834,6 +6844,8 @@
   kind: Kustomization
   metadata:
     labels:
+      app.kubernetes.io/instance: apps
+      app.kubernetes.io/name: apps
       kustomize.toolkit.fluxcd.io/name: flux-system
       kustomize.toolkit.fluxcd.io/namespace: flux-system
     name: apps

@@ -282,3 +282,80 @@ def test_adjust_ks_path(path: str, expected_path: str) -> None:
     )
     selector = PathSelector(TESTDATA_FULL_PATH)
     assert adjust_ks_path(ks, selector) == Path(expected_path)
+
+
+async def test_kustomization_label_selector() -> None:
+    """Tests for building the manifest."""
+
+    query = ResourceSelector()
+    query.path.path = TESTDATA
+
+    async def get_ks() -> list[str]:
+        manifest = await build_manifest(selector=query)
+        return [
+            ks.namespaced_name
+            for cluster in manifest.clusters
+            for ks in cluster.kustomizations
+        ]
+
+    assert await get_ks() == [
+        "flux-system/apps",
+        "flux-system/flux-system",
+        "flux-system/infra-configs",
+        "flux-system/infra-controllers",
+    ]
+
+    query.kustomization.label_selector = {"app.kubernetes.io/name": "apps"}
+    assert await get_ks() == [
+        "flux-system/apps",
+    ]
+
+    query.kustomization.label_selector = {"app.kubernetes.io/name": "podinfo"}
+    assert await get_ks() == []
+
+    # Match on multiple fields
+    query.kustomization.label_selector = {
+        "app.kubernetes.io/name": "apps",
+        "app.kubernetes.io/instance": "apps",
+    }
+    assert await get_ks() == [
+        "flux-system/apps",
+    ]
+
+    # Mismatch on one field
+    query.kustomization.label_selector = {
+        "app.kubernetes.io/name": "apps",
+        "app.kubernetes.io/instance": "flux-system",
+    }
+    assert await get_ks() == []
+
+
+async def test_helmrelease_label_selector() -> None:
+    """Tests for building the manifest."""
+
+    query = ResourceSelector()
+    query.path.path = TESTDATA
+
+    async def get_hr() -> list[str]:
+        manifest = await build_manifest(selector=query)
+        return [
+            hr.namespaced_name
+            for cluster in manifest.clusters
+            for hr in cluster.helm_releases
+        ]
+
+    assert await get_hr() == [
+        "podinfo/podinfo",
+        "metallb/metallb",
+        "flux-system/weave-gitops",
+    ]
+
+    query.helm_release.label_selector = {"app.kubernetes.io/name": "podinfo"}
+    assert await get_hr() == [
+        "podinfo/podinfo",
+    ]
+
+    query.helm_release.label_selector = {
+        "app.kubernetes.io/name": "kubernetes-dashboard"
+    }
+    assert await get_hr() == []
