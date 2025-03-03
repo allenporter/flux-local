@@ -231,6 +231,7 @@ class GetClusterAction:
             helm_content = ImageOutput()
             helm_visitor = HelmVisitor()
             query.helm_repo.visitor = helm_visitor.repo_visitor()
+            query.oci_repo.visitor = helm_visitor.repo_visitor()
             query.helm_release.visitor = helm_visitor.release_visitor()
 
         manifest = await git_repo.build_manifest(
