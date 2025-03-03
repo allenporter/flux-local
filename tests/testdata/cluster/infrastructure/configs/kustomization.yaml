@@ -4,3 +4,5 @@ kind: Kustomization
 resources:
   - cluster-policies.yaml
   - helm-repositories.yaml
+  - ceph-cluster.yaml
+  - database.yaml
