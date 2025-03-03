@@ -20,6 +20,7 @@ from flux_local.resource_diff import (
     perform_external_diff,
     perform_object_diff,
     build_helm_dependency_map,
+    perform_json_diff,
 )
 
 from . import selector
@@ -35,7 +36,7 @@ def add_diff_flags(args: ArgumentParser) -> None:
     args.add_argument(
         "--output",
         "-o",
-        choices=["diff", "yaml", "object"],
+        choices=["diff", "yaml", "object", "json"],
         default="diff",
         help="Output format of the command",
     )
@@ -163,6 +164,10 @@ class DiffKustomizationAction:
                 result = perform_yaml_diff(orig_content, content, unified, limit_bytes)
                 for line in result:
                     print(line, file=file)
+            elif output == "json":
+                result = perform_json_diff(orig_content, content, unified, limit_bytes)
+                for line in result:
+                    print(line, file=file)
             elif external_diff := os.environ.get("DIFF"):
                 async for line in perform_external_diff(
                     shlex.split(external_diff), orig_content, content, limit_bytes
@@ -253,7 +258,9 @@ class DiffHelmReleaseAction:
         # depends on in the kustomization has a diff. This avoids needing to
         # template every possible helm chart when nothing as changed.
         dependency_map = build_helm_dependency_map(orig_helm_visitor, helm_visitor)
-        diff_resource_keys = get_helm_release_diff_keys(orig_content, content, dependency_map)
+        diff_resource_keys = get_helm_release_diff_keys(
+            orig_content, content, dependency_map
+        )
         diff_names = {
             resource_key.namespaced_name for resource_key in diff_resource_keys
         }
@@ -283,6 +290,11 @@ class DiffHelmReleaseAction:
         with open(output_file, "w") as file:
             if output == "yaml":
                 for line in perform_yaml_diff(
+                    orig_helm_content, helm_content, unified, limit_bytes
+                ):
+                    print(line, file=file)
+            elif output == "json":
+                for line in perform_json_diff(
                     orig_helm_content, helm_content, unified, limit_bytes
                 ):
                     print(line, file=file)

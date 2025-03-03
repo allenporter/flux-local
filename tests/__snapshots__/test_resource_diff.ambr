@@ -1,0 +1,42 @@
+# serializer version: 1
+# name: test_perform_json_diff
+  '''
+  [
+      {
+          "kustomization_path": "tests/testdata/cluster8/apps",
+          "kind": "Kustomization",
+          "namespace": "flux-system",
+          "name": "apps",
+          "diffs": [
+              {
+                  "kustomization_path": "tests/testdata/cluster8/apps",
+                  "kind": "HelmRepository",
+                  "namespace": "flux-system",
+                  "name": "podinfo",
+                  "diff": "--- tests/testdata/cluster8/apps Kustomization: flux-system/apps HelmRepository: flux-system/podinfo\n\n+++ tests/testdata/cluster8/apps Kustomization: flux-system/apps HelmRepository: flux-system/podinfo\n\n@@ -8,7 +8,7 @@\n\n   name: podinfo\n   namespace: flux-system\n spec:\n   interval: 5m\n   type: oci\n-  url: oci://ghcr.io/stefanprodan/charts\n+  url: oci://ghcr.io/stefanprodan/charts2\n "
+              }
+          ]
+      }
+  ]
+  '''
+# ---
+# name: test_perform_yaml_diff
+  '''
+  ---
+  - kustomization_path: tests/testdata/cluster8/apps
+    kind: Kustomization
+    namespace: flux-system
+    name: apps
+    diffs:
+    - kustomization_path: tests/testdata/cluster8/apps
+      kind: HelmRepository
+      namespace: flux-system
+      name: podinfo
+      diff: "--- tests/testdata/cluster8/apps Kustomization: flux-system/apps HelmRepository:\
+        \ flux-system/podinfo\n\n+++ tests/testdata/cluster8/apps Kustomization: flux-system/apps\
+        \ HelmRepository: flux-system/podinfo\n\n@@ -8,7 +8,7 @@\n\n   name: podinfo\n\
+        \   namespace: flux-system\n spec:\n   interval: 5m\n   type: oci\n-  url: oci://ghcr.io/stefanprodan/charts\n\
+        +  url: oci://ghcr.io/stefanprodan/charts2\n "
+  
+  '''
+# ---
