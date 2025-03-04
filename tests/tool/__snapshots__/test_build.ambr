@@ -3204,6 +3204,44 @@
     interval: 120m
     type: oci
     url: oci://ghcr.io/weaveworks/charts
+  ---
+  apiVersion: ceph.rook.io/v1
+  kind: CephCluster
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: rook-ceph
+    namespace: rook-ceph
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    cephVersion:
+      image: ceph/ceph:v16.2.6
+  ---
+  apiVersion: postgresql.cnpg.io/v1
+  kind: Cluster
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster-example
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    bootstrap:
+      initdb:
+        postInitTemplateSQL:
+        - CREATE EXTENSION postgis;
+        - CREATE EXTENSION postgis_topology;
+        - CREATE EXTENSION fuzzystrmatch;
+        - CREATE EXTENSION postgis_tiger_geocoder;
+    imageName: ghcr.io/cloudnative-pg/postgis:17-3.4
+    instances: 3
+    storage:
+      size: 1Gi
   
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1
@@ -4993,6 +5031,44 @@
     interval: 120m
     type: oci
     url: oci://ghcr.io/weaveworks/charts
+  ---
+  apiVersion: ceph.rook.io/v1
+  kind: CephCluster
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: rook-ceph
+    namespace: rook-ceph
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    cephVersion:
+      image: ceph/ceph:v16.2.6
+  ---
+  apiVersion: postgresql.cnpg.io/v1
+  kind: Cluster
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster-example
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    bootstrap:
+      initdb:
+        postInitTemplateSQL:
+        - CREATE EXTENSION postgis;
+        - CREATE EXTENSION postgis_topology;
+        - CREATE EXTENSION fuzzystrmatch;
+        - CREATE EXTENSION postgis_tiger_geocoder;
+    imageName: ghcr.io/cloudnative-pg/postgis:17-3.4
+    instances: 3
+    storage:
+      size: 1Gi
   
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1
@@ -7049,6 +7125,44 @@
     interval: 120m
     type: oci
     url: oci://ghcr.io/weaveworks/charts
+  ---
+  apiVersion: ceph.rook.io/v1
+  kind: CephCluster
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: rook-ceph
+    namespace: rook-ceph
+    annotations:
+      config.kubernetes.io/index: '4'
+      internal.config.kubernetes.io/index: '4'
+  spec:
+    cephVersion:
+      image: ceph/ceph:v16.2.6
+  ---
+  apiVersion: postgresql.cnpg.io/v1
+  kind: Cluster
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: infra-configs
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: cluster-example
+    annotations:
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
+  spec:
+    bootstrap:
+      initdb:
+        postInitTemplateSQL:
+        - CREATE EXTENSION postgis;
+        - CREATE EXTENSION postgis_topology;
+        - CREATE EXTENSION fuzzystrmatch;
+        - CREATE EXTENSION postgis_tiger_geocoder;
+    imageName: ghcr.io/cloudnative-pg/postgis:17-3.4
+    instances: 3
+    storage:
+      size: 1Gi
   
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1

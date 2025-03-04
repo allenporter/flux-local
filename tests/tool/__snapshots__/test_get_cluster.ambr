@@ -141,7 +141,11 @@
                       "oci_repos": [],
                       "helm_releases": [],
                       "config_maps": [],
-                      "secrets": []
+                      "secrets": [],
+                      "images": [
+                          "ceph/ceph:v16.2.6",
+                          "ghcr.io/cloudnative-pg/postgis:17-3.4"
+                      ]
                   },
                   {
                       "name": "infra-controllers",
@@ -368,6 +372,9 @@
       helm_releases: []
       config_maps: []
       secrets: []
+      images:
+      - ceph/ceph:v16.2.6
+      - ghcr.io/cloudnative-pg/postgis:17-3.4
     - name: infra-controllers
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/controllers
