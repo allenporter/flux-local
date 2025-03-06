@@ -140,15 +140,12 @@ class HelmChart(BaseManifest):
                 raise InputException(f"Invalid {cls} missing spec.chartRef.kind: {doc}")
             if not (name := chart_ref.get("name")):
                 raise InputException(f"Invalid {cls} missing spec.chartRef.name: {doc}")
-            if not (namespace := chart_ref.get("namespace")):
-                raise InputException(
-                    f"Invalid {cls} missing spec.chartRef.namespace: {doc}"
-                )
+
             return cls(
                 name=name,
                 version=None,
                 repo_name=name,
-                repo_namespace=namespace,
+                repo_namespace=chart_ref.get("namespace", default_namespace),
                 repo_kind=kind,
             )
         if not (chart_spec := chart.get("spec")):
