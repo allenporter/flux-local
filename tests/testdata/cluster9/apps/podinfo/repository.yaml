@@ -11,4 +11,4 @@ spec:
     operation: copy
   url: oci://ghcr.io/stefanprodan/charts/podinfo
   ref:
-    semver: "== 6.7.1"
+    tag: "6.7.1"

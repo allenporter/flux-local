@@ -672,6 +672,7 @@
       - name: podinfo
         namespace: default
         url: oci://ghcr.io/stefanprodan/charts/podinfo
+        ref_tag: 6.7.1
       helm_releases:
       - name: nginx
         namespace: default
