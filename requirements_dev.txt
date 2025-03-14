@@ -21,5 +21,5 @@ types-aiofiles==24.1.0.20241221
 types-PyYAML==6.0.12.20241230
 typing-extensions==4.12.2
 types-python-slugify==8.0.2.20240310
-yamllint==1.35.1
+yamllint==1.36.0
 syrupy==4.9.0
