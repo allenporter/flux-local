@@ -371,7 +371,7 @@ def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
         _LOGGER.debug("Assigning implicit path %s", selector.relative_path)
         return selector.relative_path
 
-    if doc.source_kind == OCI_REPO_KIND:
+    if doc.source_kind == OCI_REPO_KIND or doc.source_kind == GIT_REPO_KIND:
         for source in selector.sources or []:
             if source.name == doc.source_name:
                 _LOGGER.debug(
