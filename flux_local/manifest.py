@@ -231,10 +231,10 @@ class HelmRelease(BaseManifest):
     labels: dict[str, str] | None = field(metadata={"serialize": "omit"}, default=None)
     """A list of labels on the HelmRelease."""
 
-    disable_schema_validation: bool = False
+    disable_schema_validation: bool = field(metadata={"serialize": "omit"}, default=False)
     """Prevents Helm from validating the values against the JSON Schema."""
 
-    disable_openapi_validation: bool = False
+    disable_openapi_validation: bool = field(metadata={"serialize": "omit"}, default=False)
     """Prevents Helm from validating the values against the Kubernetes OpenAPI Schema."""
 
     @classmethod
