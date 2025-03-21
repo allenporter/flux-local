@@ -9,7 +9,7 @@ import base64
 from dataclasses import dataclass, field
 import logging
 from pathlib import Path
-from typing import Any, Optional, cast, Self
+from typing import Any, Optional, cast
 
 import aiofiles
 from mashumaro.codecs.yaml import yaml_decode, yaml_encode
@@ -213,7 +213,7 @@ class TemplateOptions(BaseManifest):
     """Prevents Helm from validating the values against the Kubernetes OpenAPI Schema."""
 
     @classmethod
-    def parse_doc(cls, spec: dict[str, Any]) -> Self | None:
+    def parse_doc(cls, spec: dict[str, Any]) -> "TemplateOptions" | None:
         """Parse template options from the HelmRelease spec."""
         install = spec.get("install", {})
         upgrade = spec.get("upgrade", {})
@@ -260,7 +260,7 @@ class HelmRelease(BaseManifest):
     labels: dict[str, str] | None = field(metadata={"serialize": "omit"}, default=None)
     """A list of labels on the HelmRelease."""
 
-    template_options: TemplateOptions = field(
+    template_options: TemplateOptions | None = field(
         metadata={"serialize": "omit"}, default=None
     )
     """Relevant options on the HelmRelease for templating."""
