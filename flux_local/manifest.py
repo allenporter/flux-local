@@ -203,35 +203,6 @@ class ValuesReference(BaseManifest):
 
 
 @dataclass
-class TemplateOptions(BaseManifest):
-    """Relevant options on the HelmRelease for templating."""
-
-    disable_schema_validation: bool = False
-    """Prevents Helm from validating the values against the JSON Schema."""
-
-    disable_openapi_validation: bool = False
-    """Prevents Helm from validating the values against the Kubernetes OpenAPI Schema."""
-
-    @classmethod
-    def parse_doc(cls, spec: dict[str, Any]) -> Optional["TemplateOptions"]:
-        """Parse template options from the HelmRelease spec."""
-        install = spec.get("install", {})
-        upgrade = spec.get("upgrade", {})
-        disable_schema_validation = install.get(
-            "disableSchemaValidation"
-        ) or upgrade.get("disableSchemaValidation")
-        disable_openapi_validation = install.get(
-            "disableOpenAPIValidation"
-        ) or upgrade.get("disableOpenAPIValidation")
-        if disable_schema_validation or disable_openapi_validation:
-            return TemplateOptions(
-                disable_schema_validation=disable_schema_validation,
-                disable_openapi_validation=disable_openapi_validation,
-            )
-        return None
-
-
-@dataclass
 class HelmRelease(BaseManifest):
     """A representation of a Flux HelmRelease."""
 
@@ -260,10 +231,11 @@ class HelmRelease(BaseManifest):
     labels: dict[str, str] | None = field(metadata={"serialize": "omit"}, default=None)
     """A list of labels on the HelmRelease."""
 
-    template_options: TemplateOptions | None = field(
-        metadata={"serialize": "omit"}, default=None
-    )
-    """Relevant options on the HelmRelease for templating."""
+    disable_schema_validation: bool = False
+    """Prevents Helm from validating the values against the JSON Schema."""
+
+    disable_openapi_validation: bool = False
+    """Prevents Helm from validating the values against the Kubernetes OpenAPI Schema."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "HelmRelease":
@@ -282,9 +254,16 @@ class HelmRelease(BaseManifest):
             values_from = [
                 ValuesReference.from_dict(subdoc) for subdoc in values_from_dict
             ]
-        if install := spec.get("install"):
-            if disableSchemaValidation := install.get("disableSchemaValidation"):
-                spec["disableSchemaValidation"] = disableSchemaValidation
+        disable_schema_validation = any(
+            bag.get("disableSchemaValidation")
+            for key in ("install", "upgrade")
+            for bag in spec.get(key, {})
+        )
+        disable_openapi_validation = any(
+            bag.get("disableOpenAPIValidation")
+            for key in ("install", "upgrade")
+            for bag in spec.get(key, {})
+        )
         return HelmRelease(
             name=name,
             namespace=namespace,
@@ -292,7 +271,8 @@ class HelmRelease(BaseManifest):
             values=spec.get("values"),
             values_from=values_from,
             labels=metadata.get("labels"),
-            template_options=TemplateOptions.parse_doc(spec),
+            disable_schema_validation=disable_schema_validation,
+            disable_openapi_validation=disable_openapi_validation,
         )
 
     @property
