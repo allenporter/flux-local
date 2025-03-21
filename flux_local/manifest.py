@@ -231,6 +231,16 @@ class HelmRelease(BaseManifest):
     labels: dict[str, str] | None = field(metadata={"serialize": "omit"}, default=None)
     """A list of labels on the HelmRelease."""
 
+    disable_schema_validation: bool = field(
+        metadata={"serialize": "omit"}, default=False
+    )
+    """Prevents Helm from validating the values against the JSON Schema."""
+
+    disable_openapi_validation: bool = field(
+        metadata={"serialize": "omit"}, default=False
+    )
+    """Prevents Helm from validating the values against the Kubernetes OpenAPI Schema."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "HelmRelease":
         """Parse a HelmRelease from a kubernetes resource object."""
@@ -248,6 +258,16 @@ class HelmRelease(BaseManifest):
             values_from = [
                 ValuesReference.from_dict(subdoc) for subdoc in values_from_dict
             ]
+        disable_schema_validation = any(
+            bag.get("disableSchemaValidation")
+            for key in ("install", "upgrade")
+            if (bag := spec.get(key)) is not None
+        )
+        disable_openapi_validation = any(
+            bag.get("disableOpenAPIValidation")
+            for key in ("install", "upgrade")
+            if (bag := spec.get(key)) is not None
+        )
         return HelmRelease(
             name=name,
             namespace=namespace,
@@ -255,6 +275,8 @@ class HelmRelease(BaseManifest):
             values=spec.get("values"),
             values_from=values_from,
             labels=metadata.get("labels"),
+            disable_schema_validation=disable_schema_validation,
+            disable_openapi_validation=disable_openapi_validation,
         )
 
     @property

@@ -10,5 +10,9 @@ spec:
     kind: OCIRepository
     name: podinfo
     namespace: default
+  install:
+    disableOpenAPIValidation: true
+  upgrade:
+    disableSchemaValidation: true
   values:
     replicaCount: 2
