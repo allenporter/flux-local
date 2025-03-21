@@ -266,6 +266,11 @@ class Helm:
         ]
         args.extend(self._flags)
         args.extend(options.template_args)
+        if template_options := release.template_options:
+            if template_options.disable_openapi_validation:
+                args.append("--disable-openapi-validation")
+            if template_options.disable_schema_validation:
+                args.append("--skip-schema-validation")
         if release.chart.version:
             args.extend(
                 [

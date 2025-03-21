@@ -1712,7 +1712,11 @@
       kind: OCIRepository
       name: podinfo
       namespace: default
+    install:
+      disableOpenAPIValidation: true
     interval: 10m
+    upgrade:
+      disableSchemaValidation: true
     values:
       replicaCount: 2
   
@@ -6601,7 +6605,11 @@
       kind: OCIRepository
       name: podinfo
       namespace: default
+    install:
+      disableOpenAPIValidation: true
     interval: 10m
+    upgrade:
+      disableSchemaValidation: true
     values:
       replicaCount: 2
   
