@@ -213,7 +213,7 @@ class TemplateOptions(BaseManifest):
     """Prevents Helm from validating the values against the Kubernetes OpenAPI Schema."""
 
     @classmethod
-    def parse_doc(cls, spec: dict[str, Any]) -> "TemplateOptions" | None:
+    def parse_doc(cls, spec: dict[str, Any]) -> Optional["TemplateOptions"]:
         """Parse template options from the HelmRelease spec."""
         install = spec.get("install", {})
         upgrade = spec.get("upgrade", {})
