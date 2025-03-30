@@ -15,10 +15,13 @@ See the [github project](https://github.com/allenporter/flux-local).
 
 ## flux-local CLI
 
-The CLI is written in python and packaged as part of the `flux-local` python library, which can be installed using pip:
+The CLI is written in python and packaged as part of the `flux-local` python library, which can be installed using pip and uv. If you have not yet embraced python virtual environments, now might be
+the right time to do so to avoid clobbering the packages in your system.
 
 ```bash
-$ pip3 install flux-local
+$ uv venv
+$ source .venv/bin/activate
+$ uv pip install flux-local
 ```
 
 ### flux-local get
