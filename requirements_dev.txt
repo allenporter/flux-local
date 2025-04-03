@@ -19,7 +19,7 @@ python-slugify==8.0.4
 PyYAML==6.0.2
 types-aiofiles==24.1.0.20250326
 types-PyYAML==6.0.12.20250402
-typing-extensions==4.13.0
+typing-extensions==4.13.1
 types-python-slugify==8.0.2.20240310
 yamllint==1.37.0
 syrupy==4.9.1
