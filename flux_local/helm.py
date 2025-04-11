@@ -262,7 +262,7 @@ class Helm:
             release.name,
             _chart_name(release, repo),
             "--namespace",
-            release.namespace,
+            release.release_namespace,
         ]
         args.extend(self._flags)
         args.extend(options.template_args)
