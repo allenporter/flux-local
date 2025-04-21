@@ -5,6 +5,7 @@ metadata:
   name: weave-gitops
   namespace: flux-system
 spec:
+  targetNamespace: weave
   interval: 60m
   chart:
     spec:

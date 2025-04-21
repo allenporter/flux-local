@@ -3302,6 +3302,7 @@
           name: weave-charts
         version: 4.0.22
     interval: 60m
+    targetNamespace: weave
   
   ---
   # Source: weave-gitops/templates/network-policy.yaml
@@ -3403,7 +3404,7 @@
   subjects:
   - kind: ServiceAccount
     name: weave-gitops
-    namespace: flux-system
+    namespace: weave
   roleRef:
     kind: ClusterRole
     name: weave-gitops
@@ -5129,6 +5130,7 @@
           name: weave-charts
         version: 4.0.22
     interval: 60m
+    targetNamespace: weave
   
   
   '''
@@ -5958,7 +5960,7 @@
   subjects:
   - kind: ServiceAccount
     name: weave-gitops
-    namespace: flux-system
+    namespace: weave
   roleRef:
     kind: ClusterRole
     name: weave-gitops
@@ -6163,7 +6165,7 @@
   subjects:
   - kind: ServiceAccount
     name: weave-gitops
-    namespace: flux-system
+    namespace: weave
   roleRef:
     kind: ClusterRole
     name: weave-gitops
@@ -7227,6 +7229,7 @@
           name: weave-charts
         version: 4.0.22
     interval: 60m
+    targetNamespace: weave
   
   
   '''
