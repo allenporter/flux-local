@@ -3300,7 +3300,7 @@
         sourceRef:
           kind: HelmRepository
           name: weave-charts
-        version: 4.0.22
+        version: 4.0.36
     interval: 60m
     targetNamespace: weave
   
@@ -3310,6 +3310,7 @@
   kind: NetworkPolicy
   metadata:
     name: allow-dashboard-ingress
+    namespace: weave
     annotations:
       config.kubernetes.io/index: '0'
       internal.config.kubernetes.io/index: '0'
@@ -3348,11 +3349,12 @@
   kind: ServiceAccount
   metadata:
     name: weave-gitops
+    namespace: weave
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
     annotations:
       config.kubernetes.io/index: '2'
@@ -3393,10 +3395,10 @@
   metadata:
     name: weave-gitops
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
     annotations:
       config.kubernetes.io/index: '4'
@@ -3415,11 +3417,12 @@
   kind: Service
   metadata:
     name: weave-gitops
+    namespace: weave
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
     annotations:
       config.kubernetes.io/index: '5'
@@ -3440,11 +3443,12 @@
   kind: Deployment
   metadata:
     name: weave-gitops
+    namespace: weave
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
       app.kubernetes.io/part-of: weave-gitops
       weave.works/app: weave-gitops-oss
@@ -3466,7 +3470,6 @@
           weave.works/app: weave-gitops-oss
       spec:
         serviceAccountName: weave-gitops
-        securityContext: {}
         containers:
         - name: weave-gitops
           securityContext:
@@ -3479,7 +3482,7 @@
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
-          image: "ghcr.io/weaveworks/wego-app:v0.24.0"
+          image: "ghcr.io/weaveworks/wego-app:v0.38.0"
           imagePullPolicy: IfNotPresent
           args:
           - "--log-level"
@@ -3501,6 +3504,8 @@
           - name: WEAVE_GITOPS_FEATURE_TENANCY
             value: "true"
           - name: WEAVE_GITOPS_FEATURE_CLUSTER
+            value: "false"
+          - name: WEAVE_GITOPS_FEATURE_GITOPS_RUNTIME
             value: "false"
           resources: {}
   
@@ -5128,7 +5133,7 @@
         sourceRef:
           kind: HelmRepository
           name: weave-charts
-        version: 4.0.22
+        version: 4.0.36
     interval: 60m
     targetNamespace: weave
   
@@ -5866,6 +5871,7 @@
   kind: NetworkPolicy
   metadata:
     name: allow-dashboard-ingress
+    namespace: weave
     annotations:
       config.kubernetes.io/index: '0'
       internal.config.kubernetes.io/index: '0'
@@ -5904,11 +5910,12 @@
   kind: ServiceAccount
   metadata:
     name: weave-gitops
+    namespace: weave
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
     annotations:
       config.kubernetes.io/index: '2'
@@ -5949,10 +5956,10 @@
   metadata:
     name: weave-gitops
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
     annotations:
       config.kubernetes.io/index: '4'
@@ -5971,11 +5978,12 @@
   kind: Service
   metadata:
     name: weave-gitops
+    namespace: weave
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
     annotations:
       config.kubernetes.io/index: '5'
@@ -5996,11 +6004,12 @@
   kind: Deployment
   metadata:
     name: weave-gitops
+    namespace: weave
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
       app.kubernetes.io/part-of: weave-gitops
       weave.works/app: weave-gitops-oss
@@ -6022,7 +6031,6 @@
           weave.works/app: weave-gitops-oss
       spec:
         serviceAccountName: weave-gitops
-        securityContext: {}
         containers:
         - name: weave-gitops
           securityContext:
@@ -6035,7 +6043,7 @@
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
-          image: "ghcr.io/weaveworks/wego-app:v0.24.0"
+          image: "ghcr.io/weaveworks/wego-app:v0.38.0"
           imagePullPolicy: IfNotPresent
           args:
           - "--log-level"
@@ -6058,6 +6066,8 @@
             value: "true"
           - name: WEAVE_GITOPS_FEATURE_CLUSTER
             value: "false"
+          - name: WEAVE_GITOPS_FEATURE_GITOPS_RUNTIME
+            value: "false"
           resources: {}
   
   
@@ -6071,6 +6081,7 @@
   kind: NetworkPolicy
   metadata:
     name: allow-dashboard-ingress
+    namespace: weave
     annotations:
       config.kubernetes.io/index: '0'
       internal.config.kubernetes.io/index: '0'
@@ -6109,11 +6120,12 @@
   kind: ServiceAccount
   metadata:
     name: weave-gitops
+    namespace: weave
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
     annotations:
       config.kubernetes.io/index: '2'
@@ -6154,10 +6166,10 @@
   metadata:
     name: weave-gitops
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
     annotations:
       config.kubernetes.io/index: '4'
@@ -6176,11 +6188,12 @@
   kind: Service
   metadata:
     name: weave-gitops
+    namespace: weave
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
     annotations:
       config.kubernetes.io/index: '5'
@@ -6201,11 +6214,12 @@
   kind: Deployment
   metadata:
     name: weave-gitops
+    namespace: weave
     labels:
-      helm.sh/chart: weave-gitops-4.0.22
+      helm.sh/chart: weave-gitops-4.0.36
       app.kubernetes.io/name: weave-gitops
       app.kubernetes.io/instance: weave-gitops
-      app.kubernetes.io/version: "v0.24.0"
+      app.kubernetes.io/version: "v0.38.0"
       app.kubernetes.io/managed-by: Helm
       app.kubernetes.io/part-of: weave-gitops
       weave.works/app: weave-gitops-oss
@@ -6227,7 +6241,6 @@
           weave.works/app: weave-gitops-oss
       spec:
         serviceAccountName: weave-gitops
-        securityContext: {}
         containers:
         - name: weave-gitops
           securityContext:
@@ -6240,7 +6253,7 @@
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
-          image: "ghcr.io/weaveworks/wego-app:v0.24.0"
+          image: "ghcr.io/weaveworks/wego-app:v0.38.0"
           imagePullPolicy: IfNotPresent
           args:
           - "--log-level"
@@ -6262,6 +6275,8 @@
           - name: WEAVE_GITOPS_FEATURE_TENANCY
             value: "true"
           - name: WEAVE_GITOPS_FEATURE_CLUSTER
+            value: "false"
+          - name: WEAVE_GITOPS_FEATURE_GITOPS_RUNTIME
             value: "false"
           resources: {}
   
@@ -7227,7 +7242,7 @@
         sourceRef:
           kind: HelmRepository
           name: weave-charts
-        version: 4.0.22
+        version: 4.0.36
     interval: 60m
     targetNamespace: weave
   

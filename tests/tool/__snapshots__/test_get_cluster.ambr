@@ -178,7 +178,7 @@
                                   "repo_kind": "HelmRepository"
                               },
                               "images": [
-                                  "ghcr.io/weaveworks/wego-app:v0.24.0"
+                                  "ghcr.io/weaveworks/wego-app:v0.38.0"
                               ]
                           }
                       ],
@@ -399,7 +399,7 @@
           repo_namespace: flux-system
           repo_kind: HelmRepository
         images:
-        - ghcr.io/weaveworks/wego-app:v0.24.0
+        - ghcr.io/weaveworks/wego-app:v0.38.0
       config_maps: []
       secrets: []
   
