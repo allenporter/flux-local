@@ -93,11 +93,24 @@ async def test_template(helm: Helm, helm_releases: list[dict[str, Any]]) -> None
     await helm.update()
 
     assert len(helm_releases) == 2
+
+    # metallb, no targetNamespace overrides
     release = helm_releases[0]
     obj = await helm.template(HelmRelease.parse_doc(release))
     docs = await obj.grep("kind=ServiceAccount").objects()
     names = [doc.get("metadata", {}).get("name") for doc in docs]
+    namespaces = [doc.get("metadata", {}).get("namespace") for doc in docs]
     assert names == ["metallb-controller", "metallb-speaker"]
+    assert namespaces == ["metallb", "metallb"]
+
+    # weave-gitops, with targetNamespace overrides
+    release = helm_releases[1]
+    obj = await helm.template(HelmRelease.parse_doc(release))
+    docs = await obj.grep("kind=ServiceAccount").objects()
+    names = [doc.get("metadata", {}).get("name") for doc in docs]
+    namespaces = [doc.get("metadata", {}).get("namespace") for doc in docs]
+    assert names == ["weave-gitops"]
+    assert namespaces == ["weave"]
 
 
 @pytest.mark.parametrize(
