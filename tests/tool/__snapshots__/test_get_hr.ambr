@@ -38,7 +38,7 @@
   '''
   NAMESPACE      NAME            REVISION    CHART                       SOURCE          
   metallb        metallb         4.1.14      metallb-metallb             bitnami         
-  flux-system    weave-gitops    4.0.22      flux-system-weave-gitops    weave-charts    
+  flux-system    weave-gitops    4.0.36      flux-system-weave-gitops    weave-charts    
   
   '''
 # ---
@@ -70,7 +70,7 @@
   NAMESPACE      NAME            REVISION    CHART                       SOURCE          
   podinfo        podinfo         6.3.2       podinfo-podinfo             podinfo         
   metallb        metallb         4.1.14      metallb-metallb             bitnami         
-  flux-system    weave-gitops    4.0.22      flux-system-weave-gitops    weave-charts    
+  flux-system    weave-gitops    4.0.36      flux-system-weave-gitops    weave-charts    
   
   '''
 # ---

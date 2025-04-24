@@ -215,6 +215,9 @@ class HelmRelease(BaseManifest):
     chart: HelmChart
     """A mapping to a specific helm chart for this HelmRelease."""
 
+    target_namespace: str | None = field(metadata={"serialize": "omit"}, default=None)
+    """The namespace to target when performing the operation."""
+
     values: Optional[dict[str, Any]] = field(
         metadata={"serialize": "omit"}, default=None
     )
@@ -271,6 +274,7 @@ class HelmRelease(BaseManifest):
         return HelmRelease(
             name=name,
             namespace=namespace,
+            target_namespace=spec.get("targetNamespace"),
             chart=chart,
             values=spec.get("values"),
             values_from=values_from,
@@ -283,6 +287,13 @@ class HelmRelease(BaseManifest):
     def release_name(self) -> str:
         """Identifier for the HelmRelease."""
         return f"{self.namespace}-{self.name}"
+
+    @property
+    def release_namespace(self) -> str:
+        """Actual namespace where the HelmRelease will be installed to."""
+        if self.target_namespace:
+            return self.target_namespace
+        return self.namespace
 
     @property
     def repo_name(self) -> str:
