@@ -198,7 +198,23 @@ def _update_helmrelease_values(
     """Expand value references in the HelmRelease."""
 
     if ref.target_path:
-        parts = ref.target_path.split(".")
+        raw_parts = ref.target_path.split(".")
+
+        # Merge escaped parts
+        parts = []
+        i = 0
+        while i < len(raw_parts):
+            current_part = raw_parts[i]
+
+            # If the part ends with a backslash, it's escaping the next dot
+            while i < len(raw_parts) - 1 and current_part.endswith("\\"):
+                # Remove the backslash and add a dot followed by the next part
+                current_part = current_part[:-1] + "." + raw_parts[i + 1]
+                i += 1
+
+            parts.append(current_part)
+            i += 1
+
         inner_values = values
         for part in parts[:-1]:
             if part not in inner_values:
