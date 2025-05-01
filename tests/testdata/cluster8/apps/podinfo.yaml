@@ -41,6 +41,10 @@ spec:
       name: podinfo-values
       valuesKey: patch-values.yaml
     - kind: Secret
+      name: dot-notated-target-path
+      valuesKey: key
+      targetPath: ingress.annotations.azure\.workload\.identity/client-id
+    - kind: Secret
       name: podinfo-tls-values
       valuesKey: crt
       targetPath: tls.crt

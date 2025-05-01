@@ -2,6 +2,9 @@
 # name: test_value_references
   dict({
     'ingress': dict({
+      'annotations': dict({
+        'azure.workload.identity/client-id': '..PLACEHOLDER_dot-notated-target-path..',
+      }),
       'className': 'nginx',
       'enabled': True,
       'hosts': list([
