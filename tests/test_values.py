@@ -524,6 +524,46 @@ def test_values_references_secret() -> None:
         },
     }
 
+def test_target_path_character_escapes() -> None:
+    """Test for character escapes in the reference target_path"""
+    hr = HelmRelease(
+        name="test",
+        namespace="test",
+        chart=HelmChart(
+            repo_name="test-repo",
+            repo_namespace="flux-system",
+            name="test-chart",
+            version="test-version",
+        ),
+        values_from=[
+            ValuesReference(
+                kind="Secret",
+                name="test-character-escape-secret",
+                values_key="some-key",
+                target_path="test.app\\.kubernetes\\.io/name\\=\\[backend]",
+            ),
+        ],
+    )
+    ks = Kustomization(
+        name="test",
+        namespace="test",
+        path="example/path",
+        helm_releases=[hr],
+        secrets=[
+            Secret(
+                name="test-character-escape-secret",
+                namespace="test",
+                string_data={"some-key": "example_value"},
+            )
+        ],
+    )
+    updated_hr = expand_value_references(hr, ks)
+    assert updated_hr.values == {
+        "test": {
+            "app.kubernetes.io/name=[backend]": "example_value",
+        },
+    }
+
 
 def test_postbuild_substitute_from() -> None:
     """Test for expanding from a config map."""

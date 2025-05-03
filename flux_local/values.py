@@ -4,6 +4,7 @@ import base64
 from collections.abc import Iterable, Generator, Callable
 import logging
 from typing import TypeVar, Any
+import re
 
 import yaml
 
@@ -198,28 +199,9 @@ def _update_helmrelease_values(
     """Expand value references in the HelmRelease."""
 
     if ref.target_path:
-        raw_parts = ref.target_path.split(".")
 
-        # Merge escaped parts
-        parts = []
-        i = 0
-        while i < len(raw_parts):
-            current_part = raw_parts[i]
-
-            # If the part ends with a backslash, it's escaping the next dot
-            while i < len(raw_parts) - 1 and current_part.endswith("\\"):
-                # Remove the backslash and add a dot followed by the next part
-                current_part = current_part[:-1] + "." + raw_parts[i + 1]
-                i += 1
-
-            # NOTE: The some helm --set functionality is not yet implemented: https://helm.sh/docs/intro/using_helm/#the-format-and-limitations-of---set
-            # Handle other escaped special characters (=, [, ,) https://fluxcd.io/flux/components/helm/helmreleases/#values-references
-            current_part = current_part.replace("\\=", "=")
-            current_part = current_part.replace("\\[", "[")
-            current_part = current_part.replace("\\,", ",")
-
-            parts.append(current_part)
-            i += 1
+        raw_parts = re.split(r"(?<!\\)\.", ref.target_path)
+        parts = [re.sub(r'\\(.)', r'\1', raw_part) for raw_part in raw_parts]
 
         inner_values = values
         for part in parts[:-1]:
