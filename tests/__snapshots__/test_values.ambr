@@ -24,6 +24,11 @@
       'repository': 'public.ecr.aws/docker/library/redis',
       'tag': '7.0.6',
     }),
+    'service': dict({
+      'annotations': dict({
+        'app.kubernetes.io/name=[backend]': '..PLACEHOLDER_escape-special-chars-path..',
+      }),
+    }),
     'tls': dict({
       'crt': '..PLACEHOLDER_podinfo-tls-values..',
     }),
