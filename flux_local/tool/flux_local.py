@@ -58,7 +58,7 @@ def main() -> None:
 
     action = args.cls()
     try:
-        asyncio.run(action.run(**vars(args)))
+        asyncio.get_event_loop().run_until_complete(action.run(**vars(args)))
     except FluxException as err:
         if args.log_level == "DEBUG":
             traceback.print_exc(file=sys.stderr)
