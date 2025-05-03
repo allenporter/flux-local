@@ -90,10 +90,12 @@ def create_diff_path(
         yield git_repo.PathSelector(path_orig, sources=kwargs.get("sources"))
         return
 
+    # Compute relative to the orgiinal worktree not the worktree below
+    relative_path = selector.relative_path
     with git_repo.create_worktree(
         selector.repo, existing_branch=kwargs.get("branch_orig")
     ) as worktree:
-        yield git_repo.PathSelector(pathlib.Path(worktree) / selector.relative_path)
+        yield git_repo.PathSelector(pathlib.Path(worktree) / relative_path)
 
 
 class DiffKustomizationAction:
