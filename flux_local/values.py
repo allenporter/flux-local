@@ -212,7 +212,8 @@ def _update_helmrelease_values(
                 current_part = current_part[:-1] + "." + raw_parts[i + 1]
                 i += 1
 
-            # Handle other escaped characters (=, [, ,) https://fluxcd.io/flux/components/helm/helmreleases/#values-references
+            # NOTE: The some helm --set functionality is not yet implemented: https://helm.sh/docs/intro/using_helm/#the-format-and-limitations-of---set
+            # Handle other escaped special characters (=, [, ,) https://fluxcd.io/flux/components/helm/helmreleases/#values-references
             current_part = current_part.replace("\\=", "=")
             current_part = current_part.replace("\\[", "[")
             current_part = current_part.replace("\\,", ",")
