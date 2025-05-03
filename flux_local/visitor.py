@@ -49,12 +49,6 @@ class ResourceKey:
     namespace: str | None
     name: str
 
-    def __post_init__(self) -> None:
-        if self.kustomization_path.startswith("/"):
-            raise AssertionError(
-                f"Expected kustomization_path as relative: {self.kustomization_path}"
-            )
-
     @property
     def label(self) -> str:
         parts = []
