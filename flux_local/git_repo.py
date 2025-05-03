@@ -184,16 +184,16 @@ class PathSelector:
     def relative_path(self) -> Path:
         """Return the relative path within the repo.
 
-        This is used when transposing this path on a worktree.
-        """
-        if not self.process_path.is_absolute():
-            return self.process_path
-        return self.process_path.resolve().relative_to(self.root.resolve())
+        This is used to translate a relative path specified onto the command
+        line into a relative path in the repo. The path on the command line may
+        be relative to the current working directory, but we want to translate
+        it into a relative path in the repo.
 
-    @property
-    def process_path(self) -> Path:
-        """Return the path to process."""
-        return self.path or self.root
+        This is also used when transposing this path on a worktree.
+        """
+        arg_path = self.path or Path(os.getcwd())
+        resolved_path = arg_path.resolve()
+        return resolved_path.relative_to(self.root.resolve())
 
 
 @dataclass
