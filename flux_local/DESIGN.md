@@ -15,7 +15,7 @@ There are a few problems with the current design:
 - Flux Operator is not supported at all and introduces new CRDs such as
   as a `ResourceSet`.
 - Failures are difficult to debug
-- Failures stop the entire process, so you cant' see all failures at once
+- Failures stop the entire process, so you can't see all failures at once
 
 ## Overview
 
