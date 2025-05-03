@@ -1,8 +1,6 @@
 ## Python virtual environment
 
-Python virtual environments are used to isolate python projects from each other.
-Virtual environments are typically stored in a directory called 'venv'. The
-virtual environment is created using the 'venv' command line tool.
+Python virtual environments are used to isolate python projects from each other, and are recommend for any python development. The `uv` tool is used to manage virtual environments.
 
 Example:
 ```bash
