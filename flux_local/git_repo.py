@@ -365,27 +365,37 @@ def is_allowed_source(sources: list[Source]) -> Callable[[Kustomization], bool]:
 
 def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
     """Make adjustments to the Kustomizations path."""
+    if doc.source_kind == OCI_REPO_KIND or doc.source_kind == GIT_REPO_KIND:
+        for source in selector.sources or []:
+            if source.name == doc.source_name:
+                _LOGGER.debug(
+                    "Updated Source for %s %s: %s", doc.source_kind, doc.name, doc.path
+                )
+                if not source.root:
+                    _LOGGER.info(
+                        "%s source for %s has no root specified",
+                        doc.source_kind,
+                        doc.name,
+                    )
+                    break
+                return source.root / doc.path
+
+        # No match so if OCI we can't do anything. If Git we assume its the root
+        # of the repository.
+        if doc.source_kind == OCI_REPO_KIND:
+            _LOGGER.info(
+                "Unknown cluster source for %s %s: %s",
+                doc.source_kind,
+                doc.name,
+                doc.path,
+            )
+            return None
+
     # Source path is relative to the search path. Update to have the
     # full prefix relative to the root.
     if not doc.path:
         _LOGGER.debug("Assigning implicit path %s", selector.relative_path)
         return selector.relative_path
-
-    if doc.source_kind == OCI_REPO_KIND:
-        for source in selector.sources or []:
-            if source.name == doc.source_name:
-                _LOGGER.debug(
-                    "Updated Source for OCIRepository %s: %s", doc.name, doc.path
-                )
-                if not source.root:
-                    _LOGGER.info("OCIRepository source has no root specified")
-                    continue
-                return source.root / doc.path
-
-        _LOGGER.info(
-            "Unknown cluster source for OCIRepository %s: %s", doc.name, doc.path
-        )
-        return None
 
     path = Path(doc.path)
     if path.is_absolute():
@@ -394,7 +404,7 @@ def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
 
 
 class CachableBuilder:
-    """Wrappwr around flux_build that caches contents."""
+    """Wrapper around flux_build that caches contents."""
 
     def __init__(self) -> None:
         """Initialize CachableBuilder."""

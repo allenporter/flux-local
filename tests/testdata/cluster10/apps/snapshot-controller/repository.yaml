@@ -1,0 +1,14 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: external-snapshotter
+  namespace: snapshot-controller
+spec:
+  interval: 5m0s
+  url: https://github.com/kubernetes-csi/external-snapshotter.git
+  ref:
+    semver: 8.2.1
+  ignore: |
+    /*
+    !/deploy/kubernetes/snapshot-controller
