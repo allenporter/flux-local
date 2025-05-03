@@ -956,6 +956,14 @@
       name: podinfo-values
       valuesKey: patch-values.yaml
     - kind: Secret
+      name: dot-notated-target-path
+      targetPath: ingress.annotations.azure\.workload\.identity/client-id
+      valuesKey: key
+    - kind: Secret
+      name: escape-special-chars-path
+      targetPath: service.annotations.app\.kubernetes\.io/name\=\[backend]
+      valuesKey: key
+    - kind: Secret
       name: podinfo-tls-values
       optional: true
       targetPath: tls.crt
@@ -1429,6 +1437,7 @@
       app.kubernetes.io/version: "6.5.4"
       app.kubernetes.io/managed-by: Helm
     annotations:
+      app.kubernetes.io/name=[backend]: ..PLACEHOLDER_escape-special-chars-path..
       config.kubernetes.io/index: '2'
       internal.config.kubernetes.io/index: '2'
   spec:
@@ -1619,6 +1628,7 @@
       app.kubernetes.io/version: "6.5.4"
       app.kubernetes.io/managed-by: Helm
     annotations:
+      azure.workload.identity/client-id: ..PLACEHOLDER_dot-notated-target-path..
       config.kubernetes.io/index: '5'
       internal.config.kubernetes.io/index: '5'
   spec:
@@ -5527,6 +5537,7 @@
       app.kubernetes.io/version: "6.5.4"
       app.kubernetes.io/managed-by: Helm
     annotations:
+      app.kubernetes.io/name=[backend]: ..PLACEHOLDER_escape-special-chars-path..
       config.kubernetes.io/index: '2'
       internal.config.kubernetes.io/index: '2'
   spec:
@@ -5717,6 +5728,7 @@
       app.kubernetes.io/version: "6.5.4"
       app.kubernetes.io/managed-by: Helm
     annotations:
+      azure.workload.identity/client-id: ..PLACEHOLDER_dot-notated-target-path..
       config.kubernetes.io/index: '5'
       internal.config.kubernetes.io/index: '5'
   spec:
@@ -6455,6 +6467,14 @@
     - kind: ConfigMap
       name: podinfo-values
       valuesKey: patch-values.yaml
+    - kind: Secret
+      name: dot-notated-target-path
+      targetPath: ingress.annotations.azure\.workload\.identity/client-id
+      valuesKey: key
+    - kind: Secret
+      name: escape-special-chars-path
+      targetPath: service.annotations.app\.kubernetes\.io/name\=\[backend]
+      valuesKey: key
     - kind: Secret
       name: podinfo-tls-values
       optional: true

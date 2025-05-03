@@ -165,5 +165,11 @@ def test_helmrelease_dependencies() -> None:
         NamedResource(kind="HelmRelease", name="podinfo", namespace="podinfo"),
         NamedResource(kind="HelmRepository", name="podinfo", namespace="flux-system"),
         NamedResource(kind="ConfigMap", name="podinfo-values", namespace="podinfo"),
+        NamedResource(
+            kind="Secret", name="dot-notated-target-path", namespace="podinfo"
+        ),
+        NamedResource(
+            kind="Secret", name="escape-special-chars-path", namespace="podinfo"
+        ),
         NamedResource(kind="Secret", name="podinfo-tls-values", namespace="podinfo"),
     ]

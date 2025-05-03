@@ -4,6 +4,7 @@ import base64
 from collections.abc import Iterable, Generator, Callable
 import logging
 from typing import TypeVar, Any
+import re
 
 import yaml
 
@@ -198,7 +199,10 @@ def _update_helmrelease_values(
     """Expand value references in the HelmRelease."""
 
     if ref.target_path:
-        parts = ref.target_path.split(".")
+
+        raw_parts = re.split(r"(?<!\\)\.", ref.target_path)
+        parts = [re.sub(r'\\(.)', r'\1', raw_part) for raw_part in raw_parts]
+
         inner_values = values
         for part in parts[:-1]:
             if part not in inner_values:
