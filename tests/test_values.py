@@ -540,7 +540,7 @@ def test_target_path_character_escapes() -> None:
                 kind="Secret",
                 name="test-character-escape-secret",
                 values_key="some-key",
-                target_path="test.app\\.kubernetes\\.io/name\\=\\[backend]",
+                target_path=r"test.app\.kuber\\netes\.io/na\me\=\[backend]",
             ),
         ],
     )
@@ -560,7 +560,7 @@ def test_target_path_character_escapes() -> None:
     updated_hr = expand_value_references(hr, ks)
     assert updated_hr.values == {
         "test": {
-            "app.kubernetes.io/name=[backend]": "example_value",
+            r"app.kuber\netes.io/name=[backend]": "example_value",
         },
     }
 
