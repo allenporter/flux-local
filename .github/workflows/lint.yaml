@@ -41,6 +41,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install dependencies
         run: |
-          uv pip install -r requirements_dev.txt      - name: Static typing with mypy
+          uv pip install -r requirements_dev.txt
+      - name: Static typing with mypy
         run: |
           mypy --install-types --non-interactive --no-warn-unused-ignores .
