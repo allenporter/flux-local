@@ -44,7 +44,6 @@ runs:
       with:
         enable-cache: true
         cache-dependency-glob: ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
-        version: "0.7.2"
         python-version: ${{ inputs.python-version }}
     - name: Install dependencies
       run: |
