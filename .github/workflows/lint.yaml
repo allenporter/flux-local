@@ -21,19 +21,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: chartboost/ruff-action@v1.0.0
-      - uses: codespell-project/actions-codespell@v2.1
-        with:
-          check_hidden: false
-          exclude_file: ./tests/testdata/cluster9/clusters/dev/flux-system/gotk-components.yaml
-
-      - name: Run yamllint
-        uses: ibiqlik/action-yamllint@v3
-        with:
-          file_or_dir: "./"
-          config_file: "./.yaml-lint.yaml"
-          strict: true
-
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -44,7 +31,17 @@ jobs:
       - name: Install dependencies
         run: |
           uv pip install -r requirements_dev.txt
-
+      - uses: chartboost/ruff-action@v1.0.0
+      - uses: codespell-project/actions-codespell@v2.1
+        with:
+          check_hidden: false
+          exclude_file: ./tests/testdata/cluster9/clusters/dev/flux-system/gotk-components.yaml
+      - name: Run yamllint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: "./"
+          config_file: "./.yaml-lint.yaml"
+          strict: true
       - name: Static typing with mypy
         run: |
           mypy --install-types --non-interactive --no-warn-unused-ignores .
