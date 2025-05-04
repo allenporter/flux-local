@@ -15,7 +15,7 @@ inputs:
     required: false
   python-version:
     description: Python version used for running flux-local
-    default: "3.10"
+    default: "3.13"
   debug:
     description: When true, uses the DEBUG log level
     default: false
@@ -40,11 +40,12 @@ runs:
         cp ${{ github.action_path }}/../../requirements.txt $tempdir
         echo "directory=${tempdir}" >> $GITHUB_OUTPUT
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
         cache-dependency-glob: ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
         python-version: ${{ inputs.python-version }}
+        activate-environment: true
     - name: Install dependencies
       run: |
         uv pip install -r ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
