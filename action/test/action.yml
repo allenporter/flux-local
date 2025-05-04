@@ -39,16 +39,17 @@ runs:
         tempdir=$(mktemp --directory --tmpdir=. --suffix=-flux-local-diff-action)
         cp ${{ github.action_path }}/../../requirements.txt $tempdir
         echo "directory=${tempdir}" >> $GITHUB_OUTPUT
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
+        enable-cache: true
+        cache-dependency-glob: ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
+        version: "0.7.2"
         python-version: ${{ inputs.python-version }}
-        cache: pip
-        cache-dependency-path: ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
-    - name: Install flux-local and requirements
+    - name: Install dependencies
       run: |
-        pip install -r ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
-        pip install -e ${{ github.action_path }}/../../
+        uv pip install -r ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
+        uv pip install -e ${{ github.action_path }}/../../
       shell: bash
     - name: Test cluster (flux-local)
       run: |
