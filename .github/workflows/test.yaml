@@ -32,8 +32,6 @@ jobs:
       - name: Install dependencies
         run: |
           uv pip install -r requirements_dev.txt
-        env:
-          UV_SYSTEM_PYTHON: 1
       - name: Test with pytest
         run: |
           SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing --snapshot-warn-unused
