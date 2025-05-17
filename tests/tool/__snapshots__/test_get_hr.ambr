@@ -23,7 +23,7 @@
 # name: test_get_hr[cluster3]
   '''
   NAMESPACE    NAME       REVISION    CHART              SOURCE     
-  podinfo      podinfo    None        podinfo-podinfo    podinfo    
+  podinfo      podinfo    6.8.0       podinfo-podinfo    podinfo    
   
   '''
 # ---
