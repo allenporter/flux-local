@@ -17,7 +17,7 @@ nest_asyncio==1.6.0
 pytest-asyncio==0.26.0
 python-slugify==8.0.4
 PyYAML==6.0.2
-types-aiofiles==24.1.0.20250326
+types-aiofiles==24.1.0.20250516
 types-PyYAML==6.0.12.20250516
 typing-extensions==4.13.2
 types-python-slugify==8.0.2.20240310
