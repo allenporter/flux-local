@@ -74,7 +74,6 @@ __all__ = [
 _LOGGER = logging.getLogger(__name__)
 
 CLUSTER_KUSTOMIZE_KIND = "Kustomization"
-KUSTOMIZE_KIND = "Kustomization"
 HELM_RELEASE_KIND = "HelmRelease"
 GIT_REPO_KIND = "GitRepository"
 OCI_REPO_KIND = "OCIRepository"

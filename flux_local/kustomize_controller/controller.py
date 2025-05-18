@@ -26,7 +26,12 @@ from typing import Any
 
 from flux_local.store import Store, StoreEvent, Status, Artifact
 from flux_local.source_controller.artifact import GitArtifact, OCIArtifact
-from flux_local.manifest import NamedResource, BaseManifest, Kustomization
+from flux_local.manifest import (
+    NamedResource,
+    BaseManifest,
+    Kustomization,
+    parse_raw_obj,
+)
 from flux_local.exceptions import InputException
 from flux_local.kustomize import flux_build
 
@@ -71,7 +76,7 @@ class KustomizationController:
                     asyncio.create_task(self.on_kustomization_added(resource_id, obj))
                 )
 
-        self.store.add_listener(StoreEvent.OBJECT_ADDED, listener)
+        self.store.add_listener(StoreEvent.OBJECT_ADDED, listener, flush=True)
 
     async def close(self) -> None:
         """Clean up any resources used by the controller.
@@ -98,6 +103,7 @@ class KustomizationController:
             resource_id: The identifier for the Kustomization resource
             obj: The Kustomization object to handle
         """
+        _LOGGER.debug("Handling addition of %s", resource_id)
         if not isinstance(obj, Kustomization):
             _LOGGER.error(
                 "Expected Kustomization but got %s for %s",
@@ -105,7 +111,7 @@ class KustomizationController:
                 resource_id,
             )
             return
-
+        _LOGGER.info("Reconciling Kustomization %s", resource_id)
         await self.reconcile(resource_id, obj)
 
     async def reconcile(
@@ -137,6 +143,8 @@ class KustomizationController:
 
             # 3. Build the kustomization
             manifests = await self._build_kustomization(source_path, kustomization)
+
+            await self._apply(manifests)
 
             # 4. Store results
             artifact = KustomizationArtifact(
@@ -321,5 +329,16 @@ class KustomizationController:
 
         except Exception as e:
             error_msg = f"Failed to build kustomization {kustomization.namespaced_name}: {str(e)}"
-            _LOGGER.error(error_msg)
+            _LOGGER.exception(error_msg)
             raise InputException(error_msg) from e
+
+    async def _apply(self, manifests: list[dict[str, Any]]) -> None:
+        """Apply the manifests to the cluster."""
+        _LOGGER.debug("Applying manifests: %s", manifests)
+        for manifest in manifests:
+            try:
+                obj = parse_raw_obj(manifest)
+            except ValueError as e:
+                raise InputException(f"Failed to parse manifest: {manifest}") from e
+            _LOGGER.debug("Applying %s", obj)
+            self.store.add_object(obj)
