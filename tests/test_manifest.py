@@ -13,6 +13,7 @@ from flux_local.manifest import (
     read_manifest,
     write_manifest,
     NamedResource,
+    OCIRepository,
 )
 
 TESTDATA_DIR = Path("tests/testdata/cluster/infrastructure")
@@ -69,16 +70,14 @@ def test_parse_helm_repository() -> None:
         )
     )
     assert len(docs) == 3
-    repo = HelmRepository.parse_doc(docs[0])
-    assert repo.name == "bitnami"
-    assert repo.namespace == "flux-system"
-    assert repo.url == "https://charts.bitnami.com/bitnami"
-    assert repo.repo_type == "default"
-    repo = HelmRepository.parse_doc(docs[1])
-    assert repo.name == "podinfo"
-    assert repo.namespace == "flux-system"
-    assert repo.url == "oci://ghcr.io/stefanprodan/charts"
-    assert repo.repo_type == "oci"
+    helm_repo = HelmRepository.parse_doc(docs[0])
+    assert helm_repo.name == "bitnami"
+    assert helm_repo.namespace == "flux-system"
+    assert helm_repo.url == "https://charts.bitnami.com/bitnami"
+    oci_repo = OCIRepository.parse_doc(docs[1])
+    assert oci_repo.name == "podinfo"
+    assert oci_repo.namespace == "flux-system"
+    assert oci_repo.url == "oci://ghcr.io/stefanprodan/charts"
 
 
 async def test_write_manifest_file() -> None:
