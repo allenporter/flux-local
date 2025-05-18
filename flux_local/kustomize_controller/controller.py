@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from flux_local.store import Store, StoreEvent, Status, Artifact
+from flux_local.source_controller.artifact import GitArtifact, OCIArtifact
 from flux_local.manifest import NamedResource, BaseManifest, Kustomization
 from flux_local.exceptions import InputException
 from flux_local.kustomize import flux_build
@@ -258,7 +259,15 @@ class KustomizationController:
             )
 
         # Build the full source path by joining the artifact path with the kustomization path
-        source_path = str(Path(artifact.path) / kustomization.path.strip("/"))
+        if isinstance(artifact, GitArtifact):
+            source_path = str(Path(artifact.local_path) / kustomization.path.strip("/"))
+        elif isinstance(artifact, OCIArtifact):
+            source_path = str(Path(artifact.local_path) / kustomization.path.strip("/"))
+        else:
+            raise InputException(
+                f"Source artifact {kustomization.source_kind}/{kustomization.source_name} "
+                f"is not a GitArtifact or OCIArtifact"
+            )
         _LOGGER.debug(
             "Resolved source path for %s to %s",
             kustomization.namespaced_name,

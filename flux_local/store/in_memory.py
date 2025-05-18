@@ -104,6 +104,7 @@ class InMemoryStore(Store):
         self,
         event: StoreEvent,
         callback: Callable[[NamedResource, V], None],
+        flush: bool = False,
     ) -> Callable[[], None]:
         """Register a callback for a specific event (object added, status updated, artifact updated)."""
 
@@ -112,6 +113,27 @@ class InMemoryStore(Store):
                 self._listeners[event].remove(callback)
 
         self._listeners[event].append(callback)
+
+        if flush:
+            _LOGGER.debug("Flushing objects for event type %s", event)
+            for obj in self.list_objects():
+                if (
+                    not hasattr(obj, "kind")
+                    or not hasattr(obj, "namespace")
+                    or not hasattr(obj, "name")
+                ):
+                    _LOGGER.warning("Object %s is missing required attributes", obj)
+                    continue
+                rid = NamedResource(obj.kind, obj.namespace, obj.name)
+                if event == StoreEvent.OBJECT_ADDED:
+                    callback(rid, obj)  # type: ignore
+                elif event == StoreEvent.STATUS_UPDATED:
+                    if status := self._status.get(rid):
+                        callback(rid, status)  # type: ignore
+                elif event == StoreEvent.ARTIFACT_UPDATED:
+                    if artifact := self._artifacts.get(rid):
+                        callback(rid, artifact)  # type: ignore
+
         return remove
 
     def _fire_event(self, event: StoreEvent, *args: Any) -> None:

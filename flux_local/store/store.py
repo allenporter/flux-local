@@ -60,6 +60,7 @@ class Store(ABC):
         self,
         event: StoreEvent,
         callback: Callable[[NamedResource, V], None],
+        flush: bool = False,
     ) -> Callable[[], None]:
         """Register a callback for a specific event (object added, status updated, artifact updated).
 

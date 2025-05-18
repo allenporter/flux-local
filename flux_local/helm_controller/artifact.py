@@ -15,16 +15,20 @@ from flux_local.store.artifact import Artifact
 
 @dataclass(frozen=True, kw_only=True)
 class HelmReleaseArtifact(Artifact):
-    """
-    Artifact representing a HelmRelease build result.
+    """Artifact representing a HelmRelease build result.
 
-    Attributes:
-        objects: List of rendered Kubernetes objects
-        values: Resolved values used for rendering
+    This is written after a HelmRelease is reconciled to record the
+    rendered Kubernetes objects and values used for rendering.
     """
+
+    chart_name: str
+    """HelmChart name used to render this release for informational purposes."""
+
+    values: dict[str, Any]
+    """Resolved values used for rendering the HelmRelease."""
 
     objects: list[dict[str, Any]]
-    values: dict[str, Any]
+    """The rendered Kubernetes objects, output of templating the Helm Chart."""
 
     @property
     def manifests(self) -> list[str]:

@@ -53,7 +53,9 @@ from .manifest import (
     HELM_REPO_KIND,
     GIT_REPOSITORY,
     OCI_REPOSITORY,
+    GitRepository,
 )
+from .source_controller.artifact import GitArtifact
 from .exceptions import HelmException
 
 __all__ = [
@@ -68,25 +70,58 @@ HELM_BIN = "helm"
 DEFAULT_REGISTRY_CONFIG = "/dev/null"
 
 
+@dataclass(kw_only=True, frozen=True)
+class LocalGitRepository:
+    """A GitRepository resolved to a local path.."""
+
+    repo: GitRepository
+    """The GitRepository object."""
+
+    artifact: GitArtifact
+    """The GitArtifact object."""
+
+    @property
+    def repo_name(self) -> str:
+        """Return the name of the repository."""
+        return self.repo.repo_name
+
+
 def _chart_name(
-    release: HelmRelease, repo: HelmRepository | OCIRepository | None
+    release: HelmRelease,
+    repo: HelmRepository | OCIRepository | LocalGitRepository | None,
 ) -> str:
     """Return the helm chart name used for the helm template command."""
     if release.chart.repo_kind == OCI_REPOSITORY:
-        assert repo
+        if not repo:
+            raise HelmException(
+                f"Unable to find OCIRepository for {release.chart.chart_name} for "
+                f"HelmRelease {release.name}"
+            )
         if isinstance(repo, OCIRepository):
             return repo.url
         raise HelmException(
             f"HelmRelease {release.name} expected OCIRepository but got HelmRepository {repo.repo_name}"
         )
     if release.chart.repo_kind == HELM_REPO_KIND:
-        assert repo
+        if not repo:
+            raise HelmException(
+                f"Unable to find HelmRepository for {release.chart.chart_name} for "
+                f"HelmRelease {release.name}"
+            )
         if not isinstance(repo, HelmRepository):
             raise HelmException(
                 f"HelmRelease {release.name} expected HelmRepository but got OCIRepository {repo.repo_name}"
             )
         return repo.helm_chart_name(release.chart)
-    elif release.chart.repo_kind == GIT_REPOSITORY:
+    if release.chart.repo_kind == GIT_REPOSITORY:
+        if isinstance(repo, LocalGitRepository):
+            return str(Path(repo.artifact.local_path) / release.chart.name)
+        _LOGGER.warning(
+            "Unable to find chart %s for HelmRelease %s, using %s",
+            release.chart.chart_name,
+            release.name,
+            release.chart.name,
+        )
         return release.chart.name
     raise HelmException(
         f"Unable to find chart source for chart {release.chart.chart_name} "
@@ -192,9 +227,11 @@ class Helm:
             "--repository-config",
             str(self._repo_config_file),
         ]
-        self._repos: list[HelmRepository | OCIRepository] = []
+        self._repos: list[HelmRepository | OCIRepository | LocalGitRepository] = []
 
-    def add_repo(self, repo: HelmRepository | OCIRepository) -> None:
+    def add_repo(
+        self, repo: HelmRepository | OCIRepository | LocalGitRepository
+    ) -> None:
         """Add the specified HelmRepository to the local config."""
         self._repos.append(repo)
 
@@ -204,6 +241,7 @@ class Helm:
             list[HelmRepository]
             | list[OCIRepository]
             | list[HelmRepository | OCIRepository]
+            | list[HelmRepository | OCIRepository | LocalGitRepository]
         ),
     ) -> None:
         """Add the specified HelmRepository to the local config."""
@@ -246,14 +284,6 @@ class Helm:
             iter([repo for repo in self._repos if repo.repo_name == release.repo_name]),
             None,
         )
-        # We'll attempt to make a chart name for a GitRepository below and it will
-        # be somewhat best effort.
-        if not repo and release.chart.repo_kind != GIT_REPOSITORY:
-            raise HelmException(
-                f"Unable to find HelmRepository or OCIRepository for {release.chart.chart_name} for "
-                f"HelmRelease {release.name} "
-                f"({len(self._repos)} other HelmRepositories/OCIRepositories in --path)"
-            )
         args: list[str] = [
             HELM_BIN,
             "template",

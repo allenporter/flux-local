@@ -4,6 +4,7 @@ import asyncio
 import tempfile
 from pathlib import Path
 from collections.abc import AsyncGenerator, Generator
+from unittest.mock import patch, AsyncMock
 
 import pytest
 import git
@@ -140,7 +141,8 @@ async def test_git_repository_reconciliation(
         status = store.get_status(rid)
         assert artifact is not None
         assert artifact.url == git_repo.url
-        assert artifact.tag == "v1.0.0"
+        assert artifact.ref
+        assert artifact.ref.ref_str == "tag:v1.0.0"
         assert status is not None
         assert status.status == Status.READY
 
@@ -170,15 +172,19 @@ async def test_oci_repository_reconciliation(
 
     try:
         # Add the object to trigger reconciliation
-        store.add_object(oci_repo)
+        with patch("flux_local.source_controller.oci.OrasClient") as mock_client:
+            mock_pull = AsyncMock()
+            mock_pull.return_value = []  # Resources
+            mock_client.return_value.pull = mock_pull
+            store.add_object(oci_repo)
 
-        # Wait for reconciliation to complete with a timeout
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(rid)
-            error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-            raise AssertionError(error_msg)
+            # Wait for reconciliation to complete with a timeout
+            try:
+                await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                status = store.get_status(rid)
+                error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
+                raise AssertionError(error_msg)
 
         # Verify the results
         artifact = store.get_artifact(rid, OCIArtifact)
@@ -241,14 +247,16 @@ async def test_git_repository_branch_reconciliation(
         # Verify the results
         artifact = store.get_artifact(rid, GitArtifact)
         status = store.get_status(rid)
-        assert artifact is not None
-        assert artifact.url == git_repo.url
-        assert artifact.tag is None  # Branch reference should not set tag
-        assert status is not None
-        assert status.status == Status.READY
 
     finally:
         remove_listener()
+
+    assert artifact is not None
+    assert artifact.url == git_repo.url
+    assert artifact.ref is not None
+    assert artifact.ref.ref_str == "branch:master"
+    assert status is not None
+    assert status.status == Status.READY
 
 
 async def test_unsupported_kind() -> None:

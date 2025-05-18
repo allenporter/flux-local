@@ -14,7 +14,7 @@ from flux_local.kustomize_controller import (
     KustomizationController,
 )
 from flux_local.source_controller import GitArtifact, OCIArtifact
-from flux_local.manifest import NamedResource
+from flux_local.manifest import NamedResource, OCIRepositoryRef
 
 from .conftest import DummyKustomization, DummyGitRepository, DummyOCIRepository
 
@@ -111,7 +111,9 @@ async def test_kustomization_reconciliation(
     store.add_object(source)
 
     # Set the artifact path to the Git repository directory
-    store.set_artifact(source_rid, GitArtifact(url=source.url, path=str(git_repo_path)))
+    store.set_artifact(
+        source_rid, GitArtifact(url=source.url, local_path=str(git_repo_path))
+    )
     store.update_status(source_rid, Status.READY)
 
     # Create a Flux Kustomization that points to the app directory
@@ -197,7 +199,11 @@ async def test_kustomization_with_oci_source(
     # Add an OCIArtifact to simulate the source controller's behavior
     store.set_artifact(
         source_rid,
-        OCIArtifact(url=source.url, digest=source.digest, path=str(git_repo_path)),
+        OCIArtifact(
+            url=source.url,
+            local_path=str(git_repo_path),
+            ref=OCIRepositoryRef(digest=source.digest),
+        ),
     )
     store.update_status(source_rid, Status.READY)
 
@@ -280,7 +286,9 @@ async def test_kustomization_dependencies(
     source = DummyGitRepository(namespace="test-ns", name="test-repo")
     source_rid = NamedResource(source.kind, source.namespace, source.name)
     store.add_object(source)
-    store.set_artifact(source_rid, GitArtifact(url=source.url, path=str(git_repo_path)))
+    store.set_artifact(
+        source_rid, GitArtifact(url=source.url, local_path=str(git_repo_path))
+    )
     store.update_status(source_rid, Status.READY)
 
     # Add dependency kustomization
@@ -479,7 +487,9 @@ async def test_kustomization_missing_dependency(
     source = DummyGitRepository(namespace="test-ns", name="test-repo")
     source_rid = NamedResource(source.kind, source.namespace, source.name)
     store.add_object(source)
-    store.set_artifact(source_rid, GitArtifact(url=source.url, path=str(git_repo_path)))
+    store.set_artifact(
+        source_rid, GitArtifact(url=source.url, local_path=str(git_repo_path))
+    )
     store.update_status(source_rid, Status.READY)
 
     # Add kustomization with missing dependency
