@@ -1,12 +1,15 @@
 """Tests for the source controller."""
 
 import asyncio
-import pytest
-from flux_local.manifest import NamedResource, BaseManifest, OCIRepository
+from flux_local.manifest import (
+    NamedResource,
+    BaseManifest,
+    OCIRepository,
+    GitRepository,
+)
 from flux_local.store.in_memory import InMemoryStore
 from flux_local.store.status import Status
 from flux_local.source_controller import GitArtifact, OCIArtifact, SourceController
-from flux_local.source_controller.git import GitRepository
 
 
 class DummyGitRepository(GitRepository):
@@ -29,7 +32,6 @@ class DummyOCIRepository(OCIRepository):
         self.digest = "sha256:dummy"
 
 
-@pytest.mark.asyncio
 async def test_git_repository_reconciliation() -> None:
     """Test Git repository reconciliation."""
     store = InMemoryStore()
@@ -48,7 +50,6 @@ async def test_git_repository_reconciliation() -> None:
     await controller.close()
 
 
-@pytest.mark.asyncio
 async def test_oci_repository_reconciliation() -> None:
     """Test OCI repository reconciliation."""
     store = InMemoryStore()
@@ -66,7 +67,6 @@ async def test_oci_repository_reconciliation() -> None:
     await controller.close()
 
 
-@pytest.mark.asyncio
 async def test_unsupported_kind() -> None:
     """Test unsupported kind."""
     store = InMemoryStore()
