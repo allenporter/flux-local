@@ -151,6 +151,7 @@ class HelmReleaseController:
 
         kustomize = await self.helm.template(helm_release, options)
         objects = await kustomize.objects()
+        _LOGGER.info("Chart %s rendered %d objects", helm_release.chart.name, len(objects))
 
         # Store the result
         artifact = HelmReleaseArtifact(
