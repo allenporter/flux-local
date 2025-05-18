@@ -4,7 +4,7 @@ This module provides a controller for managing GitRepository and OCIRepository
 resources.
 """
 
-from .source_controller import SourceController
+from .controller import SourceController
 from .artifact import GitArtifact, OCIArtifact
 
 __all__ = [
