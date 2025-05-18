@@ -393,8 +393,35 @@ class HelmRepository(BaseManifest):
 
 
 @dataclass
+class GitRepositoryRef:
+    """GitRepositoryRef defines the Git ref used for pull and checkout operations."""
+
+    branch: str | None = field(default=None)
+    """The Git branch to checkout, defaults to master."""
+
+    tag: str | None = field(default=None)
+    """The Git tag to checkout."""
+
+    semver: str | None = field(default=None)
+    """The Git tag semver expression."""
+
+    commit: str | None = field(default=None)
+    """The Git commit SHA to checkout."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "GitRepositoryRef":
+        """Parse a GitRepositoryRef from a kubernetes resource."""
+        return cls(
+            branch=doc.get("branch"),
+            tag=doc.get("tag"),
+            semver=doc.get("semver"),
+            commit=doc.get("commit"),
+        )
+
+
+@dataclass
 class GitRepository(BaseManifest):
-    """Placeholder until we define a real GitRepo."""
+    """GitRepository represents a Git repository."""
 
     kind: ClassVar[str] = GIT_REPOSITORY
     """The kind of the object."""
@@ -408,8 +435,8 @@ class GitRepository(BaseManifest):
     url: str
     """The URL to the repository."""
 
-    ref_tag: str | None = None
-    """The version tag of the repository."""
+    ref: GitRepositoryRef | None = None
+    """The Git reference to use for pull and checkout operations."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "GitRepository":
@@ -425,17 +452,25 @@ class GitRepository(BaseManifest):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (url := spec.get("url")):
             raise InputException(f"Invalid {cls} missing spec.url: {doc}")
+
+        ref = None
+        if ref_dict := spec.get("ref"):
+            ref = GitRepositoryRef.parse_doc(ref_dict)
+
         return cls(
             name=name,
             namespace=namespace,
             url=url,
-            ref_tag=spec.get("ref", {}).get("tag"),
+            ref=ref,
         )
 
 
 @dataclass
 class OCIRepository(BaseManifest):
     """A representation of a flux OCIRepository."""
+
+    kind: ClassVar[str] = OCI_REPOSITORY
+    """The kind of the object."""
 
     name: str
     """The name of the OCIRepository."""

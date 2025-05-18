@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+import git
 
 from flux_local.manifest import BaseManifest, GitRepository, GIT_REPOSITORY
 from flux_local.store.in_memory import InMemoryStore
@@ -32,8 +33,25 @@ def tmp_dir_fixture() -> Generator[Path, None, None]:
 
 @pytest.fixture(name="git_repo_dir")
 def git_repo_dir_fixture(tmp_dir: Path) -> Path:
-    """Temporary directory for GitRepository."""
-    return tmp_dir / "git-repo"
+    """Create a local git repository for testing."""
+    repo_path = tmp_dir / "git-repo"
+    repo_path.mkdir()
+
+    # Initialize git repository
+    repo = git.Repo.init(repo_path)
+
+    # Create a test file
+    test_file = repo_path / "test.txt"
+    test_file.write_text("Test file content")
+
+    # Add and commit the file
+    repo.git.add(".")
+    repo.git.commit(m="Initial commit")
+
+    # Create a tag
+    repo.git.tag("v1.0.0", m="Initial release")
+
+    return repo_path
 
 
 @pytest.fixture(name="helm_chart_git_path")
@@ -41,6 +59,28 @@ def helm_chart_git_pathfixture(git_repo_dir: Path) -> Path:
     """Create a Helm repository directory for testing and return its path."""
     helm_chart_git_path = git_repo_dir / "helm-charts"
     helm_chart_git_path.mkdir(parents=True, exist_ok=True)
+
+    # Create a test Helm chart
+    chart_dir = helm_chart_git_path / "nginx"
+    chart_dir.mkdir(exist_ok=True)
+
+    # Create a basic Chart.yaml
+    chart_yaml = chart_dir / "Chart.yaml"
+    chart_yaml.write_text(
+        """
+apiVersion: v2
+name: nginx
+version: 1.0.0
+appVersion: 1.14.2
+""",
+        encoding="utf-8",
+    )
+
+    # Add and commit the chart files
+    repo = git.Repo(str(git_repo_dir))
+    repo.git.add(".")
+    repo.git.commit(m="Add Helm chart")
+
     return helm_chart_git_path
 
 
@@ -142,6 +182,8 @@ spec:
         kind: GitRepository
         name: test-repo
         namespace: test-ns
+        ref:
+          tag: v1.0.0
   valuesFrom:
     - kind: ConfigMap
       name: {config_map.name}
@@ -168,7 +210,7 @@ metadata:
 spec:
   url: https://github.com/example/helm-charts
   ref:
-    branch: main
+    tag: v1.0.0
   interval: 1m0s
 """
     git_repo = GitRepository.parse_doc(yaml.safe_load(git_repo_yaml))
