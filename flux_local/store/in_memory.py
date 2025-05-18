@@ -2,11 +2,15 @@
 
 from typing import TypeVar, Callable, Any, DefaultDict
 from collections import defaultdict
+import logging
 
 from flux_local.manifest import NamedResource, BaseManifest
 from .artifact import Artifact
 from .status import Status, StatusInfo
 from .store import Store, StoreEvent
+
+
+_LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseManifest)
 S = TypeVar("S", bound=Artifact)
@@ -72,7 +76,7 @@ class InMemoryStore(Store):
         """Store artifact information (e.g., source path, revision, rendered manifests) for a resource."""
         if not isinstance(artifact, Artifact):
             raise ValueError(
-                f"Artifact {resource_id.namespaced_name} is not of type {Artifact.__name__} (was {artifact.__class__.__name__})"
+                f"Artifact/set {resource_id.namespaced_name} is not of type {Artifact.__name__} (was {artifact.__class__.__name__})"
             )
         self._artifacts[resource_id] = artifact
         self._fire_event(StoreEvent.ARTIFACT_UPDATED, resource_id, artifact)
@@ -83,7 +87,7 @@ class InMemoryStore(Store):
         if artifact is not None:
             if not isinstance(artifact, cls):
                 raise ValueError(
-                    f"Artifact {resource_id.namespaced_name} is not of type {cls.__name__} (was {artifact.__class__.__name__})"
+                    f"Artifact/get {resource_id.namespaced_name} is not of type {cls.__name__} (was {artifact.__class__.__name__})"
                 )
             return artifact
         return None
