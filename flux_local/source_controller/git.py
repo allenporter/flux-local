@@ -28,21 +28,9 @@ async def fetch_git(obj: GitRepository) -> GitArtifact:
         GitError: If git operations fail
     """
     try:
-        # Parse the reference to use in cache key
-        ref_str = ""
-        if obj.ref:
-            if obj.ref.commit:
-                ref_str = f"commit:{obj.ref.commit}"
-            elif obj.ref.tag:
-                ref_str = f"tag:{obj.ref.tag}"
-            elif obj.ref.branch:
-                ref_str = f"branch:{obj.ref.branch}"
-            elif obj.ref.semver:
-                ref_str = f"semver:{obj.ref.semver}"
-
         # Get the cache path for this repository
         cache = get_git_cache()
-        repo_path = cache.get_repo_path(obj.url, ref_str)
+        repo_path = cache.get_repo_path(obj.url, obj.ref.ref_str if obj.ref else None)
 
         # Clone or update the repository
         if (repo_path / ".git").exists():
@@ -77,9 +65,9 @@ async def fetch_git(obj: GitRepository) -> GitArtifact:
 
         # Return the artifact with the actual path and URL
         return GitArtifact(
-            path=str(repo_path),
             url=obj.url,
-            tag=obj.ref.tag if obj.ref else None,  # Store tag if specified
+            local_path=str(repo_path),
+            ref=obj.ref,
         )
 
     except git.exc.GitCommandError as e:

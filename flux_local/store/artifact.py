@@ -7,5 +7,3 @@ from dataclasses import dataclass
 @dataclass(frozen=True, kw_only=True)
 class Artifact(ABC):
     """Base class for all artifacts."""
-
-    path: str

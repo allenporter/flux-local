@@ -426,6 +426,19 @@ class GitRepositoryRef:
             commit=doc.get("commit"),
         )
 
+    @property
+    def ref_str(self) -> str | None:
+        """Get the reference string for the GitRepository."""
+        if self.commit:
+            return f"commit:{self.commit}"
+        if self.tag:
+            return f"tag:{self.tag}"
+        if self.branch:
+            return f"branch:{self.branch}"
+        if self.semver:
+            return f"semver:{self.semver}"
+        return None
+
     class Config(BaseConfig):
         omit_none = True
 
@@ -474,6 +487,11 @@ class GitRepository(BaseManifest):
             url=url,
             ref=ref,
         )
+
+    @property
+    def repo_name(self) -> str:
+        """Identifier for the GitRepository."""
+        return f"{self.namespace}-{self.name}"
 
 
 @dataclass
@@ -563,6 +581,18 @@ class OCIRepository(BaseManifest):
             if self.ref.semver:
                 return self.ref.semver
         return None
+
+    def versioned_url(self) -> str:
+        """Get the URL with the version."""
+        if self.ref is None:
+            return self.url
+        if self.ref.digest:
+            return f"{self.url}@{self.ref.digest}"
+        if self.ref.tag:
+            return f"{self.url}:{self.ref.tag}"
+        if self.ref.semver:
+            return f"{self.url}:{self.ref.semver}"
+        return self.url
 
     @property
     def repo_name(self) -> str:

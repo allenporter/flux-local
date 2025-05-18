@@ -7,13 +7,14 @@ import yaml
 
 from flux_local.manifest import (
     Cluster,
+    GitRepositoryRef,
     HelmRelease,
     HelmRepository,
     Manifest,
-    read_manifest,
-    write_manifest,
     NamedResource,
     OCIRepository,
+    read_manifest,
+    write_manifest,
 )
 
 TESTDATA_DIR = Path("tests/testdata/cluster/infrastructure")
@@ -78,6 +79,33 @@ def test_parse_helm_repository() -> None:
     assert oci_repo.name == "podinfo"
     assert oci_repo.namespace == "flux-system"
     assert oci_repo.url == "oci://ghcr.io/stefanprodan/charts"
+
+
+def test_git_repository_ref_str() -> None:
+    """Test GitRepositoryRef ref_str property."""
+    # Test with commit
+    ref = GitRepositoryRef(commit="abc123")
+    assert ref.ref_str == "commit:abc123"
+
+    # Test with tag
+    ref = GitRepositoryRef(tag="v1.0.0")
+    assert ref.ref_str == "tag:v1.0.0"
+
+    # Test with branch
+    ref = GitRepositoryRef(branch="main")
+    assert ref.ref_str == "branch:main"
+
+    # Test with semver
+    ref = GitRepositoryRef(semver="1.0.0")
+    assert ref.ref_str == "semver:1.0.0"
+
+    # Test with no references
+    ref = GitRepositoryRef()
+    assert ref.ref_str is None
+
+    # Test with multiple references (should use first non-None)
+    ref = GitRepositoryRef(commit="abc123", tag="v1.0.0")
+    assert ref.ref_str == "commit:abc123"
 
 
 async def test_write_manifest_file() -> None:

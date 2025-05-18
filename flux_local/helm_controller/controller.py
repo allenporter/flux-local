@@ -19,11 +19,9 @@ Dependencies:
 """
 
 import asyncio
-import copy
 import logging
-from pathlib import Path
 
-from flux_local.store import Store, StoreEvent, Status
+from flux_local.store import Store, StoreEvent, Status, Artifact
 from flux_local.source_controller import GitArtifact
 from flux_local.manifest import (
     NamedResource,
@@ -32,8 +30,10 @@ from flux_local.manifest import (
     CONFIG_MAP_KIND,
     SECRET_KIND,
     GitRepository,
+    OCIRepository,
+    HelmRepository,
 )
-from flux_local.helm import Helm, Options
+from flux_local.helm import Helm, Options, LocalGitRepository
 
 from .artifact import HelmReleaseArtifact
 
@@ -63,15 +63,42 @@ class HelmReleaseController:
         self.store = store
         self.helm = helm
         self._tasks: list[asyncio.Task[None]] = []
+        self._need_update = False
 
-        def listener(resource_id: NamedResource, obj: BaseManifest) -> None:
-            """Event listener for new HelmRelease objects."""
-            if resource_id.kind == "HelmRelease":
-                self._tasks.append(
-                    asyncio.create_task(self.on_helm_release_added(resource_id, obj))
-                )
+        self.store.add_listener(
+            StoreEvent.OBJECT_ADDED, self._added_listener, flush=True
+        )
+        self.store.add_listener(
+            StoreEvent.ARTIFACT_UPDATED, self._artifact_listener, flush=True
+        )
 
-        self.store.add_listener(StoreEvent.OBJECT_ADDED, listener)
+    def _added_listener(self, resource_id: NamedResource, obj: BaseManifest) -> None:
+        """Event listener for new repository objects."""
+        if resource_id.kind == "HelmRepository" and isinstance(obj, HelmRepository):
+            self._need_update = True
+            self.helm.add_repo(obj)
+        if resource_id.kind == "OCIRepository" and isinstance(obj, OCIRepository):
+            self._need_update = True
+            self.helm.add_repo(obj)
+        if resource_id.kind == "HelmRelease":
+            self._tasks.append(
+                asyncio.create_task(self.on_helm_release_added(resource_id, obj))
+            )
+
+    def _artifact_listener(
+        self, resource_id: NamedResource, artifact: Artifact
+    ) -> None:
+        """Event listener for new GitRepository GitArtifact objects."""
+        _LOGGER.debug(
+            "GitRepository %s artifact updated, artifact=%s", resource_id, artifact
+        )
+        if resource_id.kind != "GitRepository" or not isinstance(artifact, GitArtifact):
+            return
+        if not (git_repo := self.store.get_object(resource_id, GitRepository)):
+            _LOGGER.error("GitRepository %s not found", resource_id)
+            return
+        self._need_update = True
+        self.helm.add_repo(LocalGitRepository(repo=git_repo, artifact=artifact))
 
     async def close(self) -> None:
         """Clean up resources used by the controller."""
@@ -96,7 +123,9 @@ class HelmReleaseController:
         try:
             await self.reconcile_helm_release(resource_id, obj)
         except Exception as e:
-            _LOGGER.error("Failed to reconcile HelmRelease %s: %s", resource_id, str(e))
+            _LOGGER.exception(
+                "Failed to reconcile HelmRelease %s: %s", resource_id, str(e)
+            )
             # Update status with error
             self.store.update_status(resource_id, Status.FAILED, error=str(e))
 
@@ -112,11 +141,19 @@ class HelmReleaseController:
         3. Status management
         """
         _LOGGER.info("Reconciling HelmRelease %s", resource_id)
+
+        if self._need_update:
+            _LOGGER.info("Updating Helm repositories")
+            await self.helm.update()
+            self._need_update = False
+
         # Update status to processing
         self.store.update_status(resource_id, Status.PENDING)
 
         # Wait for dependencies to be ready
         await self.wait_for_dependencies(helm_release)
+
+        # TODO: Exercise ValuesFrom logic
 
         # Prepare options using only the options that exist in HelmRelease
         options = Options(
@@ -126,37 +163,17 @@ class HelmReleaseController:
         )
 
         # Use Helm's template functionality
-        # TODO: Add HelmRepos to the helm object when they are found and
-        # keep track if we've updated or not.
-        # await self.helm.update()
         # TODO: Add a flag to limit helm concurrency for buggy helm clients
-        if helm_release.chart.repo_kind == "GitRepository":
-            source_rid = NamedResource(
-                kind=helm_release.chart.repo_kind,
-                namespace=helm_release.chart.repo_namespace,
-                name=helm_release.chart.repo_name,
-            )
-            source_artifact = self.store.get_artifact(source_rid, GitArtifact)
-            if not source_artifact:
-                _LOGGER.error("GitRepository %s not found", source_rid)
-                self.store.update_status(
-                    resource_id, Status.FAILED, error="GitRepository not found"
-                )
-                return
-            helm_release_copy = copy.deepcopy(helm_release)
-            helm_release_copy.chart.name = str(
-                Path(source_artifact.path) / helm_release.chart.name
-            )
-            helm_release = helm_release_copy
-
         kustomize = await self.helm.template(helm_release, options)
         objects = await kustomize.objects()
-        _LOGGER.info("Chart %s rendered %d objects", helm_release.chart.name, len(objects))
+        _LOGGER.info(
+            "Chart %s rendered %d objects", helm_release.chart.name, len(objects)
+        )
 
         # Store the result
         artifact = HelmReleaseArtifact(
+            chart_name=helm_release.chart.chart_name,
             objects=objects,
-            path=helm_release.chart.name,
             values=helm_release.values or {},
         )
         self.store.set_artifact(resource_id, artifact)

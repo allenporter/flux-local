@@ -273,9 +273,8 @@ async def test_helm_release_reconciliation(
     # Set the artifact for the GitRepository
     repo_artifact = GitArtifact(
         url=git_repo.url,
-        path=str(git_repo_dir),
-        # TODO: Support ref tags
-        # ref=git_repo.ref_tag
+        local_path=str(git_repo_dir),
+        ref=git_repo.ref,
     )
     store.set_artifact(git_repo_rid, repo_artifact)
 
@@ -319,12 +318,10 @@ async def test_helm_release_reconciliation(
     artifact = store.get_artifact(helm_release_rid, HelmReleaseArtifact)
     status = store.get_status(helm_release_rid)
 
-    assert artifact is not None, "Expected artifact to be set"
-    assert artifact.path == str(
-        chart_path
-    ), f"Expected chart path {chart_path}, got {artifact.path}"
-    assert status is not None, "Expected status to be set"
-    assert status.status == Status.READY, f"Expected status READY, got {status.status}"
+    assert artifact is not None
+    assert artifact.chart_name == helm_release.chart.chart_name
+    assert status is not None
+    assert status.status == Status.READY
 
 
 async def test_helm_release_becomes_ready_after_gitrepo_ready(
@@ -377,9 +374,8 @@ async def test_helm_release_becomes_ready_after_gitrepo_ready(
 
         repo_artifact = GitArtifact(
             url=git_repo.url,
-            path=str(git_repo_dir),
-            # TODO: Support ref tags
-            # ref=git_repo.ref_tag
+            local_path=str(git_repo_dir),
+            ref=git_repo.ref,
         )
         store.set_artifact(git_repo_rid, repo_artifact)
         store.update_status(git_repo_rid, Status.READY)
@@ -393,17 +389,13 @@ async def test_helm_release_becomes_ready_after_gitrepo_ready(
 
     # Verify the HelmRelease is ready
     status = store.get_status(helm_release_rid)
-    assert status is not None, "Expected status to be set"
-    assert status.status == Status.READY, f"Expected status READY, got {status.status}"
+    assert status is not None
+    assert status.status == Status.READY
 
     # Verify the artifact is set
     artifact = store.get_artifact(helm_release_rid, HelmReleaseArtifact)
-    assert artifact is not None, "Expected artifact to be set"
-    assert artifact.path == str(
-        chart_path
-    ), f"Expected chart path {chart_path}, got {artifact.path}"
-
-    await controller.close()
+    assert artifact is not None
+    assert artifact.chart_name == helm_release.chart.chart_name
 
 
 async def test_helm_release_fails_with_missing_dependency(
@@ -423,9 +415,8 @@ async def test_helm_release_fails_with_missing_dependency(
     # Set the artifact for the GitRepository
     repo_artifact = GitArtifact(
         url=git_repo.url,
-        path=str(git_repo_dir),
-        # TODO: Support ref tags
-        # ref=git_repo.ref_tag
+        local_path=str(git_repo_dir),
+        ref=git_repo.ref,
     )
     store.set_artifact(git_repo_rid, repo_artifact)
 
@@ -468,12 +459,9 @@ async def test_helm_release_fails_with_missing_dependency(
         NamedResource(helm_release.kind, helm_release.namespace, helm_release.name)
     )
 
-    assert status is not None, "Expected status to be set"
-    assert (
-        status.status == Status.PENDING
-    ), f"Expected status FAILED, got {status.status}"
+    assert status is not None
+    assert status.status == Status.PENDING
     assert status.error is None
-    await controller.close()
 
 
 async def test_helm_release_fails_failed_dependency(
@@ -527,14 +515,11 @@ async def test_helm_release_fails_failed_dependency(
         NamedResource(helm_release.kind, helm_release.namespace, helm_release.name)
     )
 
-    assert status is not None, "Expected status to be set"
-    assert (
-        status.status == Status.FAILED
-    ), f"Expected status FAILED, got {status.status}"
+    assert status is not None
+    assert status.status == Status.FAILED
     assert (
         status.error == "Dependency GitRepository/test-ns/test-repo: Failed: Some error"
     )
-    await controller.close()
 
 
 async def test_helm_release_fails_with_nonexistent_chart(
@@ -566,9 +551,8 @@ async def test_helm_release_fails_with_nonexistent_chart(
     # Set the artifact for the GitRepository
     repo_artifact = GitArtifact(
         url=git_repo.url,
-        path=str(git_repo_dir),
-        # TODO: Support ref tags
-        # ref=git_repo.ref_tag
+        local_path=str(git_repo_dir),
+        ref=git_repo.ref,
     )
     store.set_artifact(git_repo_rid, repo_artifact)
 
@@ -611,4 +595,3 @@ async def test_helm_release_fails_with_nonexistent_chart(
     finally:
         # Clean up the listener
         remove_listener()
-    await controller.close()
