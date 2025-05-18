@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 import git
+from syrupy.assertion import SnapshotAssertion
 
 from flux_local.manifest import BaseManifest, GitRepository, GIT_REPOSITORY
 from flux_local.store.in_memory import InMemoryStore
@@ -116,10 +117,22 @@ appVersion: 1.14.2
     values_yaml = chart_dir / "values.yaml"
     values_yaml.write_text(
         """
-replicaCount: 1
-image:
-  repository: nginx
-  tag: 1.14.2
+replicaCount: 7
+""",
+        encoding="utf-8",
+    )
+    templates = chart_dir / "templates"
+    templates.mkdir(exist_ok=True)
+
+    config_map_yaml = templates / "configmap.yaml"
+    config_map_yaml.write_text(
+        """
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World with {{ .Values.replicaCount }} replicas"
 """,
         encoding="utf-8",
     )
@@ -260,6 +273,7 @@ async def test_helm_release_reconciliation(
     config_map: ConfigMap,
     secret: Secret,
     git_repo_dir: Path,
+    snapshot: SnapshotAssertion,
 ) -> None:
     """Test basic HelmRelease reconciliation with dependencies."""
     # Add the ConfigMap and Secret resources first
@@ -323,6 +337,14 @@ async def test_helm_release_reconciliation(
     assert status is not None
     assert status.status == Status.READY
 
+    # Verify objects are applied
+    objects = store.list_objects()
+    assert [
+        obj
+        for obj in objects
+        # GitRepository has a tmpdir random path so ignore
+        if hasattr(obj, "kind") and obj.kind != "GitRepository"
+    ] == snapshot
 
 async def test_helm_release_becomes_ready_after_gitrepo_ready(
     store: Store,

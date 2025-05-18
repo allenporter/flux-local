@@ -6,23 +6,14 @@ using the existing Helm class for chart operations and template rendering.
 Key Concepts:
     - HelmRelease: A resource that defines how to deploy a Helm chart
     - Store: Central state management for resource status and artifacts
-
-Dependencies:
-    - flux_local.store.Store: For state management and artifact storage
-    - flux_local.manifest.NamedResource: For resource identification
-    - flux_local.manifest.BaseManifest: For base manifest handling
-    - flux_local.manifest.HelmRelease: For HelmRelease resource handling
-    - flux_local.exceptions.InputException: For input-related exceptions
-    - flux_local.helm.Helm: For Helm chart operations and template rendering
-    - flux_local.helm.Options: For template rendering options
-    - .artifact.HelmReleaseArtifact: For HelmRelease artifact handling
 """
 
 import asyncio
 import logging
+from typing import Any
 
-from flux_local.store import Store, StoreEvent, Status, Artifact
-from flux_local.source_controller import GitArtifact
+from flux_local.exceptions import InputException
+from flux_local.helm import Helm, Options, LocalGitRepository
 from flux_local.manifest import (
     NamedResource,
     BaseManifest,
@@ -32,8 +23,10 @@ from flux_local.manifest import (
     GitRepository,
     OCIRepository,
     HelmRepository,
+    parse_raw_obj,
 )
-from flux_local.helm import Helm, Options, LocalGitRepository
+from flux_local.store import Store, StoreEvent, Status, Artifact
+from flux_local.source_controller import GitArtifact
 
 from .artifact import HelmReleaseArtifact
 
@@ -169,6 +162,7 @@ class HelmReleaseController:
         _LOGGER.info(
             "Chart %s rendered %d objects", helm_release.chart.name, len(objects)
         )
+        await self._apply(objects)
 
         # Store the result
         artifact = HelmReleaseArtifact(
@@ -306,3 +300,14 @@ class HelmReleaseController:
         finally:
             # Clean up the listener
             remove_listener()
+
+    async def _apply(self, manifests: list[dict[str, Any]]) -> None:
+        """Apply the manifests to the cluster."""
+        _LOGGER.debug("Applying manifests: %s", manifests)
+        for manifest in manifests:
+            try:
+                obj = parse_raw_obj(manifest)
+            except ValueError as e:
+                raise InputException(f"Failed to parse manifest: {manifest}") from e
+            _LOGGER.debug("Applying %s", obj)
+            self.store.add_object(obj)
