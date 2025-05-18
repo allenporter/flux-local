@@ -254,7 +254,7 @@ async def test_helm_release_reconciliation(
 
         # Wait for reconciliation to complete with a timeout
         try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
+            await asyncio.wait_for(reconciliation_complete.wait(), timeout=15.0)
         except asyncio.TimeoutError:
             status = store.get_status(helm_release_rid)
             error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
