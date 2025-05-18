@@ -9,7 +9,7 @@ import base64
 from dataclasses import dataclass, field
 import logging
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Optional, cast, ClassVar
 
 import aiofiles
 from mashumaro.codecs.yaml import yaml_decode, yaml_encode
@@ -48,7 +48,8 @@ CONFIG_MAP_KIND = "ConfigMap"
 DEFAULT_NAMESPACE = "flux-system"
 VALUE_PLACEHOLDER_TEMPLATE = "..PLACEHOLDER_{name}.."
 HELM_RELEASE = "HelmRelease"
-HELM_REPOSITORY = "HelmRepository"
+HELM_REPO_KIND = "HelmRepository"
+HELM_CHART = "HelmChart"
 GIT_REPOSITORY = "GitRepository"
 OCI_REPOSITORY = "OCIRepository"
 
@@ -104,10 +105,17 @@ class NamedResource:
             return f"{self.namespace}/{self.name}"
         return self.name
 
+    def __str__(self) -> str:
+        """Return the kind and namespaced name concatenated as an id."""
+        return f"{self.kind}/{self.namespaced_name}"
+
 
 @dataclass
 class HelmChart(BaseManifest):
     """A representation of an instantiation of a chart for a HelmRelease."""
+
+    kind: ClassVar[str] = HELM_CHART
+    """The kind of the object."""
 
     name: str
     """The name of the chart within the HelmRepository."""
@@ -121,7 +129,7 @@ class HelmChart(BaseManifest):
     repo_namespace: str
     """The namespace of the repository."""
 
-    repo_kind: str = HELM_REPOSITORY
+    repo_kind: str = HELM_REPO_KIND
     """The kind of the soruceRef of the repository (e.g. HelmRepository, GitRepository)."""
 
     @classmethod
@@ -165,7 +173,7 @@ class HelmChart(BaseManifest):
             version=version,
             repo_name=source_ref["name"],
             repo_namespace=source_ref.get("namespace", default_namespace),
-            repo_kind=source_ref.get("kind", HELM_REPOSITORY),
+            repo_kind=source_ref.get("kind", HELM_REPO_KIND),
         )
 
     @property
@@ -206,6 +214,9 @@ class ValuesReference(BaseManifest):
 @dataclass
 class HelmRelease(BaseManifest):
     """A representation of a Flux HelmRelease."""
+
+    kind: ClassVar[str] = HELM_RELEASE
+    """The kind of the object."""
 
     name: str
     """The name of the HelmRelease."""
@@ -339,6 +350,9 @@ class HelmRelease(BaseManifest):
 class HelmRepository(BaseManifest):
     """A representation of a flux HelmRepository."""
 
+    kind: ClassVar[str] = HELM_REPO_KIND
+    """The kind of the object."""
+
     name: str
     """The name of the HelmRepository."""
 
@@ -381,6 +395,9 @@ class HelmRepository(BaseManifest):
 @dataclass
 class GitRepository(BaseManifest):
     """Placeholder until we define a real GitRepo."""
+
+    kind: ClassVar[str] = GIT_REPOSITORY
+    """The kind of the object."""
 
     name: str
     """The name of the GitRepository."""
@@ -464,8 +481,11 @@ class OCIRepository(BaseManifest):
 class ConfigMap(BaseManifest):
     """A ConfigMap is an API object used to store data in key-value pairs."""
 
+    kind: ClassVar[str] = CONFIG_MAP_KIND
+    """The kind of the ConfigMap."""
+
     name: str
-    """The name of the kustomization."""
+    """The name of the ConfigMap."""
 
     namespace: str | None = None
     """The namespace of the kustomization."""
@@ -499,11 +519,14 @@ class ConfigMap(BaseManifest):
 class Secret(BaseManifest):
     """A Secret contains a small amount of sensitive data."""
 
+    kind: ClassVar[str] = SECRET_KIND
+    """The kind of the Secret."""
+
     name: str
-    """The name of the kustomization."""
+    """The name of the Secret."""
 
     namespace: str | None = None
-    """The namespace of the kustomization."""
+    """The namespace of the Secret."""
 
     data: dict[str, Any] | None = field(metadata={"serialize": "omit"}, default=None)
     """The data in the Secret."""

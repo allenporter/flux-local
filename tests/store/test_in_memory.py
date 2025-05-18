@@ -67,7 +67,7 @@ def test_set_and_get_artifact(store: InMemoryStore) -> None:
 
     with pytest.raises(
         ValueError,
-        match=r"Artifact ns/baz is not of type NotDummyArtifact \(was DummyArtifact\)",
+        match=r"Artifact/get ns/baz is not of type NotDummyArtifact \(was DummyArtifact\)",
     ):
         store.get_artifact(rid, NotDummyArtifact)
 

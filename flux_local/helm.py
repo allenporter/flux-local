@@ -50,7 +50,7 @@ from .manifest import (
     CRD_KIND,
     SECRET_KIND,
     REPO_TYPE_OCI,
-    HELM_REPOSITORY,
+    HELM_REPO_KIND,
     GIT_REPOSITORY,
     OCI_REPOSITORY,
 )
@@ -79,7 +79,7 @@ def _chart_name(
         raise HelmException(
             f"HelmRelease {release.name} expected OCIRepository but got HelmRepository {repo.repo_name}"
         )
-    if release.chart.repo_kind == HELM_REPOSITORY:
+    if release.chart.repo_kind == HELM_REPO_KIND:
         assert repo
         if not isinstance(repo, HelmRepository):
             raise HelmException(
