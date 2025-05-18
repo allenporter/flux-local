@@ -10,6 +10,7 @@ class GitArtifact(Artifact):
     """Git artifact."""
 
     url: str
+    tag: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
