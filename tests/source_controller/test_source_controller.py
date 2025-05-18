@@ -21,21 +21,23 @@ from flux_local.store.store import StoreEvent
 from flux_local.source_controller import GitArtifact, OCIArtifact, SourceController
 
 
-@pytest.fixture(name="tmp_dir")
-def tmp_dir_fixture() -> Generator[Path, None, None]:
+@pytest.fixture(name="git_repo_tmp_dir", scope="module")
+def git_repo_tmp_dir_fixture() -> Generator[Path, None, None]:
     """Create a temporary directory for test resources."""
     with tempfile.TemporaryDirectory() as td:
         yield Path(td)
 
 
-@pytest.fixture(name="git_repo_dir")
-def git_repo_dir_fixture(tmp_dir: Path) -> Path:
+@pytest.fixture(name="git_repo_dir", scope="module")
+def git_repo_dir_fixture(git_repo_tmp_dir: Path) -> Path:
     """Create a local git repository for testing."""
-    repo_path = tmp_dir / "test-repo"
+    repo_path = git_repo_tmp_dir / "test-repo"
     repo_path.mkdir()
 
     # Initialize git repository
     repo = git.Repo.init(repo_path)
+    repo.config_writer().set_value("user", "name", "myusername").release()
+    repo.config_writer().set_value("user", "email", "myemail").release()
 
     # Create a test file
     test_file = repo_path / "test.txt"

@@ -31,14 +31,23 @@ def tmp_dir_fixture() -> Generator[Path, None, None]:
         yield Path(td)
 
 
-@pytest.fixture(name="git_repo_dir")
-def git_repo_dir_fixture(tmp_dir: Path) -> Path:
+@pytest.fixture(name="git_repo_tmp_dir", scope="module")
+def git_repo_tmp_dir_fixture() -> Generator[Path, None, None]:
+    """Create a temporary directory for test resources."""
+    with tempfile.TemporaryDirectory() as td:
+        yield Path(td)
+
+
+@pytest.fixture(name="git_repo_dir", scope="module")
+def git_repo_dir_fixture(git_repo_tmp_dir: Path) -> Path:
     """Create a local git repository for testing."""
-    repo_path = tmp_dir / "git-repo"
+    repo_path = git_repo_tmp_dir / "git-repo"
     repo_path.mkdir()
 
     # Initialize git repository
     repo = git.Repo.init(repo_path)
+    repo.config_writer().set_value("user", "name", "myusername").release()
+    repo.config_writer().set_value("user", "email", "myemail").release()
 
     # Create a test file
     test_file = repo_path / "test.txt"
@@ -54,7 +63,7 @@ def git_repo_dir_fixture(tmp_dir: Path) -> Path:
     return repo_path
 
 
-@pytest.fixture(name="helm_chart_git_path")
+@pytest.fixture(name="helm_chart_git_path", scope="module")
 def helm_chart_git_pathfixture(git_repo_dir: Path) -> Path:
     """Create a Helm repository directory for testing and return its path."""
     helm_chart_git_path = git_repo_dir / "helm-charts"
@@ -84,7 +93,7 @@ appVersion: 1.14.2
     return helm_chart_git_path
 
 
-@pytest.fixture(name="chart_path")
+@pytest.fixture(name="chart_path", scope="module")
 def chart_path_fixture(helm_chart_git_path: Path) -> Path:
     """Create a Helm chart directory with a Chart.yaml and return its path."""
     chart_dir = helm_chart_git_path / "nginx"
