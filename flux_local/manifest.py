@@ -40,6 +40,7 @@ FLUXTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
 KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
+GIT_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
 OCI_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
@@ -375,6 +376,44 @@ class HelmRepository(BaseManifest):
     def repo_name(self) -> str:
         """Identifier for the HelmRepository."""
         return f"{self.namespace}-{self.name}"
+
+
+@dataclass
+class GitRepository(BaseManifest):
+    """Placeholder until we define a real GitRepo."""
+
+    name: str
+    """The name of the GitRepository."""
+
+    namespace: str
+    """The namespace of owning the GitRepository."""
+
+    url: str
+    """The URL to the repository."""
+
+    ref_tag: str | None = None
+    """The version tag of the repository."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "GitRepository":
+        """Parse a GitRepository from a kubernetes resource."""
+        _check_version(doc, GIT_REPOSITORY_DOMAIN)
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        if not (namespace := metadata.get("namespace")):
+            raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
+        if not (spec := doc.get("spec")):
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
+        if not (url := spec.get("url")):
+            raise InputException(f"Invalid {cls} missing spec.url: {doc}")
+        return cls(
+            name=name,
+            namespace=namespace,
+            url=url,
+            ref_tag=spec.get("ref", {}).get("tag"),
+        )
 
 
 @dataclass

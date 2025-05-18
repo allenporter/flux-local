@@ -4,22 +4,22 @@ import asyncio
 import logging
 from typing import Any
 
-from flux_local.store.store import Store, StoreEvent
-from flux_local.store.status import Status
+from flux_local.store import Store, StoreEvent, Status
 from flux_local.manifest import (
     NamedResource,
     BaseManifest,
     OCIRepository,
+    GitRepository,
 )
 
-from .git import fetch_git, GitRepository
+from .git import fetch_git
 from .oci import fetch_oci
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class SourceController:
-    SUPPORTED_KINDS = {"GitRepository", "Bucket", "OCIRepository"}
+    SUPPORTED_KINDS = {"GitRepository", "OCIRepository"}
 
     def __init__(self, store: Store) -> None:
         """Initialize the source controller."""

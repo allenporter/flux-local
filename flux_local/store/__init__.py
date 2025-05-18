@@ -9,13 +9,14 @@ and artifacts of Kubernetes custom resources (CRs) during a flux-local run.
 This abstract interface allows for various implementations (in-memory, persistent, etc.).
 """
 
-from .store import Store
+from .store import Store, StoreEvent
 from .in_memory import InMemoryStore
 from .artifact import Artifact
 from .status import Status, StatusInfo
 
 __all__ = [
     "Store",
+    "StoreEvent",
     "InMemoryStore",
     "Artifact",
     "Status",

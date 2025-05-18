@@ -1,16 +1,9 @@
 """Git repository controller."""
 
-from dataclasses import dataclass
 import asyncio
 
-from flux_local.manifest import BaseManifest
-
+from flux_local.manifest import GitRepository
 from .artifact import GitArtifact
-
-
-@dataclass
-class GitRepository(BaseManifest):
-    """Placeholder until we define a real GitRepo."""
 
 
 async def fetch_git(obj: GitRepository) -> GitArtifact:
