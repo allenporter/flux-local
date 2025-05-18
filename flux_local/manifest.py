@@ -391,6 +391,14 @@ class HelmRepository(BaseManifest):
         """Identifier for the HelmRepository."""
         return f"{self.namespace}-{self.name}"
 
+    def helm_chart_name(self, chart: HelmChart) -> str:
+        """Get the name or URL for a specific chart for helm template."""
+        if self.repo_type == REPO_TYPE_OCI:
+            # For OCI repositories, we need to append the chart short name to the URL
+            return f"{self.url}/{chart.name}"
+        # For regular helm repositories, we just return the full chart name
+        return chart.chart_name
+
 
 @dataclass
 class GitRepositoryRef:
@@ -418,6 +426,9 @@ class GitRepositoryRef:
             commit=doc.get("commit"),
         )
 
+    class Config(BaseConfig):
+        omit_none = True
+
 
 @dataclass
 class GitRepository(BaseManifest):
@@ -440,7 +451,7 @@ class GitRepository(BaseManifest):
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "GitRepository":
-        """Parse a GitRepository from a kubernetes resource."""
+        """Parse a GitRepxository from a kubernetes resource."""
         _check_version(doc, GIT_REPOSITORY_DOMAIN)
         if not (metadata := doc.get("metadata")):
             raise InputException(f"Invalid {cls} missing metadata: {doc}")
@@ -466,6 +477,36 @@ class GitRepository(BaseManifest):
 
 
 @dataclass
+class OCIRepositoryRef:
+    """OCIRepositoryRef defines the image reference for the OCIRepository's URL."""
+
+    digest: str | None = None
+    """The image digest to pull, takes precedence over SemVer."""
+
+    tag: str | None = None
+    """The image tag to pull, defaults to latest."""
+
+    semver: str | None = None
+    """The range of tags to pull selecting the latest within the range."""
+
+    semver_filter: str | None = None
+    """A regex pattern to filter the tags within the SemVer range."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "OCIRepositoryRef":
+        """Parse a dictionary into an OCIRepositoryRef."""
+        return cls(
+            digest=doc.get("digest"),
+            tag=doc.get("tag"),
+            semver=doc.get("semver"),
+            semver_filter=doc.get("semverFilter"),
+        )
+
+    class Config(BaseConfig):
+        omit_none = True
+
+
+@dataclass
 class OCIRepository(BaseManifest):
     """A representation of a flux OCIRepository."""
 
@@ -481,8 +522,8 @@ class OCIRepository(BaseManifest):
     url: str
     """The URL to the repository."""
 
-    ref_tag: str | None = None
-    """The version tag of the repository."""
+    ref: OCIRepositoryRef | None = None
+    """The OCI reference (tag or digest) to use."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "OCIRepository":
@@ -498,13 +539,30 @@ class OCIRepository(BaseManifest):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (url := spec.get("url")):
             raise InputException(f"Invalid {cls} missing spec.url: {doc}")
-        ref_tag = spec.get("ref", {}).get("tag")
+        repo_ref: OCIRepositoryRef | None = None
+        if ref := spec.get("ref"):
+            repo_ref = OCIRepositoryRef.parse_doc(ref)
         return cls(
             name=name,
             namespace=namespace,
             url=url,
-            ref_tag=ref_tag,
+            ref=repo_ref,
         )
+
+    def version(self) -> str | None:
+        """Get the version of the OCI repository."""
+        if self.ref is not None:
+            if self.ref.semver_filter:
+                raise ValueError(
+                    f"OCIRepository has unsupported field semvar_filter: {self.ref}"
+                )
+            if self.ref.digest:
+                return self.ref.digest
+            if self.ref.tag:
+                return self.ref.tag
+            if self.ref.semver:
+                return self.ref.semver
+        return None
 
     @property
     def repo_name(self) -> str:

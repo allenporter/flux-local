@@ -85,9 +85,7 @@ def _chart_name(
             raise HelmException(
                 f"HelmRelease {release.name} expected HelmRepository but got OCIRepository {repo.repo_name}"
             )
-        if repo and repo.repo_type == REPO_TYPE_OCI:
-            return f"{repo.url}/{release.chart.name}"
-        return release.chart.chart_name
+        return repo.helm_chart_name(release.chart)
     elif release.chart.repo_kind == GIT_REPOSITORY:
         return release.chart.name
     raise HelmException(
@@ -218,14 +216,14 @@ class Helm:
         Typically the repository must be updated before doing any chart templating.
         """
         _LOGGER.debug("Updating %d repositories", len(self._repos))
-        repos = [
+        helm_repos = [
             repo
             for repo in self._repos
             if isinstance(repo, HelmRepository) and repo.repo_type != REPO_TYPE_OCI
         ]
-        if not repos:
+        if not helm_repos:
             return
-        content = yaml.dump(RepositoryConfig(repos).config, sort_keys=False)
+        content = yaml.dump(RepositoryConfig(helm_repos).config, sort_keys=False)
         async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
             await config_file.write(content)
         args = [HELM_BIN, "repo", "update"]
@@ -277,11 +275,11 @@ class Helm:
                     release.chart.version,
                 ]
             )
-        elif isinstance(repo, OCIRepository) and repo.ref_tag:
+        elif isinstance(repo, OCIRepository) and (oci_version := repo.version()):
             args.extend(
                 [
                     "--version",
-                    repo.ref_tag,
+                    oci_version,
                 ]
             )
         if release.values:
