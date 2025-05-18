@@ -1,4 +1,23 @@
-"""Kustomization Controller implementation."""
+"""
+Kustomization Controller implementation.
+
+This controller manages the reconciliation of Kustomization resources, handling
+the build and deployment of Kubernetes manifests from Kustomization definitions.
+It follows Flux's controller pattern and integrates with the SourceController
+for artifact management.
+
+Key Concepts:
+    - Kustomization: A resource that defines how to build Kubernetes manifests
+      using Kustomize.
+    - SourceController: Manages source artifacts (Git repositories, OCI images).
+    - Store: Central state management for resource status and artifacts.
+
+Dependencies:
+    - flux_local.store.Store: For state management and artifact storage.
+    - flux_local.manifest.NamedResource: For resource identification.
+    - flux_local.manifest.Kustomization: For Kustomization resource handling.
+    - flux_local.kustomize.flux_build: For building Kustomize manifests.
+"""
 
 import asyncio
 import logging
@@ -19,12 +38,16 @@ class KustomizationController:
     """
     Controller for reconciling Kustomization resources.
 
-    The controller watches for Kustomization objects in the store, resolves their
+    This controller watches for Kustomization objects in the store, resolves their
     dependencies, builds the kustomization, and stores the resulting manifests.
     """
 
     def __init__(self, store: Store) -> None:
-        """Initialize the controller with a store.
+        """
+        Initialize the controller with a store.
+
+        The controller is responsible for managing the reconciliation of Kustomization resources.
+        It uses the provided store to manage state and artifacts.
 
         Args:
             store: The central store for managing state and artifacts
@@ -33,6 +56,15 @@ class KustomizationController:
         self._tasks: list[asyncio.Task[None]] = []
 
         def listener(resource_id: NamedResource, obj: BaseManifest) -> None:
+            """Event listener for new Kustomization objects.
+
+            This listener is triggered when a new Kustomization object is added to the store.
+            It schedules a task to reconcile the Kustomization.
+
+            Args:
+                resource_id: The identifier for the Kustomization resource
+                obj: The Kustomization object to handle
+            """
             if resource_id.kind == "Kustomization":
                 self._tasks.append(
                     asyncio.create_task(self.on_kustomization_added(resource_id, obj))
@@ -41,7 +73,11 @@ class KustomizationController:
         self.store.add_listener(StoreEvent.OBJECT_ADDED, listener)
 
     async def close(self) -> None:
-        """Clean up any resources used by the controller."""
+        """Clean up any resources used by the controller.
+
+        This method cancels all ongoing reconciliation tasks and waits for them
+        to complete.
+        """
         for task in self._tasks:
             task.cancel()
             try:
@@ -52,7 +88,15 @@ class KustomizationController:
     async def on_kustomization_added(
         self, resource_id: NamedResource, obj: BaseManifest
     ) -> None:
-        """Handle the addition of a new Kustomization to the store."""
+        """Handle the addition of a new Kustomization to the store.
+
+        This method is triggered when a new Kustomization object is added to the store.
+        It checks if the object is a Kustomization and schedules a task to reconcile it.
+
+        Args:
+            resource_id: The identifier for the Kustomization resource
+            obj: The Kustomization object to handle
+        """
         if not isinstance(obj, Kustomization):
             _LOGGER.error(
                 "Expected Kustomization but got %s for %s",
@@ -69,11 +113,11 @@ class KustomizationController:
         """
         Reconcile a Kustomization resource.
 
-        This will:
-        1. Check dependencies
-        2. Resolve source artifacts
-        3. Build the kustomization
-        4. Store the resulting manifests
+        This method performs the following steps:
+        1. Checks dependencies
+        2. Resolves source artifacts
+        3. Builds the kustomization
+        4. Stores the resulting manifests
 
         Args:
             resource_id: The identifier for the Kustomization resource
