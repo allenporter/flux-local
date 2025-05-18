@@ -1,0 +1,14 @@
+# serializer version: 1
+# name: test_kustomization_reconciliation
+  list([
+    Kustomization(name='app', namespace='default', path='./app', helm_repos=[], oci_repos=[], helm_releases=[], config_maps=[], secrets=[], source_path=None, source_kind='GitRepository', source_name='git-repo', source_namespace='test-ns', target_namespace='default', contents={'apiVersion': 'kustomize.toolkit.fluxcd.io/v1', 'kind': 'Kustomization', 'metadata': {'name': 'app', 'namespace': 'default'}, 'spec': {'interval': '10m', 'targetNamespace': 'default', 'sourceRef': {'kind': 'GitRepository', 'name': 'git-repo', 'namespace': 'test-ns'}, 'path': './app'}}, images=None, postbuild_substitute=None, postbuild_substitute_from=None, depends_on=[], labels=None),
+    ConfigMap(name='app-config', namespace='default', data={'key': 'value'}, binary_data=None),
+  ])
+# ---
+# name: test_kustomization_with_oci_source
+  list([
+    OCIRepository(name='test-repo', namespace='test-ns', url='test-url', ref=None),
+    Kustomization(name='app', namespace='default', path='./app', helm_repos=[], oci_repos=[], helm_releases=[], config_maps=[], secrets=[], source_path=None, source_kind='OCIRepository', source_name='test-repo', source_namespace='test-ns', target_namespace='default', contents={'apiVersion': 'kustomize.toolkit.fluxcd.io/v1', 'kind': 'Kustomization', 'metadata': {'name': 'app', 'namespace': 'default'}, 'spec': {'interval': '10m', 'targetNamespace': 'default', 'sourceRef': {'kind': 'OCIRepository', 'name': 'test-repo', 'namespace': 'test-ns'}, 'path': './app'}}, images=None, postbuild_substitute=None, postbuild_substitute_from=None, depends_on=[], labels=None),
+    ConfigMap(name='app-config', namespace='default', data={'key': 'value'}, binary_data=None),
+  ])
+# ---

@@ -9,6 +9,10 @@ from flux_local.manifest import (
     Cluster,
     GitRepositoryRef,
     HelmRelease,
+    Kustomization,
+    ConfigMap,
+    RawObject,
+    parse_raw_obj,
     HelmRepository,
     Manifest,
     NamedResource,
@@ -170,6 +174,65 @@ def test_parse_helmrelease_chartref() -> None:
     assert release.chart.repo_name == "podinfo"
     assert release.chart.repo_namespace == "default"
     assert release.values
+
+
+def test_parse_raw_obj() -> None:
+    """Test parsing raw objects into BaseManifest."""
+    # Test parsing a Kustomization
+    kustomization = {
+        "apiVersion": "kustomize.toolkit.fluxcd.io/v1",
+        "kind": "Kustomization",
+        "metadata": {"name": "app", "namespace": "default"},
+        "spec": {
+            "interval": "10m",
+            "targetNamespace": "default",
+            "sourceRef": {
+                "kind": "GitRepository",
+                "name": "git-repo",
+                "namespace": "test-ns",
+            },
+            "path": "./app",
+        },
+    }
+    parsed = parse_raw_obj(kustomization)
+    assert isinstance(parsed, Kustomization)
+    assert parsed.name == "app"
+    assert parsed.namespace == "default"
+    assert parsed.path == "./app"
+
+    # Test parsing a ConfigMap
+    configmap = {
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {"name": "app-config", "namespace": "default"},
+        "data": {"key": "value"},
+    }
+    parsed = parse_raw_obj(configmap)
+    assert isinstance(parsed, ConfigMap)
+    assert parsed.name == "app-config"
+    assert parsed.namespace == "default"
+    assert parsed.data == {"key": "value"}
+
+
+def test_parse_raw_doc() -> None:
+    """Test parsing a raw YAML document into RawObject."""
+    yaml_doc = """
+apiVersion: v1
+kind: UnknownKind
+metadata:
+  name: my-object
+  namespace: default
+spec:
+  someField: value
+"""
+    doc = yaml.load(yaml_doc, Loader=yaml.CLoader)
+    parsed = parse_raw_obj(doc)
+    assert isinstance(parsed, RawObject)
+    assert parsed.kind == "UnknownKind"
+    assert parsed.api_version == "v1"
+    assert parsed.name == "my-object"
+    assert parsed.namespace == "default"
+    assert parsed.spec == {"someField": "value"}
 
 
 def test_helmrelease_dependencies() -> None:

@@ -6,6 +6,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import yaml
+from syrupy.assertion import SnapshotAssertion
 
 from flux_local.manifest import BaseManifest
 from flux_local.store import Store, StoreEvent, Status
@@ -14,9 +16,13 @@ from flux_local.kustomize_controller import (
     KustomizationController,
 )
 from flux_local.source_controller import GitArtifact, OCIArtifact
-from flux_local.manifest import NamedResource, OCIRepositoryRef
+from flux_local.manifest import (
+    NamedResource,
+    Kustomization,
+    GitRepository,
+    OCIRepository,
+)
 
-from .conftest import DummyKustomization, DummyGitRepository, DummyOCIRepository
 
 
 @pytest.fixture(name="tmp_dir")
@@ -34,6 +40,66 @@ def git_repo_path_fixture(tmp_dir: Path) -> Path:
     return git_repo_path
 
 
+@pytest.fixture(name="fluxtomization_path")
+def fluxtomization_path_fixture(git_repo_path: Path) -> Path:
+    """Create an app directory with a kustomization file and return its path."""
+    cluster_dir = git_repo_path / "cluster"
+    cluster_dir.mkdir(exist_ok=True)
+
+    # Create a basic kustomization file
+    kustomization_path = cluster_dir / "app.yaml"
+    kustomization_path.write_text(
+        """
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: app
+  namespace: default
+spec:
+  interval: 10m
+  targetNamespace: default
+  sourceRef:
+    kind: GitRepository
+    name: git-repo
+    namespace: test-ns
+  path: "./app"
+""",
+        encoding="utf-8",
+    )
+
+    return kustomization_path
+
+
+@pytest.fixture(name="oci_fluxtomization_path")
+def oci_fluxtomization_path_fixture(git_repo_path: Path) -> Path:
+    """Create an app directory with a kustomization file and return its path."""
+    cluster_dir = git_repo_path / "cluster"
+    cluster_dir.mkdir(exist_ok=True)
+
+    # Create a basic kustomization file
+    kustomization_path = cluster_dir / "app.yaml"
+    kustomization_path.write_text(
+        """
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: app
+  namespace: default
+spec:
+  interval: 10m
+  targetNamespace: default
+  sourceRef:
+    kind: OCIRepository
+    name: test-repo
+    namespace: test-ns
+  path: "./app"
+""",
+        encoding="utf-8",
+    )
+
+    return kustomization_path
+
+
 @pytest.fixture(name="app_dir")
 def app_dir_fixture(git_repo_path: Path) -> Path:
     """Create an app directory with a kustomization file and return its path."""
@@ -46,7 +112,22 @@ def app_dir_fixture(git_repo_path: Path) -> Path:
         """
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: []
+resources:
+- config_map.yaml
+""",
+        encoding="utf-8",
+    )
+
+    # Create a config map file that the kustomization references
+    config_map_path = app_dir / "config_map.yaml"
+    config_map_path.write_text(
+        """
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  key: value
 """,
         encoding="utf-8",
     )
@@ -54,90 +135,31 @@ resources: []
     return app_dir
 
 
-@pytest.fixture
-def kustomization_path(app_dir: Path) -> Path:
-    """Return a path to a kustomization.yaml file in the app directory."""
-    kustomization_file = app_dir / "kustomization.yaml"
-    kustomization_file.write_text(
-        """
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - deployment.yaml
-"""
-    )
-
-    # Create a simple deployment file that the kustomization references
-    deployment_file = app_dir / "deployment.yaml"
-    deployment_file.write_text(
-        """
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: test-deployment
-  labels:
-    app: test
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: test
-  template:
-    metadata:
-      labels:
-        app: test
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.14.2
-        ports:
-        - containerPort: 80
-"""
-    )
-    return kustomization_file
-
-
 async def test_kustomization_reconciliation(
     store: Store,
     controller: KustomizationController,
-    kustomization_path: Path,
+    fluxtomization_path: Path,
     git_repo_path: Path,
     app_dir: Path,
+    snapshot: SnapshotAssertion,
 ) -> None:
     """Test basic kustomization reconciliation."""
     # Create a GitRepository source
-    source = DummyGitRepository(namespace="test-ns", name="test-repo")
+    source = GitRepository(
+        namespace="test-ns",
+        name="git-repo",
+        url="file://" + str(git_repo_path),
+    )
     source_rid = NamedResource(source.kind, source.namespace, source.name)
     store.add_object(source)
-
-    # Set the artifact path to the Git repository directory
     store.set_artifact(
         source_rid, GitArtifact(url=source.url, local_path=str(git_repo_path))
     )
     store.update_status(source_rid, Status.READY)
 
     # Create a Flux Kustomization that points to the app directory
-    ks = DummyKustomization(
-        namespace="test-ns",
-        name="test-ks",
-        path="./app",
-        source_kind=source.kind,
-        source_name=source.name,
-        source_namespace=source.namespace,
-        contents={
-            "apiVersion": "kustomize.toolkit.fluxcd.io/v1",
-            "kind": "Kustomization",
-            "metadata": {"name": "test-ks", "namespace": "test-ns"},
-            "spec": {
-                "path": "./",
-                "sourceRef": {
-                    "kind": source.kind,
-                    "name": source.name,
-                    "namespace": source.namespace,
-                },
-                "interval": "5m",
-            },
-        },
+    ks = Kustomization.parse_doc(
+        yaml.load(fluxtomization_path.read_text(), Loader=yaml.SafeLoader)
     )
     rid = NamedResource(ks.kind, ks.namespace, ks.name)
 
@@ -180,19 +202,28 @@ async def test_kustomization_reconciliation(
     ), f"Expected path {app_dir}, got {artifact.path}"
     assert status is not None, "Expected status to be set"
     assert status.status == Status.READY, f"Expected status READY, got {status.status}"
-    await controller.close()
+
+    # Verify objects are applied
+    objects = store.list_objects()
+    assert [
+        obj
+        for obj in objects
+        # GitRepository has a tmpdir random path so ignore
+        if hasattr(obj, "kind") and obj.kind != "GitRepository"
+    ] == snapshot
 
 
 async def test_kustomization_with_oci_source(
     store: Store,
     controller: KustomizationController,
-    kustomization_path: Path,
+    oci_fluxtomization_path: Path,
     git_repo_path: Path,
     app_dir: Path,
+    snapshot: SnapshotAssertion,
 ) -> None:
     """Test kustomization with OCI source reference."""
     # Add source first
-    source = DummyOCIRepository(namespace="test-ns", name="test-repo")
+    source = OCIRepository(namespace="test-ns", name="test-repo", url="test-url")
     source_rid = NamedResource(source.kind, source.namespace, source.name)
     store.add_object(source)
 
@@ -202,33 +233,13 @@ async def test_kustomization_with_oci_source(
         OCIArtifact(
             url=source.url,
             local_path=str(git_repo_path),
-            ref=OCIRepositoryRef(digest=source.digest),
         ),
     )
     store.update_status(source_rid, Status.READY)
 
     # Create a Flux Kustomization that points to the app directory
-    ks = DummyKustomization(
-        namespace="test-ns",
-        name="test-ks",
-        path="./app",
-        source_kind=source.kind,
-        source_name=source.name,
-        source_namespace=source.namespace,
-        contents={
-            "apiVersion": "kustomize.toolkit.fluxcd.io/v1",
-            "kind": "Kustomization",
-            "metadata": {"name": "test-ks", "namespace": "test-ns"},
-            "spec": {
-                "path": "./",
-                "sourceRef": {
-                    "kind": source.kind,
-                    "name": source.name,
-                    "namespace": source.namespace,
-                },
-                "interval": "5m",
-            },
-        },
+    ks = Kustomization.parse_doc(
+        yaml.load(oci_fluxtomization_path.read_text(), Loader=yaml.SafeLoader)
     )
     rid = NamedResource(ks.kind, ks.namespace, ks.name)
 
@@ -272,7 +283,15 @@ async def test_kustomization_with_oci_source(
     ), f"Expected path {app_dir}, got {artifact.path}"
     assert status is not None, "Expected status to be set"
     assert status.status == Status.READY, f"Expected status READY, got {status.status}"
-    await controller.close()
+
+    # Verify objects are applied
+    objects = store.list_objects()
+    assert [
+        obj
+        for obj in objects
+        # GitRepository has a tmpdir random path so ignore
+        if hasattr(obj, "kind") and obj.kind != "GitRepository"
+    ] == snapshot
 
 
 async def test_kustomization_dependencies(
@@ -283,7 +302,9 @@ async def test_kustomization_dependencies(
 ) -> None:
     """Test kustomization with dependencies."""
     # Create a GitRepository source first
-    source = DummyGitRepository(namespace="test-ns", name="test-repo")
+    source = GitRepository(
+        namespace="test-ns", name="test-repo", url="file://" + str(git_repo_path)
+    )
     source_rid = NamedResource(source.kind, source.namespace, source.name)
     store.add_object(source)
     store.set_artifact(
@@ -292,7 +313,7 @@ async def test_kustomization_dependencies(
     store.update_status(source_rid, Status.READY)
 
     # Add dependency kustomization
-    dep = DummyKustomization(
+    dep = Kustomization(
         namespace="test-ns",
         name="dep-ks",
         path="./app",
@@ -344,7 +365,7 @@ async def test_kustomization_dependencies(
         remove_dep_listener()
 
     # Add kustomization with dependency
-    ks = DummyKustomization(
+    ks = Kustomization(
         namespace="test-ns",
         name="test-ks",
         path="./app",
@@ -405,7 +426,6 @@ async def test_kustomization_dependencies(
     ), f"Expected path {app_dir}, got {artifact.path}"
     assert status is not None, "Expected status to be set"
     assert status.status == Status.READY, f"Expected status READY, got {status.status}"
-    await controller.close()
 
 
 async def test_kustomization_missing_source(
@@ -413,7 +433,7 @@ async def test_kustomization_missing_source(
     controller: KustomizationController,
 ) -> None:
     """Test kustomization with missing source."""
-    ks = DummyKustomization(
+    ks = Kustomization(
         namespace="test-ns",
         name="test-ks",
         source_kind="GitRepository",
@@ -473,7 +493,6 @@ async def test_kustomization_missing_source(
     assert "Source artifact GitRepository/missing-repo not found" in (
         status.error or ""
     ), f"Expected error about missing source, got: {status.error}"
-    await controller.close()
 
 
 async def test_kustomization_missing_dependency(
@@ -484,7 +503,9 @@ async def test_kustomization_missing_dependency(
 ) -> None:
     """Test kustomization with missing dependency."""
     # Create a GitRepository source first
-    source = DummyGitRepository(namespace="test-ns", name="test-repo")
+    source = GitRepository(
+        namespace="test-ns", name="test-repo", url="file://" + str(git_repo_path)
+    )
     source_rid = NamedResource(source.kind, source.namespace, source.name)
     store.add_object(source)
     store.set_artifact(
@@ -493,7 +514,7 @@ async def test_kustomization_missing_dependency(
     store.update_status(source_rid, Status.READY)
 
     # Add kustomization with missing dependency
-    ks = DummyKustomization(
+    ks = Kustomization(
         namespace="test-ns",
         name="test-ks",
         path="./app",
@@ -557,7 +578,6 @@ async def test_kustomization_missing_dependency(
     assert "has unresolved dependencies: Dependencies not found" in (
         status.error or ""
     ), f"Expected error about missing dependency, got: {status.error}"
-    await controller.close()
 
 
 async def test_unsupported_kind(
@@ -600,4 +620,3 @@ async def test_unsupported_kind(
 
     assert artifact is None, "Expected no artifact for unsupported kind"
     assert status is None, "Expected no status for unsupported kind"
-    await controller.close()

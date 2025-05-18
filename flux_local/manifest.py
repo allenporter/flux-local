@@ -52,6 +52,7 @@ HELM_REPO_KIND = "HelmRepository"
 HELM_CHART = "HelmChart"
 GIT_REPOSITORY = "GitRepository"
 OCI_REPOSITORY = "OCIRepository"
+KUSTOMIZE_KIND = "Kustomization"
 
 
 REPO_TYPE_DEFAULT = "default"
@@ -108,6 +109,45 @@ class NamedResource:
     def __str__(self) -> str:
         """Return the kind and namespaced name concatenated as an id."""
         return f"{self.kind}/{self.namespaced_name}"
+
+
+@dataclass
+class RawObject(BaseManifest):
+    """Raw kubernetes object."""
+
+    kind: str
+    """The kind of the object."""
+
+    api_version: str
+    """The apiVersion of the object."""
+
+    name: str
+    """The name of the object."""
+
+    namespace: str | None
+    """The namespace of the object."""
+
+    spec: dict[str, Any] | None = None
+    """The spec of the object."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "RawObject":
+        """Parse a RawObject from a raw kubernetes object."""
+        if not (api_version := doc.get("apiVersion")):
+            raise InputException("Invalid object missing apiVersion: {doc}")
+        if not (metadata := doc.get("metadata")):
+            raise InputException("Invalid object missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException("Invalid object missing metadata.name: {doc}")
+        if not (namespace := metadata.get("namespace")):
+            raise InputException("Invalid object missing metadata.namespace: {doc}")
+        return cls(
+            kind=doc["kind"],
+            api_version=api_version,
+            name=name,
+            namespace=namespace,
+            spec=doc.get("spec", {}),
+        )
 
 
 @dataclass
@@ -706,6 +746,9 @@ class Kustomization(BaseManifest):
     may be flat or contain overlays.
     """
 
+    kind: ClassVar[str] = KUSTOMIZE_KIND
+    """The kind of the object."""
+
     name: str
     """The name of the kustomization."""
 
@@ -930,3 +973,22 @@ async def update_manifest(manifest_path: Path, manifest: Manifest) -> None:
         return
     async with aiofiles.open(str(manifest_path), mode="w") as manifest_file:
         await manifest_file.write(new_content)
+
+
+def parse_raw_obj(obj: dict[str, Any]) -> BaseManifest:
+    """Parse a raw kubernetes object into a BaseManifest."""
+    if not (kind := obj.get("kind")):
+        raise InputException("Invalid object missing kind: {obj}")
+    if kind == KUSTOMIZE_KIND:
+        return Kustomization.parse_doc(obj)
+    if kind == HELM_RELEASE:
+        return HelmRelease.parse_doc(obj)
+    if kind == GIT_REPOSITORY:
+        return GitRepository.parse_doc(obj)
+    if kind == OCI_REPOSITORY:
+        return OCIRepository.parse_doc(obj)
+    if kind == CONFIG_MAP_KIND:
+        return ConfigMap.parse_doc(obj)
+    if kind == SECRET_KIND:
+        return Secret.parse_doc(obj)
+    return RawObject.parse_doc(obj)
