@@ -22,7 +22,6 @@ Integration Points:
 
 import asyncio
 import logging
-from typing import Any
 
 from flux_local.store import Store, StoreEvent, Status
 from flux_local.manifest import (
