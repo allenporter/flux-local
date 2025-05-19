@@ -34,7 +34,7 @@ from flux_local.manifest import (
 )
 from flux_local.exceptions import InputException
 from flux_local.kustomize import flux_build
-from flux_local.task import TaskService
+from flux_local.task import get_task_service
 
 from .artifact import KustomizationArtifact
 
@@ -61,7 +61,7 @@ class KustomizationController:
         """
         self._store = store
         self._tasks: list[asyncio.Task[None]] = []
-        self._task_service = TaskService.get_instance()
+        self._task_service = get_task_service()
 
         def listener(resource_id: NamedResource, obj: BaseManifest) -> None:
             """Event listener for new Kustomization objects.

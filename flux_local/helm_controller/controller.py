@@ -27,7 +27,7 @@ from flux_local.manifest import (
 )
 from flux_local.store import Store, StoreEvent, Status, Artifact
 from flux_local.source_controller import GitArtifact
-from flux_local.task import TaskService
+from flux_local.task import get_task_service
 
 from .artifact import HelmReleaseArtifact
 
@@ -57,7 +57,7 @@ class HelmReleaseController:
         self.store = store
         self.helm = helm
         self._tasks: list[asyncio.Task[None]] = []
-        self._task_service = TaskService.get_instance()
+        self._task_service = get_task_service()
         self._need_update = False
 
         self.store.add_listener(

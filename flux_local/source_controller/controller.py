@@ -30,7 +30,7 @@ from flux_local.manifest import (
     OCIRepository,
     GitRepository,
 )
-from flux_local.task import TaskService
+from flux_local.task import get_task_service
 
 
 from .git import fetch_git
@@ -59,7 +59,7 @@ class SourceController:
         """
         self._store = store
         self._tasks: list[asyncio.Task[None]] = []
-        self._task_service = TaskService.get_instance()
+        self._task_service = get_task_service()
 
         # Wrap the sync event handler to schedule as a task
         def listener(resource_id: NamedResource, obj: BaseManifest) -> None:
