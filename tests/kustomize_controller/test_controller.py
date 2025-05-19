@@ -1,6 +1,5 @@
 """Tests for the kustomize controller."""
 
-import asyncio
 from collections.abc import Generator
 import tempfile
 from pathlib import Path
@@ -9,8 +8,7 @@ import pytest
 import yaml
 from syrupy.assertion import SnapshotAssertion
 
-from flux_local.manifest import BaseManifest
-from flux_local.store import Store, StoreEvent, Status
+from flux_local.store import Store, Status
 from flux_local.kustomize_controller import (
     KustomizationArtifact,
     KustomizationController,
@@ -22,7 +20,14 @@ from flux_local.manifest import (
     GitRepository,
     OCIRepository,
 )
+from flux_local.task import get_task_service, TaskService, task_service_context
 
+
+@pytest.fixture(name="task_service", autouse=True)
+def task_service_fixture() -> Generator[TaskService, None, None]:
+    """Create a task service for testing."""
+    with task_service_context() as service:
+        yield service
 
 
 @pytest.fixture(name="tmp_dir")
@@ -163,35 +168,12 @@ async def test_kustomization_reconciliation(
     )
     rid = NamedResource(ks.kind, ks.namespace, ks.name)
 
-    # Create an event to signal when reconciliation is complete
-    reconciliation_complete = asyncio.Event()
+    # Add the kustomization to trigger reconciliation
+    store.add_object(ks)
 
-    # Add a listener to wait for the kustomization to be reconciled
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == rid:
-            status = store.get_status(rid)
-            if status and status.status == Status.READY:
-                reconciliation_complete.set()
-
-    # Register the listener
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
-
-    try:
-        # Add the kustomization to trigger reconciliation
-        store.add_object(ks)
-
-        # Wait for reconciliation to complete with a timeout
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(rid)
-            error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-            if status and status.error:
-                error_msg += f", Error: {status.error}"
-            pytest.fail(error_msg)
-    finally:
-        # Clean up the listener
-        remove_listener()
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
@@ -243,46 +225,21 @@ async def test_kustomization_with_oci_source(
     )
     rid = NamedResource(ks.kind, ks.namespace, ks.name)
 
-    # Create an event to signal when reconciliation is complete
-    reconciliation_complete = asyncio.Event()
+    # Add the kustomization to trigger reconciliation
+    store.add_object(ks)
 
-    # Add a listener to wait for the kustomization to be reconciled
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == rid:
-            status = store.get_status(rid)
-            if status and status.status == Status.READY:
-                reconciliation_complete.set()
-
-    # Register the listener
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
-
-    try:
-        # Add the kustomization to trigger reconciliation
-        store.add_object(ks)
-
-        # Wait for reconciliation to complete with a timeout
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(rid)
-            error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-            if status and status.error:
-                error_msg += f", Error: {status.error}"
-            pytest.fail(error_msg)
-    finally:
-        # Clean up the listener
-        remove_listener()
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     # Verify the artifact was created with the correct path
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
 
-    assert artifact is not None, "Expected artifact to be set"
-    assert artifact.path == str(
-        app_dir
-    ), f"Expected path {app_dir}, got {artifact.path}"
-    assert status is not None, "Expected status to be set"
-    assert status.status == Status.READY, f"Expected status READY, got {status.status}"
+    assert artifact is not None
+    assert artifact.path == str(app_dir)
+    assert status is not None
+    assert status.status == Status.READY
 
     # Verify objects are applied
     objects = store.list_objects()
@@ -335,34 +292,11 @@ async def test_kustomization_dependencies(
             },
         },
     )
-    dep_rid = NamedResource(dep.kind, dep.namespace, dep.name)
+    store.add_object(dep)
 
-    # Create an event to signal when dependency reconciliation is complete
-    dep_reconciled = asyncio.Event()
-
-    def on_dep_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == dep_rid:
-            status = store.get_status(dep_rid)
-            if status and status.status == Status.READY:
-                dep_reconciled.set()
-
-    remove_dep_listener = store.add_listener(
-        StoreEvent.STATUS_UPDATED, on_dep_status_updated
-    )
-
-    try:
-        store.add_object(dep)
-
-        try:
-            await asyncio.wait_for(dep_reconciled.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(dep_rid)
-            error_msg = f"Timed out waiting for dependency reconciliation. Current status: {status.status if status else 'unknown'}"
-            if status and status.error:
-                error_msg += f", Error: {status.error}"
-            pytest.fail(error_msg)
-    finally:
-        remove_dep_listener()
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     # Add kustomization with dependency
     ks = Kustomization(
@@ -390,42 +324,19 @@ async def test_kustomization_dependencies(
         },
     )
     rid = NamedResource(ks.kind, ks.namespace, ks.name)
+    store.add_object(ks)
 
-    # Create an event to signal when kustomization reconciliation is complete
-    reconciliation_complete = asyncio.Event()
-
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == rid:
-            status = store.get_status(rid)
-            if status and status.status == Status.READY:
-                reconciliation_complete.set()
-
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
-
-    try:
-        store.add_object(ks)
-
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(rid)
-            error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-            if status and status.error:
-                error_msg += f", Error: {status.error}"
-            pytest.fail(error_msg)
-    finally:
-        remove_listener()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     # Verify the artifact was created with the correct path
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
 
-    assert artifact is not None, "Expected artifact to be set"
-    assert artifact.path == str(
-        app_dir
-    ), f"Expected path {app_dir}, got {artifact.path}"
-    assert status is not None, "Expected status to be set"
-    assert status.status == Status.READY, f"Expected status READY, got {status.status}"
+    assert artifact is not None
+    assert artifact.path == str(app_dir)
+    assert status is not None
+    assert status.status == Status.READY
 
 
 async def test_kustomization_missing_source(
@@ -457,42 +368,21 @@ async def test_kustomization_missing_source(
     )
     rid = NamedResource(ks.kind, ks.namespace, ks.name)
 
-    # Create an event to signal when reconciliation is complete
-    reconciliation_complete = asyncio.Event()
+    store.add_object(ks)
 
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == rid:
-            status = store.get_status(rid)
-            if status and status.status in [Status.READY, Status.FAILED]:
-                reconciliation_complete.set()
-
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
-
-    try:
-        store.add_object(ks)
-
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(rid)
-            error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-            if status and status.error:
-                error_msg += f", Error: {status.error}"
-            pytest.fail(error_msg)
-    finally:
-        remove_listener()
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
 
-    assert artifact is None, "Expected no artifact for failed kustomization"
-    assert status is not None, "Expected status to be set"
-    assert (
-        status.status == Status.FAILED
-    ), f"Expected status FAILED, got {status.status}"
+    assert artifact is None
+    assert status is not None
+    assert status.status == Status.FAILED
     assert "Source artifact GitRepository/missing-repo not found" in (
         status.error or ""
-    ), f"Expected error about missing source, got: {status.error}"
+    )
 
 
 async def test_kustomization_missing_dependency(
@@ -540,41 +430,18 @@ async def test_kustomization_missing_dependency(
     )
     rid = NamedResource(ks.kind, ks.namespace, ks.name)
 
-    # Create an event to signal when reconciliation is complete
-    reconciliation_complete = asyncio.Event()
+    store.add_object(ks)
 
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == rid:
-            status = store.get_status(rid)
-            if status and status.status in [Status.READY, Status.FAILED]:
-                reconciliation_complete.set()
-
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
-
-    try:
-        store.add_object(ks)
-
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(rid)
-            error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-            if status and status.error:
-                error_msg += f", Error: {status.error}"
-            pytest.fail(error_msg)
-    finally:
-        remove_listener()
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
 
-    assert (
-        artifact is None
-    ), "Expected no artifact for kustomization with missing dependency"
-    assert status is not None, "Expected status to be set"
-    assert (
-        status.status == Status.FAILED
-    ), f"Expected status FAILED, got {status.status}"
+    assert artifact is None
+    assert status is not None
+    assert status.status == Status.FAILED
     assert "has unresolved dependencies: Dependencies not found" in (
         status.error or ""
     ), f"Expected error about missing dependency, got: {status.error}"
@@ -596,27 +463,13 @@ async def test_unsupported_kind(
     obj = UnsupportedKind()
     rid = NamedResource(obj.kind, obj.namespace, obj.name)
 
-    # Create an event to signal when processing is complete
-    processing_complete = asyncio.Event()
+    store.add_object(obj)  # type: ignore[type-var]
 
-    def on_object_processed(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == rid:
-            processing_complete.set()
-
-    remove_listener = store.add_listener(StoreEvent.OBJECT_ADDED, on_object_processed)
-
-    try:
-        store.add_object(obj)  # type: ignore[type-var]
-
-        try:
-            await asyncio.wait_for(processing_complete.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            pytest.fail("Timed out waiting for unsupported kind to be processed")
-    finally:
-        remove_listener()
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
-
-    assert artifact is None, "Expected no artifact for unsupported kind"
-    assert status is None, "Expected no status for unsupported kind"
+    assert artifact is None
+    assert status is None

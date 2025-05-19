@@ -10,6 +10,8 @@ from abc import ABC, abstractmethod
 
 _LOGGER = logging.getLogger(__name__)
 
+__all__: list[str] = []
+
 
 class TaskService(ABC):
     """Service for tracking and waiting for asynchronous tasks.
@@ -46,6 +48,10 @@ class TaskService(ABC):
         Args:
             task: The task to wait for
         """
+
+    @abstractmethod
+    def get_num_active_tasks(self) -> int:
+        """Get the number of active tasks."""
 
 
 class TaskServiceImpl(TaskService):
@@ -126,3 +132,7 @@ class TaskServiceImpl(TaskService):
         # If task was cancelled, ensure it's marked as done
         if task.cancelled():
             task.set_result(None)
+
+    def get_num_active_tasks(self) -> int:
+        """Get the number of active tasks."""
+        return len(self._active_tasks)

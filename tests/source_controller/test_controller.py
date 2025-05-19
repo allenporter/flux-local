@@ -20,6 +20,14 @@ from flux_local.store.in_memory import InMemoryStore
 from flux_local.store.status import Status
 from flux_local.store.store import StoreEvent
 from flux_local.source_controller import GitArtifact, OCIArtifact, SourceController
+from flux_local.task import get_task_service, task_service_context, TaskService
+
+
+@pytest.fixture(name="task_service", autouse=True)
+def task_service_fixture() -> Generator[TaskService, None, None]:
+    """Create a task service for testing."""
+    with task_service_context() as service:
+        yield service
 
 
 @pytest.fixture(name="git_repo_tmp_dir", scope="module")
@@ -124,31 +132,25 @@ async def test_git_repository_reconciliation(
     # Add our status update listener
     remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
 
-    try:
-        # Add the object to trigger reconciliation
-        store.add_object(git_repo)
+    # Add the object to trigger reconciliation
+    store.add_object(git_repo)
 
-        # Wait for reconciliation to complete with a timeout
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(rid)
-            error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-            raise AssertionError(error_msg)
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
-        # Verify the results
-        artifact = store.get_artifact(rid, GitArtifact)
-        status = store.get_status(rid)
-        assert artifact is not None
-        assert artifact.url == git_repo.url
-        assert artifact.ref
-        assert artifact.ref.ref_str == "tag:v1.0.0"
-        assert status is not None
-        assert status.status == Status.READY
+    # Verify the results
+    artifact = store.get_artifact(rid, GitArtifact)
+    status = store.get_status(rid)
+    assert artifact is not None
+    assert artifact.url == git_repo.url
+    assert artifact.ref
+    assert artifact.ref.ref_str == "tag:v1.0.0"
+    assert status is not None
+    assert status.status == Status.READY
 
-    finally:
-        # Clean up
-        remove_listener()
+    # Clean up
+    remove_listener()
 
 
 @pytest.mark.asyncio
@@ -170,32 +172,26 @@ async def test_oci_repository_reconciliation(
     # Add our status update listener
     remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
 
-    try:
-        # Add the object to trigger reconciliation
-        with patch("flux_local.source_controller.oci.OrasClient") as mock_client:
-            mock_pull = AsyncMock()
-            mock_pull.return_value = []  # Resources
-            mock_client.return_value.pull = mock_pull
-            store.add_object(oci_repo)
+    # Add the object to trigger reconciliation
+    with patch("flux_local.source_controller.oci.OrasClient") as mock_client:
+        mock_pull = AsyncMock()
+        mock_pull.return_value = []  # Resources
+        mock_client.return_value.pull = mock_pull
+        store.add_object(oci_repo)
 
-            # Wait for reconciliation to complete with a timeout
-            try:
-                await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-            except asyncio.TimeoutError:
-                status = store.get_status(rid)
-                error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-                raise AssertionError(error_msg)
+        task_service = get_task_service()
+        await task_service.block_till_done()
+        assert not task_service.get_num_active_tasks()
 
-        # Verify the results
-        artifact = store.get_artifact(rid, OCIArtifact)
-        status = store.get_status(rid)
-        assert artifact is not None
-        assert artifact.url == oci_repo.url
-        assert status is not None
-        assert status.status == Status.READY
+    # Verify the results
+    artifact = store.get_artifact(rid, OCIArtifact)
+    status = store.get_status(rid)
+    assert artifact is not None
+    assert artifact.url == oci_repo.url
+    assert status is not None
+    assert status.status == Status.READY
 
-    finally:
-        remove_listener()
+    remove_listener()
 
 
 @pytest.mark.asyncio
@@ -232,24 +228,18 @@ async def test_git_repository_branch_reconciliation(
     # Add our status update listener
     remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
 
-    try:
-        # Add the object to trigger reconciliation
-        store.add_object(git_repo)
+    # Add the object to trigger reconciliation
+    store.add_object(git_repo)
 
-        # Wait for reconciliation to complete with a timeout
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(rid)
-            error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-            raise AssertionError(error_msg)
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
-        # Verify the results
-        artifact = store.get_artifact(rid, GitArtifact)
-        status = store.get_status(rid)
+    # Verify the results
+    artifact = store.get_artifact(rid, GitArtifact)
+    status = store.get_status(rid)
 
-    finally:
-        remove_listener()
+    remove_listener()
 
     assert artifact is not None
     assert artifact.url == git_repo.url

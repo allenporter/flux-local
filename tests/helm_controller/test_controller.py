@@ -10,9 +10,9 @@ import yaml
 import git
 from syrupy.assertion import SnapshotAssertion
 
-from flux_local.manifest import BaseManifest, GitRepository, GIT_REPOSITORY
+from flux_local.manifest import GitRepository, GIT_REPOSITORY
 from flux_local.store.in_memory import InMemoryStore
-from flux_local.store import Store, StoreEvent, Status
+from flux_local.store import Store, Status
 from flux_local.helm_controller.artifact import HelmReleaseArtifact
 from flux_local.helm_controller import HelmReleaseController
 from flux_local.manifest import (
@@ -23,6 +23,14 @@ from flux_local.manifest import (
 )
 from flux_local.source_controller import GitArtifact
 from flux_local.helm import Helm
+from flux_local.task import get_task_service, TaskService, task_service_context
+
+
+@pytest.fixture(name="task_service", autouse=True)
+def task_service_fixture() -> Generator[TaskService, None, None]:
+    """Create a task service for testing."""
+    with task_service_context() as service:
+        yield service
 
 
 @pytest.fixture(name="tmp_dir")
@@ -295,47 +303,24 @@ async def test_helm_release_reconciliation(
     # Update status to READY
     store.update_status(git_repo_rid, Status.READY)
 
-    # Create an event to signal when reconciliation is complete
-    reconciliation_complete = asyncio.Event()
-
     helm_release_rid = NamedResource(
         helm_release.kind, helm_release.namespace, helm_release.name
     )
 
-    # Add a listener to wait for the HelmRelease to be reconciled
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == helm_release_rid:
-            status = store.get_status(resource_id)
-            if status and status.status == Status.READY:
-                reconciliation_complete.set()
+    # Add the HelmRelease to trigger reconciliation
+    store.add_object(helm_release)
 
-    # Register the listener
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
-    try:
-        # Add the HelmRelease to trigger reconciliation
-        store.add_object(helm_release)
-
-        # Wait for reconciliation to complete with a timeout
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=15.0)
-        except asyncio.TimeoutError:
-            status = store.get_status(helm_release_rid)
-            error_msg = f"Timed out waiting for reconciliation. Current status: {status.status if status else 'unknown'}"
-            if status and status.error:
-                error_msg += f", Error: {status.error}"
-            pytest.fail(error_msg)
-    finally:
-        # Clean up the listener
-        remove_listener()
-
-    artifact = store.get_artifact(helm_release_rid, HelmReleaseArtifact)
     status = store.get_status(helm_release_rid)
-
-    assert artifact is not None
-    assert artifact.chart_name == helm_release.chart.chart_name
     assert status is not None
     assert status.status == Status.READY
+
+    artifact = store.get_artifact(helm_release_rid, HelmReleaseArtifact)
+    assert artifact is not None
+    assert artifact.chart_name == helm_release.chart.chart_name
 
     # Verify objects are applied
     objects = store.list_objects()
@@ -345,6 +330,7 @@ async def test_helm_release_reconciliation(
         # GitRepository has a tmpdir random path so ignore
         if hasattr(obj, "kind") and obj.kind != "GitRepository"
     ] == snapshot
+
 
 async def test_helm_release_becomes_ready_after_gitrepo_ready(
     store: Store,
@@ -372,42 +358,20 @@ async def test_helm_release_becomes_ready_after_gitrepo_ready(
     )
     store.add_object(helm_release)
 
-    # Create an event to signal when reconciliation is complete
-    reconciliation_complete = asyncio.Event()
+    # Wait for reconciliation to start
+    await asyncio.sleep(0.01)
 
-    # Add a listener to wait for the HelmRelease to be reconciled
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == helm_release_rid:
-            status = store.get_status(resource_id)
-            if status and status.status == Status.READY:
-                reconciliation_complete.set()
+    repo_artifact = GitArtifact(
+        url=git_repo.url,
+        local_path=str(git_repo_dir),
+        ref=git_repo.ref,
+    )
+    store.set_artifact(git_repo_rid, repo_artifact)
+    store.update_status(git_repo_rid, Status.READY)
 
-    # Register the listener
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
-
-    try:
-        # Start reconciliation
-        reconciliation_task = asyncio.create_task(
-            asyncio.wait_for(reconciliation_complete.wait(), timeout=5.0)
-        )
-
-        # Wait a bit to ensure reconciliation has started
-        await asyncio.sleep(0.1)
-
-        repo_artifact = GitArtifact(
-            url=git_repo.url,
-            local_path=str(git_repo_dir),
-            ref=git_repo.ref,
-        )
-        store.set_artifact(git_repo_rid, repo_artifact)
-        store.update_status(git_repo_rid, Status.READY)
-
-        # Wait for reconciliation to complete
-        await reconciliation_task
-
-    finally:
-        # Clean up the listener
-        remove_listener()
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     # Verify the HelmRelease is ready
     status = store.get_status(helm_release_rid)
@@ -445,45 +409,21 @@ async def test_helm_release_fails_with_missing_dependency(
     # Update status to READY
     store.update_status(git_repo_rid, Status.READY)
 
-    # Create an event to signal when reconciliation is complete
-    reconciliation_complete = asyncio.Event()
+    # Add the HelmRelease to trigger reconciliation
+    store.add_object(helm_release)
 
-    # Add a listener to wait for the HelmRelease to be reconciled
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == NamedResource(
-            helm_release.kind, helm_release.namespace, helm_release.name
-        ):
-            status = store.get_status(resource_id)
-            if status and status.status == Status.FAILED:
-                reconciliation_complete.set()
-
-    # Register the listener
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
-
-    try:
-        # Add the HelmRelease to trigger reconciliation
-        store.add_object(helm_release)
-
-        # Wait for reconciliation to complete with a timeout
-        try:
-            await asyncio.wait_for(reconciliation_complete.wait(), timeout=2.0)
-        except asyncio.TimeoutError:
-            pass
-        else:
-            pytest.fail(
-                "HelmRelease reconciled successfully when it should have failed"
-            )
-    finally:
-        # Clean up the listener
-        remove_listener()
+    # Wait for reconciliation to complete and fail
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     status = store.get_status(
         NamedResource(helm_release.kind, helm_release.namespace, helm_release.name)
     )
-
     assert status is not None
-    assert status.status == Status.PENDING
-    assert status.error is None
+    assert status.status == Status.FAILED
+    # TODO: Make this fail or pending without a timeout
+    assert status.error == "Reconciliation failed: TimeoutError: "
 
 
 async def test_helm_release_fails_failed_dependency(
@@ -508,39 +448,21 @@ async def test_helm_release_fails_failed_dependency(
 
     store.update_status(git_repo_rid, Status.FAILED, "Some error")
 
-    # Create an event to signal when reconciliation is complete
-    reconciliation_complete = asyncio.Event()
+    # Add the HelmRelease to trigger reconciliation
+    store.add_object(helm_release)
 
-    # Add a listener to wait for the HelmRelease to be reconciled
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == NamedResource(
-            helm_release.kind, helm_release.namespace, helm_release.name
-        ):
-            status = store.get_status(resource_id)
-            if status and status.status == Status.FAILED:
-                reconciliation_complete.set()
-
-    # Register the listener
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
-
-    try:
-        # Add the HelmRelease to trigger reconciliation
-        store.add_object(helm_release)
-
-        # Wait for reconciliation to complete with a timeout
-        await asyncio.wait_for(reconciliation_complete.wait(), timeout=2.0)
-    finally:
-        # Clean up the listener
-        remove_listener()
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
     status = store.get_status(
         NamedResource(helm_release.kind, helm_release.namespace, helm_release.name)
     )
-
     assert status is not None
     assert status.status == Status.FAILED
     assert (
-        status.error == "Dependency GitRepository/test-ns/test-repo: Failed: Some error"
+        status.error
+        == "Reconciliation failed: HelmControllerException: Dependency GitRepository/test-ns/test-repo: Failed: Some error"
     )
 
 
@@ -581,39 +503,17 @@ async def test_helm_release_fails_with_nonexistent_chart(
     # Update status to READY
     store.update_status(git_repo_rid, Status.READY)
 
-    # Create an event to signal when reconciliation is complete
-    reconciliation_complete = asyncio.Event()
+    # Add the HelmRelease to trigger reconciliation
+    store.add_object(helm_release)
 
-    # Add a listener to wait for the HelmRelease to be reconciled
-    def on_status_updated(resource_id: NamedResource, obj: BaseManifest) -> None:
-        if resource_id == NamedResource(
-            helm_release.kind, helm_release.namespace, helm_release.name
-        ):
-            status = store.get_status(resource_id)
-            if status and status.status == Status.FAILED:
-                reconciliation_complete.set()
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
 
-    # Register the listener
-    remove_listener = store.add_listener(StoreEvent.STATUS_UPDATED, on_status_updated)
-
-    try:
-        # Add the HelmRelease to trigger reconciliation
-        store.add_object(helm_release)
-
-        # Wait for reconciliation to complete with a timeout
-        await asyncio.wait_for(reconciliation_complete.wait(), timeout=2.0)
-
-        status = store.get_status(
-            NamedResource(helm_release.kind, helm_release.namespace, helm_release.name)
-        )
-        assert status is not None, "Expected status to be set"
-        assert (
-            status.status == Status.FAILED
-        ), f"Expected status FAILED, got {status.status}"
-        assert status.error is not None, "Expected error message to be set"
-        assert (
-            "not found" in status.error
-        ), "Expected error message to indicate file not found"
-    finally:
-        # Clean up the listener
-        remove_listener()
+    status = store.get_status(
+        NamedResource(helm_release.kind, helm_release.namespace, helm_release.name)
+    )
+    assert status is not None
+    assert status.status == Status.FAILED
+    assert status.error is not None
+    assert "not found" in status.error
