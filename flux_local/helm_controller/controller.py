@@ -125,7 +125,11 @@ class HelmReleaseController:
                 "Failed to reconcile HelmRelease %s: %s", resource_id, str(e)
             )
             # Update status with error
-            self.store.update_status(resource_id, Status.FAILED, error=str(e))
+            self.store.update_status(
+                resource_id,
+                Status.FAILED,
+                error=f"Reconciliation failed: {type(e).__name__}: {str(e)}",
+            )
 
     async def reconcile_helm_release(
         self, resource_id: NamedResource, helm_release: HelmRelease
