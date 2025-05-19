@@ -30,11 +30,14 @@ from flux_local.manifest import (
     OCIRepository,
     GitRepository,
 )
+from flux_local.task import TaskService
+
 
 from .git import fetch_git
 from .oci import fetch_oci
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class SourceController:
     """
@@ -44,6 +47,7 @@ class SourceController:
     store, fetches the source artifacts, and makes them available to other
     controllers like KustomizeController and HelmReleaseController.
     """
+
     SUPPORTED_KINDS = {"GitRepository", "OCIRepository"}
 
     def __init__(self, store: Store) -> None:
@@ -53,8 +57,9 @@ class SourceController:
         Args:
             store: The central store for managing state and artifacts
         """
-        self.store = store
+        self._store = store
         self._tasks: list[asyncio.Task[None]] = []
+        self._task_service = TaskService.get_instance()
 
         # Wrap the sync event handler to schedule as a task
         def listener(resource_id: NamedResource, obj: BaseManifest) -> None:
@@ -70,10 +75,12 @@ class SourceController:
             """
             if resource_id.kind in self.SUPPORTED_KINDS:
                 self._tasks.append(
-                    asyncio.create_task(self.on_source_added(resource_id, obj))
+                    self._task_service.create_task(
+                        self.on_source_added(resource_id, obj)
+                    )
                 )
 
-        self.store.add_listener(StoreEvent.OBJECT_ADDED, listener)
+        self._store.add_listener(StoreEvent.OBJECT_ADDED, listener)
 
     async def close(self) -> None:
         """Clean up resources used by the controller.
@@ -81,12 +88,16 @@ class SourceController:
         This method cancels all ongoing repository fetching tasks and waits
         for them to complete.
         """
+        # Cancel all our tasks
         for task in self._tasks:
             task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
                 pass
+
+        # Wait for all our tasks to complete
+        await self._task_service.block_till_done()
 
     async def on_source_added(
         self, resource_id: NamedResource, obj: BaseManifest
@@ -107,9 +118,7 @@ class SourceController:
 
         await self.fetch(resource_id, obj)
 
-    async def fetch(
-        self, resource_id: NamedResource, obj: BaseManifest
-    ) -> None:
+    async def fetch(self, resource_id: NamedResource, obj: BaseManifest) -> None:
         """Fetch a source artifact based on repository type.
 
         This method determines the type of source repository and delegates
@@ -130,24 +139,24 @@ class SourceController:
         """Fetch a Git repository."""
         artifact = await fetch_git(obj)
         _LOGGER.info("Fetched Git repository %s", resource_id)
-        self.store.set_artifact(resource_id, artifact)
-        self.store.update_status(resource_id, Status.READY)
+        self._store.set_artifact(resource_id, artifact)
+        self._store.update_status(resource_id, Status.READY)
 
     async def _fetch_oci(self, resource_id: NamedResource, obj: OCIRepository) -> None:
         """Fetch an OCI repository."""
         artifact = await fetch_oci(obj)
         _LOGGER.info("Fetched OCI repository %s", resource_id)
-        self.store.set_artifact(resource_id, artifact)
-        self.store.update_status(resource_id, Status.READY)
+        self._store.set_artifact(resource_id, artifact)
+        self._store.update_status(resource_id, Status.READY)
 
     async def reconcile(self, resource_id: NamedResource, obj: BaseManifest) -> None:
         """Reconcile the source."""
         _LOGGER.info("Reconciling %s", resource_id)
-        self.store.update_status(resource_id, Status.PENDING)
+        self._store.update_status(resource_id, Status.PENDING)
         try:
             await self.fetch(resource_id, obj)
             _LOGGER.info("Reconciled %s", resource_id)
-            self.store.update_status(resource_id, Status.READY)
+            self._store.update_status(resource_id, Status.READY)
         except Exception as e:
             _LOGGER.error("Failed to reconcile %s: %s", resource_id, e)
-            self.store.update_status(resource_id, Status.FAILED, error=str(e))
+            self._store.update_status(resource_id, Status.FAILED, error=str(e))

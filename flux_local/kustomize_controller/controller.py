@@ -34,6 +34,7 @@ from flux_local.manifest import (
 )
 from flux_local.exceptions import InputException
 from flux_local.kustomize import flux_build
+from flux_local.task import TaskService
 
 from .artifact import KustomizationArtifact
 
@@ -58,8 +59,9 @@ class KustomizationController:
         Args:
             store: The central store for managing state and artifacts
         """
-        self.store = store
+        self._store = store
         self._tasks: list[asyncio.Task[None]] = []
+        self._task_service = TaskService.get_instance()
 
         def listener(resource_id: NamedResource, obj: BaseManifest) -> None:
             """Event listener for new Kustomization objects.
@@ -73,10 +75,12 @@ class KustomizationController:
             """
             if resource_id.kind == "Kustomization":
                 self._tasks.append(
-                    asyncio.create_task(self.on_kustomization_added(resource_id, obj))
+                    self._task_service.create_task(
+                        self.on_kustomization_added(resource_id, obj)
+                    )
                 )
 
-        self.store.add_listener(StoreEvent.OBJECT_ADDED, listener, flush=True)
+        self._store.add_listener(StoreEvent.OBJECT_ADDED, listener, flush=True)
 
     async def close(self) -> None:
         """Clean up any resources used by the controller.
@@ -84,12 +88,16 @@ class KustomizationController:
         This method cancels all ongoing reconciliation tasks and waits for them
         to complete.
         """
+        # Cancel all our tasks
         for task in self._tasks:
             task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
                 pass
+
+        # Wait for all our tasks to complete
+        await self._task_service.block_till_done()
 
     async def on_kustomization_added(
         self, resource_id: NamedResource, obj: BaseManifest
@@ -131,7 +139,7 @@ class KustomizationController:
             kustomization: The Kustomization object to reconcile
         """
         _LOGGER.info("Reconciling Kustomization %s", resource_id)
-        self.store.update_status(resource_id, Status.PENDING)
+        self._store.update_status(resource_id, Status.PENDING)
 
         try:
             # 1. Check dependencies
@@ -152,13 +160,13 @@ class KustomizationController:
                 manifests=manifests,
                 revision=getattr(kustomization, "revision", None),
             )
-            self.store.set_artifact(resource_id, artifact)
-            self.store.update_status(resource_id, Status.READY)
+            self._store.set_artifact(resource_id, artifact)
+            self._store.update_status(resource_id, Status.READY)
             _LOGGER.info("Successfully reconciled Kustomization %s", resource_id)
 
         except Exception as e:
             _LOGGER.error("Failed to reconcile Kustomization %s: %s", resource_id, e)
-            self.store.update_status(resource_id, Status.FAILED, error=str(e))
+            self._store.update_status(resource_id, Status.FAILED, error=str(e))
 
     async def _check_dependencies(self, kustomization: Kustomization) -> None:
         """Verify all dependencies are ready.
@@ -185,7 +193,7 @@ class KustomizationController:
             )
 
             # Get the status from the store
-            status = self.store.get_status(dep_id)
+            status = self._store.get_status(dep_id)
 
             if status is None:
                 missing_deps.append(dep_name)
@@ -250,7 +258,7 @@ class KustomizationController:
         )
 
         # Get the source artifact from the store
-        artifact = self.store.get_artifact(source_ref, Artifact)
+        artifact = self._store.get_artifact(source_ref, Artifact)
         if not artifact:
             raise InputException(
                 f"Source artifact {kustomization.source_kind}/{kustomization.source_name} "
@@ -258,7 +266,7 @@ class KustomizationController:
             )
 
         # Verify the source status is ready
-        source_status = self.store.get_status(source_ref)
+        source_status = self._store.get_status(source_ref)
         if not source_status or source_status.status != Status.READY:
             status_msg = source_status.status.value if source_status else "not found"
             raise InputException(
@@ -341,4 +349,4 @@ class KustomizationController:
             except ValueError as e:
                 raise InputException(f"Failed to parse manifest: {manifest}") from e
             _LOGGER.debug("Applying %s", obj)
-            self.store.add_object(obj)
+            self._store.add_object(obj)

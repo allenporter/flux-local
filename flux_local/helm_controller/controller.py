@@ -27,6 +27,7 @@ from flux_local.manifest import (
 )
 from flux_local.store import Store, StoreEvent, Status, Artifact
 from flux_local.source_controller import GitArtifact
+from flux_local.task import TaskService
 
 from .artifact import HelmReleaseArtifact
 
@@ -56,6 +57,7 @@ class HelmReleaseController:
         self.store = store
         self.helm = helm
         self._tasks: list[asyncio.Task[None]] = []
+        self._task_service = TaskService.get_instance()
         self._need_update = False
 
         self.store.add_listener(
@@ -75,7 +77,9 @@ class HelmReleaseController:
             self.helm.add_repo(obj)
         if resource_id.kind == "HelmRelease":
             self._tasks.append(
-                asyncio.create_task(self.on_helm_release_added(resource_id, obj))
+                self._task_service.create_task(
+                    self.on_helm_release_added(resource_id, obj)
+                )
             )
 
     def _artifact_listener(
@@ -95,6 +99,7 @@ class HelmReleaseController:
 
     async def close(self) -> None:
         """Clean up resources used by the controller."""
+        # Cancel all our tasks
         for task in self._tasks:
             task.cancel()
             try:
@@ -210,14 +215,14 @@ class HelmReleaseController:
             for dep in dependencies:
                 if dep.kind == GitRepository.kind:
                     tasks.append(
-                        asyncio.create_task(
+                        self._task_service.create_task(
                             self.wait_for_resource_ready(dep),
                             name=f"{str(dep)} ready",
                         )
                     )
                 else:
                     tasks.append(
-                        asyncio.create_task(
+                        self._task_service.create_task(
                             self.wait_for_resource_exists(dep),
                             name=f"{str(dep)} exists",
                         )
