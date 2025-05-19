@@ -5,33 +5,57 @@ This service provides a simple way to track and wait for asynchronous tasks.
 
 import asyncio
 import logging
-from typing import Any, Coroutine, Set, Self
+from typing import Any, Coroutine, Set
+from abc import ABC, abstractmethod
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class TaskService:
+class TaskService(ABC):
     """Service for tracking and waiting for asynchronous tasks.
 
-    This is implemented as a singleton to ensure consistent task tracking
-    across all controllers.
+    This class handles the core task tracking functionality.
     """
 
-    _instance: Self | None = None
+    @abstractmethod
+    def create_task(
+        self, coro: Coroutine[None, None, Any], name: str | None = None
+    ) -> asyncio.Task[Any]:
+        """Create and track a new task.
 
-    @classmethod
-    def get_instance(cls) -> Self:
-        """Get the singleton instance of TaskService."""
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance  # type: ignore[no-any-return]
+        Args:
+            coro: The coroutine to run as a task
+
+        Returns:
+            The created task
+        """
+
+    @abstractmethod
+    async def block_till_done(self) -> None:
+        """Wait for all active tasks to complete.
+
+        This method creates a copy of the current active tasks and waits
+        for them to complete. It's safe to call even if new tasks are created
+        while waiting.
+        """
+
+    @abstractmethod
+    async def wait_for_task(self, task: asyncio.Task[None]) -> None:
+        """Wait for a specific task to complete.
+
+        Args:
+            task: The task to wait for
+        """
+
+
+class TaskServiceImpl(TaskService):
+    """Service for tracking and waiting for asynchronous tasks.
+
+    This class handles the core task tracking functionality.
+    """
 
     def __init__(self) -> None:
         """Initialize the task service."""
-        if self._instance is not None:
-            raise RuntimeError(
-                "TaskService is a singleton. Use get_instance() instead."
-            )
         self._active_tasks: Set[asyncio.Task[Any]] = set()
 
     def create_task(

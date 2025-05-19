@@ -1,22 +1,23 @@
-"""Tests for the TaskService."""
+"""Tests for the TaskServiceImpl."""
 
 import asyncio
 import logging
 import pytest
 from typing import Any
 
-from flux_local.task.service import TaskService
+from flux_local.task import task_service_context, get_task_service
+from flux_local.task.service import TaskServiceImpl
 
 _LOGGER = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def task_service() -> TaskService:
-    """Fixture for creating a TaskService instance."""
-    return TaskService.get_instance()
+def task_service() -> TaskServiceImpl:
+    """Fixture for creating a TaskServiceImpl instance."""
+    return TaskServiceImpl()
 
 
-async def test_create_and_complete_task(task_service: TaskService) -> None:
+async def test_create_and_complete_task(task_service: TaskServiceImpl) -> None:
     """Test creating and completing a task."""
 
     async def test_task() -> Any:
@@ -31,7 +32,7 @@ async def test_create_and_complete_task(task_service: TaskService) -> None:
     assert task not in task_service._active_tasks
 
 
-async def test_block_till_done(task_service: TaskService) -> None:
+async def test_block_till_done(task_service: TaskServiceImpl) -> None:
     """Test blocking until all tasks are done."""
 
     async def test_task() -> Any:
@@ -53,7 +54,7 @@ async def test_block_till_done(task_service: TaskService) -> None:
         assert task.done()
 
 
-async def test_task_failure(task_service: TaskService) -> None:
+async def test_task_failure(task_service: TaskServiceImpl) -> None:
     """Test handling of task failures."""
 
     async def failing_task() -> Any:
@@ -70,7 +71,7 @@ async def test_task_failure(task_service: TaskService) -> None:
     assert task not in task_service._active_tasks
 
 
-async def test_task_cancellation(task_service: TaskService) -> None:
+async def test_task_cancellation(task_service: TaskServiceImpl) -> None:
     """Test task cancellation."""
 
     async def cancellable_task() -> Any:
@@ -92,7 +93,7 @@ async def test_task_cancellation(task_service: TaskService) -> None:
     assert task.cancelled()
 
 
-async def test_wait_for_specific_task(task_service: TaskService) -> None:
+async def test_wait_for_specific_task(task_service: TaskServiceImpl) -> None:
     """Test waiting for a specific task."""
 
     async def test_task() -> Any:
@@ -117,7 +118,7 @@ async def test_wait_for_specific_task(task_service: TaskService) -> None:
     assert tasks[2].done()
 
 
-async def test_concurrent_tasks(task_service: TaskService) -> None:
+async def test_concurrent_tasks(task_service: TaskServiceImpl) -> None:
     """Test handling of concurrent tasks."""
 
     async def test_task() -> Any:
@@ -141,21 +142,24 @@ async def test_concurrent_tasks(task_service: TaskService) -> None:
 
 
 def test_singleton_behavior() -> None:
-    """Test singleton behavior of TaskService."""
+    """Test singleton behavior of TaskServiceImpl."""
     # First instance
-    service1 = TaskService.get_instance()
-    assert isinstance(service1, TaskService)
+    with task_service_context() as task_service:
+        service1 = get_task_service()
+        assert isinstance(service1, TaskServiceImpl)
 
-    # Should get the same instance
-    service2 = TaskService.get_instance()
-    assert service1 is service2
+        # Should get the same instance
+        service2 = get_task_service()
+        assert service1 is service2
 
-    # Direct instantiation should raise
-    with pytest.raises(RuntimeError):
-        TaskService()
+    # Should get a different instance
+    with task_service_context() as task_service:
+        service3 = get_task_service()
+        assert service1 is not service3
+        assert task_service is service3
 
 
-async def test_task_cleanup_after_cancellation(task_service: TaskService) -> None:
+async def test_task_cleanup_after_cancellation(task_service: TaskServiceImpl) -> None:
     """Test task cleanup when cancelled."""
 
     async def cancellable_task() -> Any:
@@ -181,7 +185,7 @@ async def test_task_cleanup_after_cancellation(task_service: TaskService) -> Non
         assert False, "Expected CancelledError"
 
 
-async def test_task_cleanup_in_wait_for_task(task_service: TaskService) -> None:
+async def test_task_cleanup_in_wait_for_task(task_service: TaskServiceImpl) -> None:
     """Test task cleanup when using wait_for_task."""
 
     async def test_task() -> Any:
@@ -197,7 +201,7 @@ async def test_task_cleanup_in_wait_for_task(task_service: TaskService) -> None:
     assert task.result() == "done"
 
 
-async def test_task_cleanup_in_block_till_done(task_service: TaskService) -> None:
+async def test_task_cleanup_in_block_till_done(task_service: TaskServiceImpl) -> None:
     """Test task cleanup when using block_till_done."""
 
     async def test_task() -> Any:
@@ -217,7 +221,7 @@ async def test_task_cleanup_in_block_till_done(task_service: TaskService) -> Non
         assert task.result() == "done"
 
 
-async def test_task_cleanup_with_exception(task_service: TaskService) -> None:
+async def test_task_cleanup_with_exception(task_service: TaskServiceImpl) -> None:
     """Test task cleanup when a task raises an exception."""
 
     async def failing_task() -> Any:
