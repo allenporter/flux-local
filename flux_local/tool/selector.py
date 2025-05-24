@@ -232,13 +232,20 @@ def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def
     This assumes that the hr selector and helm options flags methods were
     called to add arguments to the parser.
     """
+    user_registry_config = kwargs.get("registry_config")
+    default_registry_config_path = kwargs.get("default_registry_config_path")
+
+    final_registry_config = user_registry_config
+    if user_registry_config is None and default_registry_config_path:
+        final_registry_config = str(default_registry_config_path)
+
     return helm.Options(
         skip_crds=kwargs["skip_crds"],
         skip_secrets=kwargs["skip_secrets"],
         skip_kinds=kwargs["skip_kinds"],
         kube_version=kwargs.get("kube_version"),
         api_versions=kwargs.get("api_versions"),
-        registry_config=kwargs.get("registry_config"),
+        registry_config=final_registry_config,
     )
 
 
