@@ -53,6 +53,7 @@ runs:
       shell: bash
     - name: Test cluster (flux-local)
       run: |
+        extra_flags="${{ inputs.debug != 'true' && '' || '-v' }}"
         flux-local \
           --log-level ${{ inputs.debug != 'true' && 'INFO' || 'DEBUG' }} \
           test \
@@ -60,5 +61,6 @@ runs:
           --api-versions "${{ inputs.api-versions }}" \
           --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
           --sources "${{ inputs.sources }}" \
-          --path ${{ inputs.path }}
+          --path ${{ inputs.path }} \
+          ${{ inputs.debug != 'true' && '' || '-v' }}
       shell: bash
