@@ -61,5 +61,5 @@ runs:
           --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
           --sources "${{ inputs.sources }}" \
           --path ${{ inputs.path }} \
-          ${{ inputs.debug != 'true' && '-q' || '-v' }}
+          --verbosity ${{ inputs.debug != 'true' && '0' || '1' }}
       shell: bash
