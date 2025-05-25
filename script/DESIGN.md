@@ -21,13 +21,13 @@ Here are some goals for v5:
   to ensure building.
 - Shared code patterns when parsing output of helm templates and outputs of
   kustomize build for stuff like image version extraction.
-- Move off of pydantic v1 API since it is deprecated. 
+- Move off of pydantic v1 API since it is deprecated.
 - `flux-local build` is kind of a mess? It seems like it needs to be rethought.
 - Caching is somewhat brittle, and should probably include the skip crds/secrets
   flags, or just remove the need overall for caching of specific commands.
 - Improved unit testing may be possible if we can pull more of the code out of
   CLI commands into reusable libraries.
-  
+
 
 ## Background
 

@@ -94,7 +94,7 @@ class LocalGitRepository:
 @contextmanager
 def empty_registry_config_file() -> Generator[Path]:
     """Context manager a temporary JSON configuration file.
-    
+
     This is needed because some versions of helm can't handle reading /dev/null.
     It is preferred to call this once at the start of the program to create the
     empty json file. It may be called multiple times and it will reuse the
@@ -121,7 +121,9 @@ def empty_registry_config_file() -> Generator[Path]:
 def _get_registry_config_file() -> str:
     """Get the current registry config file."""
     if (filename := _config_context.get()) is None:
-        raise ValueError("No registry config file found, call with empty_registry_config_file() first")
+        raise ValueError(
+            "No registry config file found, call with empty_registry_config_file() first"
+        )
     return filename
 
 

@@ -18,11 +18,11 @@ KINDS = [
     "CronJob",
     "Job",
     "ReplicationController",
-    "EMQX",                  # apps.emqx.io/v2beta1
-    "Cluster",               # postgresql.cnpg.io/v1
-    "CephCluster",           # ceph.rook.io/v1
-    "Alertmanager",          # monitoring.coreos.com/v1
-    "Prometheus",            # monitoring.coreos.com/v1
+    "EMQX",  # apps.emqx.io/v2beta1
+    "Cluster",  # postgresql.cnpg.io/v1
+    "CephCluster",  # ceph.rook.io/v1
+    "Alertmanager",  # monitoring.coreos.com/v1
+    "Prometheus",  # monitoring.coreos.com/v1
     "AutoscalingRunnerSet",  # actions.github.com/v1alpha1
 ]
 
@@ -30,9 +30,7 @@ KINDS = [
 IMAGE_KEY = "image"
 
 # Override the default image key for some object types.
-KINDS_IMAGE_KEY = {
-    "Cluster": "imageName"
-}
+KINDS_IMAGE_KEY = {"Cluster": "imageName"}
 
 
 def _extract_images(kind: str, doc: dict[str, Any]) -> set[str]:

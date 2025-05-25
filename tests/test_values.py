@@ -103,7 +103,6 @@ def test_values_references_with_values_key() -> None:
     }
 
 
-
 @pytest.mark.parametrize(
     ("inline_values", "expected_values"),
     [
@@ -117,7 +116,7 @@ def test_values_references_with_values_key() -> None:
                 "redis": {
                     "enabled": True,
                 }
-            }
+            },
         ),
         (
             {},
@@ -125,11 +124,13 @@ def test_values_references_with_values_key() -> None:
                 "redis": {
                     "enabled": False,
                 }
-            }
-        )
-    ]
+            },
+        ),
+    ],
 )
-def test_value_reference_ordering(inline_values: dict[str, Any], expected_values: dict[str, Any]) -> None:
+def test_value_reference_ordering(
+    inline_values: dict[str, Any], expected_values: dict[str, Any]
+) -> None:
     """Test for expanding a value reference with inline values that overwrite."""
     hr = HelmRelease(
         name="test",
@@ -383,7 +384,7 @@ def test_values_reference_invalid_target_path() -> None:
                 values_key="some-key",
                 # Target above is a list
                 target_path="target.path",
-            )
+            ),
         ],
     )
     ks = Kustomization(
@@ -401,12 +402,14 @@ def test_values_reference_invalid_target_path() -> None:
                 name="test-values-original-configmap",
                 namespace="test",
                 data={
-                    "values.yaml": yaml.dump({
-                        "test": "test",
-                        "target": ["a", "b", "c"],
-                    }),
-                }
-            )
+                    "values.yaml": yaml.dump(
+                        {
+                            "test": "test",
+                            "target": ["a", "b", "c"],
+                        }
+                    ),
+                },
+            ),
         ],
     )
     with pytest.raises(HelmException, match=r"values to be a dict"):
@@ -523,6 +526,7 @@ def test_values_references_secret() -> None:
             "path2": "..PLACEHOLDER_some-key2..",
         },
     }
+
 
 def test_target_path_character_escapes() -> None:
     """Test for character escapes in the reference target_path"""
