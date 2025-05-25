@@ -79,7 +79,10 @@ class BuildAllAction:
         query.helm_release.enabled = enable_helm
         query.helm_release.namespace = None
         helm_options = selector.build_helm_options(
-            skip_crds=skip_crds, skip_secrets=skip_secrets, skip_kinds=skip_kinds, **kwargs
+            skip_crds=skip_crds,
+            skip_secrets=skip_secrets,
+            skip_kinds=skip_kinds,
+            **kwargs,
         )
 
         content = ContentOutput()
