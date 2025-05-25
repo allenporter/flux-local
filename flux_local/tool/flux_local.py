@@ -9,8 +9,9 @@ from typing import Any
 
 import yaml
 
-from . import build, diff, get, test, diagnostics
 from flux_local.exceptions import FluxException
+from flux_local.helm import empty_registry_config_file
+from . import build, diff, get, test, diagnostics
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,7 +59,8 @@ def main() -> None:
 
     action = args.cls()
     try:
-        asyncio.get_event_loop().run_until_complete(action.run(**vars(args)))
+        with empty_registry_config_file():
+            asyncio.get_event_loop().run_until_complete(action.run(**vars(args)))
     except FluxException as err:
         if args.log_level == "DEBUG":
             traceback.print_exc(file=sys.stderr)
