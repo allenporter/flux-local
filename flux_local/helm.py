@@ -100,9 +100,9 @@ def empty_registry_config_file() -> Generator[Path]:
     empty json file. It may be called multiple times and it will reuse the
     existing file.
     """
-    if _config_context.get() is not None:
+    if (existing_path := _config_context.get()) is not None:
         # Reuse existing config file already created
-        yield Path(_config_context.get())
+        yield Path(existing_path)
         return
 
     with tempfile.NamedTemporaryFile(
