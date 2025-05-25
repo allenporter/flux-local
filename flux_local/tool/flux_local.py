@@ -9,9 +9,9 @@ from typing import Any
 
 import yaml
 
-from . import build, diff, get, test, diagnostics
 from flux_local.exceptions import FluxException
-from flux_local.temp_config import TemporaryJsonConfig
+from flux_local.helm import empty_registry_config_file
+from . import build, diff, get, test, diagnostics
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,8 +59,7 @@ def main() -> None:
 
     action = args.cls()
     try:
-        with TemporaryJsonConfig() as tmp_config_file_path:
-            args.default_registry_config_path = tmp_config_file_path  # Store the path
+        with empty_registry_config_file():
             asyncio.get_event_loop().run_until_complete(action.run(**vars(args)))
     except FluxException as err:
         if args.log_level == "DEBUG":
