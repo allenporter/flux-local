@@ -306,7 +306,7 @@ class Helm:
         content = yaml.dump(RepositoryConfig(helm_repos).config, sort_keys=False)
         async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
             await config_file.write(content)
-        with empty_registry_config_file() as registry_config:
+        with empty_registry_config_file():
             args = [HELM_BIN, "repo", "update"]
             args.extend(Options().base_args)
             args.extend(self._flags)
