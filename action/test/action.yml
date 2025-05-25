@@ -60,5 +60,6 @@ runs:
           --api-versions "${{ inputs.api-versions }}" \
           --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
           --sources "${{ inputs.sources }}" \
-          --path ${{ inputs.path }}
+          --path ${{ inputs.path }} \
+          --verbosity ${{ inputs.debug != 'true' && '0' || '1' }}
       shell: bash
