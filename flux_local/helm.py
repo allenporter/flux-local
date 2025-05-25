@@ -97,7 +97,7 @@ def empty_registry_config_file() -> Generator[Path]:
     
     This is needed because some versions of helm can't handle reading /dev/null.
     It is preferred to call this once at the start of the program to create the
-    empty json file. It may be called mutiple times and it will reuse the
+    empty json file. It may be called multiple times and it will reuse the
     existing file.
     """
     if _config_context.get() is not None:
