@@ -136,16 +136,14 @@ class RawObject(BaseManifest):
         if not (api_version := doc.get("apiVersion")):
             raise InputException("Invalid object missing apiVersion: {doc}")
         if not (metadata := doc.get("metadata")):
-            raise InputException("Invalid object missing metadata: {doc}")
+            raise InputException(f"Invalid object missing metadata: {doc}")
         if not (name := metadata.get("name")):
-            raise InputException("Invalid object missing metadata.name: {doc}")
-        if not (namespace := metadata.get("namespace")):
-            raise InputException("Invalid object missing metadata.namespace: {doc}")
+            raise InputException(f"Invalid object missing metadata.name: {doc}")
         return cls(
             kind=doc["kind"],
             api_version=api_version,
             name=name,
-            namespace=namespace,
+            namespace=metadata.get("namespace", DEFAULT_NAMESPACE),
             spec=doc.get("spec", {}),
         )
 
@@ -979,7 +977,9 @@ def parse_raw_obj(obj: dict[str, Any]) -> BaseManifest:
     """Parse a raw kubernetes object into a BaseManifest."""
     if not (kind := obj.get("kind")):
         raise InputException("Invalid object missing kind: {obj}")
-    if kind == KUSTOMIZE_KIND:
+    if not (api_version := obj.get("apiVersion")):
+        raise InputException("Invalid object missing apiVersion: {obj}")
+    if kind == KUSTOMIZE_KIND and api_version.startswith(FLUXTOMIZE_DOMAIN):
         return Kustomization.parse_doc(obj)
     if kind == HELM_RELEASE:
         return HelmRelease.parse_doc(obj)
@@ -992,3 +992,10 @@ def parse_raw_obj(obj: dict[str, Any]) -> BaseManifest:
     if kind == SECRET_KIND:
         return Secret.parse_doc(obj)
     return RawObject.parse_doc(obj)
+
+
+def is_kustomization(obj: dict[str, Any]) -> bool:
+    """Check if the object is a Kustomization."""
+    return obj.get("kind") == KUSTOMIZE_KIND and obj.get("apiVersion", "").startswith(
+        KUSTOMIZE_DOMAIN
+    )

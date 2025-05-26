@@ -35,6 +35,7 @@ from flux_local.task import get_task_service
 
 from .git import fetch_git
 from .oci import fetch_oci
+from .artifact import GitArtifact
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class SourceController:
 
     This controller watches for GitRepository and OCIRepository objects in the
     store, fetches the source artifacts, and makes them available to other
-    controllers like KustomizeController and HelmReleaseController.
+    controllers like KustomizationController and HelmReleaseController.
     """
 
     SUPPORTED_KINDS = {"GitRepository", "OCIRepository"}
@@ -80,7 +81,7 @@ class SourceController:
                     )
                 )
 
-        self._store.add_listener(StoreEvent.OBJECT_ADDED, listener)
+        self._store.add_listener(StoreEvent.OBJECT_ADDED, listener, flush=True)
 
     async def close(self) -> None:
         """Clean up resources used by the controller.
@@ -114,6 +115,11 @@ class SourceController:
                 type(obj).__name__,
                 resource_id,
             )
+            return
+        if isinstance(obj, GitRepository) and self._store.get_artifact(
+            resource_id, GitArtifact
+        ):
+            _LOGGER.debug("Artifact for %s already exists, skipping fetch", resource_id)
             return
 
         await self.fetch(resource_id, obj)

@@ -1,10 +1,12 @@
 """Store module for holding state while visiting resources."""
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Callable
+from collections.abc import Callable
 from enum import Enum
+from typing import TypeVar
 
-from flux_local.manifest import NamedResource, BaseManifest
+from flux_local.manifest import BaseManifest, NamedResource
+
 from .artifact import Artifact
 from .status import Status, StatusInfo
 
@@ -50,6 +52,14 @@ class Store(ABC):
     @abstractmethod
     def get_artifact(self, resource_id: NamedResource, cls: type[S]) -> S | None:
         """Retrieve artifact information for a resource."""
+
+    @abstractmethod
+    def has_failed_resources(self) -> bool:
+        """Check if any resources in the store have failed.
+
+        Returns:
+            bool: True if any resources have a failed status, False otherwise.
+        """
 
     @abstractmethod
     def list_objects(self, kind: str | None = None) -> list[BaseManifest]:
