@@ -445,6 +445,129 @@ async def test_kustomization_missing_dependency(
     assert "has missing dependencies: missing-ks" in (status.error or "")
 
 
+async def test_kustomization_dependency_becomes_ready_later(
+    store: Store,
+    controller: KustomizationController,
+    git_repo_path: Path,
+    app_dir: Path,
+) -> None:
+    """Test a Kustomization whose dependency becomes ready later."""
+    task_service = get_task_service()
+
+    # 1. Create and prepare GitRepository source
+    source = GitRepository(
+        namespace="test-ns", name="test-repo", url="file://" + str(git_repo_path)
+    )
+    source_rid = NamedResource(source.kind, source.namespace, source.name)
+    store.add_object(source)
+    store.set_artifact(
+        source_rid, GitArtifact(url=source.url, local_path=str(git_repo_path))
+    )
+    store.update_status(source_rid, Status.READY)
+    await task_service.block_till_done()
+
+    # 2. Create dependency Kustomization (dep_ks)
+    dep_ks_name = "dep-ks"
+    dep_ks = Kustomization(
+        namespace="test-ns",
+        name=dep_ks_name,
+        path="./app",  # Relative to source_path
+        source_kind=source.kind,
+        source_name=source.name,
+        source_namespace=source.namespace,
+        contents={
+            "apiVersion": "kustomize.toolkit.fluxcd.io/v1",
+            "kind": "Kustomization",
+            "metadata": {"name": dep_ks_name, "namespace": "test-ns"},
+            "spec": {
+                "path": "./app",
+                "sourceRef": {
+                    "kind": source.kind,
+                    "name": source.name,
+                    "namespace": source.namespace,
+                },
+                "interval": "1m",
+            },
+        },
+    )
+    dep_ks_rid = NamedResource(dep_ks.kind, dep_ks.namespace, dep_ks.name)
+
+    # Add dep_ks to the store. It should become READY.
+    store.add_object(dep_ks)
+    await task_service.block_till_done()
+    dep_status_after_add = store.get_status(dep_ks_rid)
+    assert dep_status_after_add is not None
+    assert dep_status_after_add.status == Status.READY
+    dep_artifact_after_add = store.get_artifact(dep_ks_rid, KustomizationArtifact)
+    assert dep_artifact_after_add is not None
+    assert dep_artifact_after_add.path == str(app_dir)
+
+    # 3. Manually set dep_ks status to PENDING
+    store.update_status(
+        dep_ks_rid, Status.PENDING, error="Simulated: dep_ks initially pending"
+    )
+    dep_status_after_manual_pending = store.get_status(dep_ks_rid)
+    assert dep_status_after_manual_pending is not None
+    assert dep_status_after_manual_pending.status == Status.PENDING
+
+    # 4. Create main Kustomization (main_ks) depending on dep_ks
+    main_ks_name = "main-ks"
+    main_ks = Kustomization(
+        namespace="test-ns",
+        name=main_ks_name,
+        path="./app",
+        source_kind=source.kind,
+        source_name=source.name,
+        source_namespace=source.namespace,
+        depends_on=[f"{dep_ks.namespace}/{dep_ks.name}"],
+        contents={
+            "apiVersion": "kustomize.toolkit.fluxcd.io/v1",
+            "kind": "Kustomization",
+            "metadata": {"name": main_ks_name, "namespace": "test-ns"},
+            "spec": {
+                "path": "./app",
+                "sourceRef": {
+                    "kind": source.kind,
+                    "name": source.name,
+                    "namespace": source.namespace,
+                },
+                "dependsOn": [{"name": dep_ks.name, "namespace": dep_ks.namespace}],
+                "interval": "1m",
+            },
+        },
+    )
+    main_ks_rid = NamedResource(main_ks.kind, main_ks.namespace, main_ks.name)
+
+    # Add main_ks. It should see dep_ks as PENDING and become PENDING.
+    store.add_object(main_ks)
+    await task_service.block_till_done()
+
+    main_ks_status_initial = store.get_status(main_ks_rid)
+    assert main_ks_status_initial is not None
+    assert main_ks_status_initial.status == Status.PENDING
+    assert dep_ks_name in (main_ks_status_initial.error or "")
+
+    # 5. Mark dep_ks as READY again (artifact is already there from initial reconciliation)
+    store.update_status(dep_ks_rid, Status.READY)
+    dep_status_after_manual_ready = store.get_status(dep_ks_rid)
+    assert dep_status_after_manual_ready is not None
+    assert dep_status_after_manual_ready.status == Status.READY
+
+    # 6. Wait for main_ks to potentially notice and re-reconcile.
+    await task_service.block_till_done()  # Allow for any triggered tasks
+    await task_service.block_till_done()  # Wait for ks build to complete
+
+    # 7. Assert final status of main_ks.
+    main_ks_status_final = store.get_status(main_ks_rid)
+    assert main_ks_status_final is not None
+    assert main_ks_status_final.status == Status.READY
+
+    # Verify main_ks artifact if it became READY
+    main_ks_artifact = store.get_artifact(main_ks_rid, KustomizationArtifact)
+    assert main_ks_artifact is not None
+    assert main_ks_artifact.path == str(app_dir)
+
+
 async def test_unsupported_kind(
     store: Store,
     controller: KustomizationController,

@@ -24,7 +24,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from flux_local.store import Store, StoreEvent, Status, Artifact
+from flux_local.store import Store, StoreEvent, Status, Artifact, StatusInfo
 from flux_local.source_controller.artifact import GitArtifact, OCIArtifact
 from flux_local.manifest import (
     NamedResource,
@@ -91,6 +91,21 @@ class KustomizationController:
 
         self._store.add_listener(StoreEvent.OBJECT_ADDED, listener, flush=True)
 
+        def status_listener(resource_id: NamedResource, status_obj: StatusInfo) -> None:
+            """Event listener for resource status changes."""
+            # We are interested in Kustomizations becoming READY, as they might unblock others.
+            if (
+                resource_id.kind == "Kustomization"
+                and status_obj.status == Status.READY
+            ):
+                self._tasks.append(
+                    self._task_service.create_task(
+                        self._handle_kustomization_ready(resource_id)
+                    )
+                )
+
+        self._store.add_listener(StoreEvent.STATUS_UPDATED, status_listener)
+
     async def close(self) -> None:
         """Clean up any resources used by the controller.
 
@@ -129,6 +144,52 @@ class KustomizationController:
             )
             return
         await self.reconcile(resource_id, obj)
+
+    async def _handle_kustomization_ready(self, ready_ks_rid: NamedResource) -> None:
+        """Handle a Kustomization becoming READY.
+
+        This might unblock other Kustomizations that depend on it.
+        """
+        _LOGGER.info(
+            "Kustomization %s became READY, checking for dependent Kustomizations to re-reconcile.",
+            ready_ks_rid.namespaced_name,
+        )
+
+        all_objects = self._store.list_objects()
+        for manifest_obj in all_objects:
+            if not isinstance(manifest_obj, Kustomization):
+                continue
+
+            dependent_ks_obj: Kustomization = manifest_obj
+            dependent_ks_rid: NamedResource = NamedResource(
+                dependent_ks_obj.kind, dependent_ks_obj.namespace, dependent_ks_obj.name
+            )
+
+            if dependent_ks_rid == ready_ks_rid:  # Skip self
+                continue
+
+            if not dependent_ks_obj.depends_on:
+                continue
+
+            # Check if the now-ready Kustomization is a dependency
+            if ready_ks_rid.namespaced_name in dependent_ks_obj.depends_on:
+                current_dependent_status = self._store.get_status(dependent_ks_rid)
+                if (
+                    current_dependent_status
+                    and current_dependent_status.status == Status.PENDING
+                ):
+                    _LOGGER.info(
+                        "Dependency %s for Kustomization %s is now READY. "
+                        "Re-queueing reconciliation for %s.",
+                        ready_ks_rid.namespaced_name,
+                        dependent_ks_rid.namespaced_name,
+                        dependent_ks_rid.namespaced_name,
+                    )
+                    self._tasks.append(
+                        self._task_service.create_task(
+                            self.reconcile(dependent_ks_rid, dependent_ks_obj)
+                        )
+                    )
 
     async def reconcile(
         self, resource_id: NamedResource, kustomization: Kustomization
