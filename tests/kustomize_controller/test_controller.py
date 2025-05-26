@@ -379,7 +379,7 @@ async def test_kustomization_missing_source(
 
     assert artifact is None
     assert status is not None
-    assert status.status == Status.FAILED
+    assert status.status == Status.PENDING
     assert "Source artifact GitRepository/missing-repo not found" in (
         status.error or ""
     )
@@ -441,10 +441,8 @@ async def test_kustomization_missing_dependency(
 
     assert artifact is None
     assert status is not None
-    assert status.status == Status.FAILED
-    assert "has unresolved dependencies: Dependencies not found" in (
-        status.error or ""
-    ), f"Expected error about missing dependency, got: {status.error}"
+    assert status.status == Status.PENDING
+    assert "has missing dependencies: missing-ks" in (status.error or "")
 
 
 async def test_unsupported_kind(

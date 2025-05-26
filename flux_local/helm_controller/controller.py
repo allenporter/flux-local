@@ -249,7 +249,11 @@ class HelmReleaseController:
                 )
                 raise err
             else:
-                _LOGGER.info("All dependencies are ready")
+                _LOGGER.info(
+                    "All dependencies of %s are ready: %s",
+                    helm_release.namespaced_name,
+                    dependencies,
+                )
 
     async def wait_for_resource_ready(self, resource: NamedResource) -> None:
         """Wait for a resource to be ready."""
@@ -283,7 +287,9 @@ class HelmReleaseController:
 
     async def wait_for_resource_exists(self, resource: NamedResource) -> None:
         """Wait for a resource to exist."""
+        _LOGGER.debug("Waiting for resource %s to exist", resource)
         if self.store.get_object(resource, BaseManifest):
+            _LOGGER.debug("Resource %s exists", resource)
             return
 
         # Create an event to signal when the resource is ready
@@ -293,7 +299,7 @@ class HelmReleaseController:
         def on_object_added(resource_id: NamedResource, obj: BaseManifest) -> None:
             if resource_id == resource:
                 if self.store.get_object(resource_id, BaseManifest):
-                    _LOGGER.debug("Resource %s exists", resource_id)
+                    _LOGGER.debug("Resource now %s exists", resource_id)
                     exists_event.set()
                 else:
                     _LOGGER.debug("Resource %s does not exist", resource_id)

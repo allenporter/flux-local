@@ -1,10 +1,14 @@
 """Module for in memory object store."""
 
-from typing import TypeVar, Callable, Any, DefaultDict
+import dataclasses
 from collections import defaultdict
+from collections.abc import Callable
+from typing import Any, TypeVar, DefaultDict
+
 import logging
 
-from flux_local.manifest import NamedResource, BaseManifest
+from flux_local.manifest import BaseManifest, NamedResource
+
 from .artifact import Artifact
 from .status import Status, StatusInfo
 from .store import Store, StoreEvent
@@ -41,7 +45,16 @@ class InMemoryStore(Store):
             or not hasattr(obj, "name")
         ):
             raise ValueError("Object must have kind, namespace, and name attributes")
+        _LOGGER.debug("Adding object %s to store", obj)
         resource_id = NamedResource(obj.kind, getattr(obj, "namespace", None), obj.name)
+        if (existing := self._objects.get(resource_id)) is not None:
+            if dataclasses.asdict(existing) == dataclasses.asdict(obj):
+                _LOGGER.debug(
+                    "Object %s already exists in store, skipping", resource_id
+                )
+                return
+            _LOGGER.debug("Updating existing object %s in store", resource_id)
+
         self._objects[resource_id] = obj
         self._fire_event(StoreEvent.OBJECT_ADDED, resource_id, obj)
 
@@ -92,6 +105,17 @@ class InMemoryStore(Store):
             return artifact
         return None
 
+    def has_failed_resources(self) -> bool:
+        """Check if any resources in the store have failed.
+
+        Returns:
+            bool: True if any resources have a failed status, False otherwise.
+        """
+        for status_info in self._status.values():
+            if status_info.status == Status.FAILED:
+                return True
+        return False
+
     def list_objects(self, kind: str | None = None) -> list[BaseManifest]:
         """List all manifest objects in the store, optionally filtered by kind."""
         if kind is None:
@@ -116,7 +140,7 @@ class InMemoryStore(Store):
 
         if flush:
             _LOGGER.debug("Flushing objects for event type %s", event)
-            for obj in self.list_objects():
+            for obj in list(self.list_objects()):
                 if (
                     not hasattr(obj, "kind")
                     or not hasattr(obj, "namespace")

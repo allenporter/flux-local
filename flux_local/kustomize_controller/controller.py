@@ -38,7 +38,16 @@ from flux_local.task import get_task_service
 
 from .artifact import KustomizationArtifact
 
+
 _LOGGER = logging.getLogger(__name__)
+
+
+class DependencyPendingError(Exception):
+    """Exception raised when a Kustomization dependency is not ready."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
 
 
 class KustomizationController:
@@ -111,7 +120,7 @@ class KustomizationController:
             resource_id: The identifier for the Kustomization resource
             obj: The Kustomization object to handle
         """
-        _LOGGER.debug("Handling addition of %s", resource_id)
+        _LOGGER.info("Handling addition of %s", resource_id)
         if not isinstance(obj, Kustomization):
             _LOGGER.error(
                 "Expected Kustomization but got %s for %s",
@@ -119,7 +128,6 @@ class KustomizationController:
                 resource_id,
             )
             return
-        _LOGGER.info("Reconciling Kustomization %s", resource_id)
         await self.reconcile(resource_id, obj)
 
     async def reconcile(
@@ -144,14 +152,39 @@ class KustomizationController:
         try:
             # 1. Check dependencies
             if kustomization.depends_on:
-                await self._check_dependencies(kustomization)
+                async with asyncio.timeout(5):
+                    _LOGGER.info(
+                        "Checking dependencies for Kustomization %s", resource_id
+                    )
+                    while True:
+                        try:
+                            await self._check_dependencies(kustomization)
+                            break  # Dependencies are ready, exit loop
+                        except DependencyPendingError as e:
+                            _LOGGER.warning(
+                                "Kustomization %s has pending dependencies: %s",
+                                resource_id,
+                                e.message,
+                            )
+                            await asyncio.sleep(0.1)
 
             # 2. Resolve source artifacts
             source_path = await self._resolve_source(kustomization)
 
             # 3. Build the kustomization
-            manifests = await self._build_kustomization(source_path, kustomization)
+            _LOGGER.info("Building Kustomization %s", resource_id)
+            try:
+                manifests = await self._build_kustomization(source_path, kustomization)
+            except Exception as e:
+                _LOGGER.error(
+                    "Failed to build Kustomization %s: %s",
+                    resource_id,
+                    e,
+                    exc_info=True,
+                )
+                raise e
 
+            _LOGGER.info("Applying Kustomization output %s", resource_id)
             await self._apply(manifests)
 
             # 4. Store results
@@ -163,7 +196,13 @@ class KustomizationController:
             self._store.set_artifact(resource_id, artifact)
             self._store.update_status(resource_id, Status.READY)
             _LOGGER.info("Successfully reconciled Kustomization %s", resource_id)
-
+        except DependencyPendingError as e:
+            _LOGGER.warning(
+                "Kustomization %s has unresolved dependencies: %s",
+                resource_id,
+                e.message,
+            )
+            self._store.update_status(resource_id, Status.PENDING, error=e.message)
         except Exception as e:
             _LOGGER.error("Failed to reconcile Kustomization %s: %s", resource_id, e)
             self._store.update_status(resource_id, Status.FAILED, error=str(e))
@@ -208,7 +247,10 @@ class KustomizationController:
         error_msgs = []
 
         if missing_deps:
-            error_msgs.append(f"Dependencies not found: {', '.join(missing_deps)}")
+            raise DependencyPendingError(
+                f"Kustomization {kustomization.namespaced_name} has missing dependencies: "
+                f"{', '.join(missing_deps)}"
+            )
 
         if failed_deps:
             failed_msgs = [
@@ -217,7 +259,10 @@ class KustomizationController:
             error_msgs.append(f"Dependencies failed: {', '.join(failed_msgs)}")
 
         if pending_deps:
-            error_msgs.append(f"Dependencies not ready: {', '.join(pending_deps)}")
+            raise DependencyPendingError(
+                f"Kustomization {kustomization.namespaced_name} has pending dependencies: "
+                f"{', '.join(pending_deps)}"
+            )
 
         if error_msgs:
             raise InputException(
@@ -260,15 +305,20 @@ class KustomizationController:
         # Get the source artifact from the store
         artifact = self._store.get_artifact(source_ref, Artifact)
         if not artifact:
-            raise InputException(
+            raise DependencyPendingError(
                 f"Source artifact {kustomization.source_kind}/{kustomization.source_name} "
                 f"not found in namespace '{source_ns}'"
             )
 
         # Verify the source status is ready
         source_status = self._store.get_status(source_ref)
-        if not source_status or source_status.status != Status.READY:
+        if source_status is None or source_status.status != Status.READY:
             status_msg = source_status.status.value if source_status else "not found"
+            if source_status is not None and source_status.status == Status.PENDING:
+                raise DependencyPendingError(
+                    f"Source {kustomization.source_kind}/{kustomization.source_name} is still pending "
+                    f"(status: {status_msg}): {source_status.error if source_status else ''}"
+                )
             raise InputException(
                 f"Source {kustomization.source_kind}/{kustomization.source_name} is not ready "
                 f"(status: {status_msg}): {source_status.error if source_status else ''}"

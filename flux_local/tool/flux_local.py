@@ -11,7 +11,7 @@ import yaml
 
 from flux_local.exceptions import FluxException
 from flux_local.helm import empty_registry_config_file
-from . import build, diff, get, test, diagnostics
+from . import build, diff, get, test, diagnostics, shell
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ def _make_parser() -> argparse.ArgumentParser:
     diff.DiffAction.register(subparsers)
     test.TestAction.register(subparsers)
     diagnostics.DiagnosticsAction.register(subparsers)
+    shell.ShellAction.register(subparsers)
     return parser
 
 
