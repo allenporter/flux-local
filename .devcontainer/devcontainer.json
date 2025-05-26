@@ -4,6 +4,11 @@
 		"context": "..",
 		"dockerfile": "./Dockerfile"
 	},
+	"customizations": {
+	    	"devpod": {
+	      		"prebuildRepository": "ghcr.io/allenporter/flux-local"
+	    	}
+	}
 	// Creates a local volume where you the developer need to clone the git
 	// repo inside the container. Uses a local volume since this project
 	// relies heavily on local disk performance.
