@@ -1,13 +1,15 @@
 """Module for in memory object store."""
 
 import dataclasses
+import asyncio
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, AsyncGenerator
 from typing import Any, TypeVar, DefaultDict
 
 import logging
 
 from flux_local.manifest import BaseManifest, NamedResource
+from flux_local.exceptions import ResourceFailedError
 
 from .artifact import Artifact
 from .status import Status, StatusInfo
@@ -161,5 +163,120 @@ class InMemoryStore(Store):
         return remove
 
     def _fire_event(self, event: StoreEvent, *args: Any) -> None:
-        for cb in self._listeners[event]:
-            cb(*args)
+        for cb in list(self._listeners[event]):  # Iterate over a copy for safe removal
+            try:
+                cb(*args)
+            except Exception:
+                _LOGGER.exception("Store listener callback failed for event %s", event)
+
+    async def watch_ready(self, resource_id: NamedResource) -> StatusInfo:
+        """
+        Wait for the specified resource to become READY.
+
+        If the resource is already READY, returns its StatusInfo immediately.
+        If the resource is FAILED or transitions to FAILED, raises ResourceFailedError.
+        Handles asyncio.CancelledError.
+        """
+        current_status_info = self.get_status(resource_id)
+        if current_status_info:
+            if current_status_info.status == Status.READY:
+                return current_status_info
+            if current_status_info.status == Status.FAILED:
+                raise ResourceFailedError(
+                    resource_id.namespaced_name,
+                    current_status_info.error or "Resource is FAILED",
+                )
+
+        event_fired = asyncio.Event()
+        # Using a list to pass StatusInfo or Exception from callback
+        result_holder: list[StatusInfo | Exception] = []
+
+        def callback(fired_resource_id: NamedResource, status_info: StatusInfo) -> None:
+            if fired_resource_id == resource_id:
+                if status_info.status == Status.READY:
+                    result_holder.append(status_info)
+                    event_fired.set()
+                elif status_info.status == Status.FAILED:
+                    result_holder.append(
+                        ResourceFailedError(
+                            resource_id.namespaced_name,
+                            status_info.error or "Resource transitioned to FAILED",
+                        )
+                    )
+                    event_fired.set()
+
+        remove_listener = self.add_listener(StoreEvent.STATUS_UPDATED, callback)
+
+        try:
+            await event_fired.wait()
+            if result_holder:
+                result = result_holder[0]
+                if isinstance(result, ResourceFailedError):
+                    raise result
+                if isinstance(result, StatusInfo) and result.status == Status.READY:
+                    return result
+            # Should not be reached if event_fired was set correctly by callback
+            # but as a safeguard, re-check status if wait completes unexpectedly.
+            final_status = self.get_status(resource_id)
+            if final_status and final_status.status == Status.READY:
+                return final_status
+            raise RuntimeError(
+                f"watch_ready for {resource_id} ended unexpectedly without resolution."
+            )
+        except asyncio.CancelledError:
+            _LOGGER.debug("watch_ready for %s cancelled.", resource_id)
+            raise
+        finally:
+            remove_listener()
+
+    async def watch_added(
+        self, kind: str
+    ) -> AsyncGenerator[tuple[NamedResource, BaseManifest]]:
+        """
+        Watch for new objects of a specific kind being added to the store.
+
+        This is an asynchronous iterator that yields tuples of (NamedResource, BaseManifest)
+        as objects of the specified kind are added. It will first yield any existing
+        objects of the specified kind already in the store.
+
+        Args:
+            kind: The kind of resource to watch for (e.g., "Kustomization", "GitRepository").
+
+        Yields:
+            A tuple containing the NamedResource identifier and the BaseManifest object
+            when a new object of the specified kind is added.
+        """
+        # First, yield existing objects of the specified kind
+        for resource_id, obj in list(self._objects.items()):  # Iterate over a copy
+            if hasattr(obj, "kind") and obj.kind == kind:
+                yield resource_id, obj
+
+        # Then, listen for new objects
+        queue: asyncio.Queue[tuple[NamedResource, BaseManifest]] = asyncio.Queue()
+
+        def callback(added_resource_id: NamedResource, added_obj: BaseManifest) -> None:
+            if hasattr(added_obj, "kind") and added_obj.kind == kind:
+                try:
+                    queue.put_nowait((added_resource_id, added_obj))
+                except asyncio.QueueFull:
+                    _LOGGER.warning(
+                        "watch_added queue full for kind %s. This might indicate a runaway producer or slow consumer.",
+                        kind,
+                    )
+
+        remove_listener = self.add_listener(StoreEvent.OBJECT_ADDED, callback)
+
+        try:
+            while True:
+                # Wait for the next item from the queue
+                # This can be cancelled if the generator is closed
+                resource_id, obj = await queue.get()
+                yield resource_id, obj
+                queue.task_done()  # Signal that the item has been processed
+        except asyncio.CancelledError:
+            _LOGGER.debug("watch_added for kind '%s' cancelled.", kind)
+            # Propagate cancellation to allow cleanup
+            raise
+        finally:
+            _LOGGER.debug("Cleaning up listener for watch_added (kind: %s)", kind)
+            remove_listener()
