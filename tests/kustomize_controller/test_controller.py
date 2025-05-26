@@ -1,5 +1,6 @@
 """Tests for the kustomize controller."""
 
+import asyncio
 from collections.abc import Generator
 import tempfile
 from pathlib import Path
@@ -173,6 +174,7 @@ async def test_kustomization_reconciliation(
 
     task_service = get_task_service()
     await task_service.block_till_done()
+    await task_service.block_till_done()
     assert not task_service.get_num_active_tasks()
 
     artifact = store.get_artifact(rid, KustomizationArtifact)
@@ -229,6 +231,7 @@ async def test_kustomization_with_oci_source(
     store.add_object(ks)
 
     task_service = get_task_service()
+    await task_service.block_till_done()
     await task_service.block_till_done()
     assert not task_service.get_num_active_tasks()
 
@@ -296,7 +299,7 @@ async def test_kustomization_dependencies(
 
     task_service = get_task_service()
     await task_service.block_till_done()
-    assert not task_service.get_num_active_tasks()
+    assert task_service.get_num_active_tasks() == 1  # Reoncile
 
     # Add kustomization with dependency
     ks = Kustomization(
@@ -326,6 +329,7 @@ async def test_kustomization_dependencies(
     rid = NamedResource(ks.kind, ks.namespace, ks.name)
     store.add_object(ks)
 
+    await task_service.block_till_done()
     await task_service.block_till_done()
     assert not task_service.get_num_active_tasks()
 
@@ -372,7 +376,10 @@ async def test_kustomization_missing_source(
 
     task_service = get_task_service()
     await task_service.block_till_done()
-    assert not task_service.get_num_active_tasks()
+    assert task_service.get_num_active_tasks() == 1
+
+    await asyncio.sleep(0)  # Allow task to run
+    await asyncio.sleep(0)  # Allow task to run
 
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
@@ -380,9 +387,7 @@ async def test_kustomization_missing_source(
     assert artifact is None
     assert status is not None
     assert status.status == Status.PENDING
-    assert "Source artifact GitRepository/missing-repo not found" in (
-        status.error or ""
-    )
+    assert "Waiting on test-ns/missing-repo" in (status.error or "")
 
 
 async def test_kustomization_missing_dependency(
@@ -434,7 +439,8 @@ async def test_kustomization_missing_dependency(
 
     task_service = get_task_service()
     await task_service.block_till_done()
-    assert not task_service.get_num_active_tasks()
+    assert task_service.get_num_active_tasks() == 1
+    await asyncio.sleep(0)  # Allow task to run
 
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
@@ -442,7 +448,7 @@ async def test_kustomization_missing_dependency(
     assert artifact is None
     assert status is not None
     assert status.status == Status.PENDING
-    assert "has missing dependencies: missing-ks" in (status.error or "")
+    assert "Waiting on ['test-ns/missing-ks']" in (status.error or "")
 
 
 async def test_kustomization_dependency_becomes_ready_later(
@@ -495,6 +501,9 @@ async def test_kustomization_dependency_becomes_ready_later(
     # Add dep_ks to the store. It should become READY.
     store.add_object(dep_ks)
     await task_service.block_till_done()
+    assert task_service.get_num_active_tasks() == 1  # Reconcile dep_ks
+    await task_service.block_till_done()
+
     dep_status_after_add = store.get_status(dep_ks_rid)
     assert dep_status_after_add is not None
     assert dep_status_after_add.status == Status.READY
@@ -541,6 +550,8 @@ async def test_kustomization_dependency_becomes_ready_later(
     # Add main_ks. It should see dep_ks as PENDING and become PENDING.
     store.add_object(main_ks)
     await task_service.block_till_done()
+    assert task_service.get_num_active_tasks() == 1  # Reconcile main_ks
+    await asyncio.sleep(0)  # Allow task to run
 
     main_ks_status_initial = store.get_status(main_ks_rid)
     assert main_ks_status_initial is not None

@@ -21,7 +21,7 @@ async def test_create_and_complete_task(task_service: TaskServiceImpl) -> None:
     """Test creating and completing a task."""
 
     async def test_task() -> Any:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.001)
         return "done"
 
     task = task_service.create_task(test_task())
@@ -36,7 +36,7 @@ async def test_block_till_done(task_service: TaskServiceImpl) -> None:
     """Test blocking until all tasks are done."""
 
     async def test_task() -> Any:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.001)
         return "done"
 
     # Create multiple tasks
@@ -58,7 +58,7 @@ async def test_task_failure(task_service: TaskServiceImpl) -> None:
     """Test handling of task failures."""
 
     async def failing_task() -> Any:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.001)
         raise ValueError("Test error")
 
     task = task_service.create_task(failing_task())
@@ -84,9 +84,7 @@ async def test_task_cancellation(task_service: TaskServiceImpl) -> None:
     task.cancel()
 
     # Wait for the task to be cleaned up
-    await asyncio.sleep(
-        0.01
-    )  # Give the event loop a chance to process the cancellation
+    await asyncio.sleep(0.001)
 
     # Verify task is removed from active tasks
     assert task not in task_service._active_tasks
@@ -97,7 +95,7 @@ async def test_wait_for_specific_task(task_service: TaskServiceImpl) -> None:
     """Test waiting for a specific task."""
 
     async def test_task() -> Any:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0)
         return "done"
 
     # Create multiple tasks
@@ -122,13 +120,13 @@ async def test_concurrent_tasks(task_service: TaskServiceImpl) -> None:
     """Test handling of concurrent tasks."""
 
     async def test_task() -> Any:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.001)
         return "done"
 
     # Create tasks concurrently
     async def create_tasks() -> None:
         for _ in range(5):
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.001)
             task_service.create_task(test_task())
 
     # Run multiple task creators concurrently
@@ -170,7 +168,7 @@ async def test_task_cleanup_after_cancellation(task_service: TaskServiceImpl) ->
     task.cancel()
 
     # Wait for cleanup
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0.001)
 
     # Verify task is cleaned up
     assert task not in task_service._active_tasks
@@ -189,7 +187,7 @@ async def test_task_cleanup_in_wait_for_task(task_service: TaskServiceImpl) -> N
     """Test task cleanup when using wait_for_task."""
 
     async def test_task() -> Any:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.001)
         return "done"
 
     task = task_service.create_task(test_task())
@@ -205,7 +203,7 @@ async def test_task_cleanup_in_block_till_done(task_service: TaskServiceImpl) ->
     """Test task cleanup when using block_till_done."""
 
     async def test_task() -> Any:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.001)
         return "done"
 
     # Create multiple tasks
@@ -225,7 +223,7 @@ async def test_task_cleanup_with_exception(task_service: TaskServiceImpl) -> Non
     """Test task cleanup when a task raises an exception."""
 
     async def failing_task() -> Any:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.001)
         raise ValueError("Test error")
 
     task = task_service.create_task(failing_task())
@@ -249,7 +247,7 @@ async def test_create_and_complete_background_task(
     """Test creating and completing a task."""
 
     async def test_task() -> Any:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.001)
         return "done"
 
     task = task_service.create_background_task(test_task())

@@ -263,6 +263,6 @@ async def test_unsupported_kind() -> None:
     obj = DummyOther()
     rid = NamedResource(obj.kind, obj.namespace, obj.name)
     store.add_object(obj)
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0)
     assert store.get_artifact(rid, GitArtifact) is None
     assert store.get_status(rid) is None

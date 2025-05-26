@@ -223,7 +223,7 @@ class Orchestrator:
 
                 # Allow tasks to run and avoid busy waiting
                 await get_task_service().block_till_done()
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.001)
 
         except asyncio.CancelledError:
             _LOGGER.info("Orchestrator was cancelled")
