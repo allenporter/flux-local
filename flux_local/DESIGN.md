@@ -323,6 +323,9 @@ This section provides a quick reference for understanding and navigating the cod
    - Follow the async pattern for I/O operations
 
 
-## Bugs
+## Pending Bugs & improvements
 
 - [ ] Does not handle target namespace
+- [ ] Does not re-reconcile on state change
+- [ ] Helm controller does not retry when HelmRepository appears
+- [ ] NamedResource should be buildable from BaseManifest
