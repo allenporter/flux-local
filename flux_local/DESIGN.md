@@ -322,7 +322,6 @@ This section provides a quick reference for understanding and navigating the cod
    - Register for relevant events in the store
    - Follow the async pattern for I/O operations
 
-
 ## Pending Bugs & improvements
 
 - [ ] Does not handle target namespace
