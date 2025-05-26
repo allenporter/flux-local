@@ -241,3 +241,18 @@ async def test_task_cleanup_with_exception(task_service: TaskServiceImpl) -> Non
     # Verify task has the correct exception
     with pytest.raises(ValueError, match="Test error"):
         task.result()
+
+
+async def test_create_and_complete_background_task(
+    task_service: TaskServiceImpl,
+) -> None:
+    """Test creating and completing a task."""
+
+    async def test_task() -> Any:
+        await asyncio.sleep(0.1)
+        return "done"
+
+    task = task_service.create_background_task(test_task())
+
+    result = await task
+    assert result == "done"
