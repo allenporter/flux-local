@@ -152,21 +152,18 @@ class KustomizationController:
         try:
             # 1. Check dependencies
             if kustomization.depends_on:
-                async with asyncio.timeout(5):
-                    _LOGGER.info(
-                        "Checking dependencies for Kustomization %s", resource_id
+                try:
+                    await self._check_dependencies(kustomization)
+                except DependencyPendingError as e:
+                    _LOGGER.warning(
+                        "Kustomization %s has pending dependencies: %s",
+                        resource_id,
+                        e.message,
                     )
-                    while True:
-                        try:
-                            await self._check_dependencies(kustomization)
-                            break  # Dependencies are ready, exit loop
-                        except DependencyPendingError as e:
-                            _LOGGER.warning(
-                                "Kustomization %s has pending dependencies: %s",
-                                resource_id,
-                                e.message,
-                            )
-                            await asyncio.sleep(0.1)
+                    self._store.update_status(
+                        resource_id, Status.PENDING, error=e.message
+                    )
+                    return
 
             # 2. Resolve source artifacts
             source_path = await self._resolve_source(kustomization)
