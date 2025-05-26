@@ -20,11 +20,12 @@ Dependencies:
 """
 
 import asyncio
+from functools import partial
 import logging
 from pathlib import Path
 from typing import Any
 
-from flux_local.store import Store, Status, Artifact
+from flux_local.store import Store, Status, Artifact, StatusInfo
 from flux_local.source_controller.artifact import GitArtifact, OCIArtifact
 from flux_local.manifest import (
     NamedResource,
@@ -44,6 +45,8 @@ from .artifact import KustomizationArtifact
 
 
 _LOGGER = logging.getLogger(__name__)
+
+WAIT_TIMEOUT = 45  # seconds for dependency resolution
 
 
 class DependencyPendingError(Exception):
@@ -147,11 +150,18 @@ class KustomizationController:
             return
 
         # 3. Build the kustomization
+        self._store.update_status(
+            resource_id, Status.PENDING, f"Building Kustomization from {source_path}"
+        )
         try:
             manifests = await self._build_kustomization(source_path, kustomization)
         except InputException as e:
             self._store.update_status(resource_id, Status.FAILED, error=str(e))
             return
+
+        self._store.update_status(
+            resource_id, Status.PENDING, f"Applying {len(manifests)} object manifests"
+        )
 
         try:
             _LOGGER.info("Applying Kustomization output %s", resource_id)
@@ -191,8 +201,16 @@ class KustomizationController:
         if not kustomization.depends_on:
             return
 
-        dep_tasks = []
-        dep_ids = []
+        dep_tasks: list[asyncio.Task[StatusInfo]] = []
+        dep_ids: list[NamedResource] = []
+
+        def task_complete(
+            dep_id: NamedResource, task: asyncio.Task[StatusInfo]
+        ) -> None:
+            """Callback to remove completed task from the pending list."""
+            _LOGGER.debug("Dependency %s is READY", dep_id.namespaced_name)
+            dep_ids.remove(dep_id)
+            dep_tasks.remove(task)
 
         for dep_full_name in kustomization.depends_on:
             try:
@@ -210,54 +228,69 @@ class KustomizationController:
                 _LOGGER.error(msg)
                 raise InputException(msg) from e
 
-            dep_ids.append(dep_id)
             _LOGGER.debug(
                 "Kustomization %s waiting for dependency %s to be ready.",
                 resource_id.namespaced_name,
                 dep_id.namespaced_name,
             )
-            dep_tasks.append(self._store.watch_ready(dep_id))
+            task = self._task_service.create_task(self._store.watch_ready(dep_id))
+            dep_ids.append(dep_id)
+            dep_tasks.append(task)
+            # Task removes itself from the pending list when done
+            task.add_done_callback(partial(task_complete, dep_id))
 
-        if not dep_tasks:
-            return
+        # Refresh the status string any time any task completes
+        while dep_tasks:
+            dep_strs = [dep.namespaced_name for dep in dep_ids]
+            self._store.update_status(
+                resource_id, Status.PENDING, f"Waiting on {dep_strs}"
+            )
 
-        dep_strs = [dep.namespaced_name for dep in dep_ids]
-        self._store.update_status(resource_id, Status.PENDING, f"Waiting on {dep_strs}")
-
-        try:
-            await asyncio.gather(*dep_tasks)
-            _LOGGER.info(
-                "All dependencies for Kustomization %s are ready.",
-                resource_id.namespaced_name,
-            )
-        except ResourceFailedError as e:
-            # A dependency has failed. This Kustomization should also be marked as Failed.
-            _LOGGER.warning(
-                "Dependency %s for Kustomization %s failed: %s",
-                e.resource_name,
-                resource_id.namespaced_name,
-                e.message,
-            )
-            # Update this Kustomization's status to reflect the dependency failure.
-            raise DependencyFailedError(
-                kustomization_id=resource_id.namespaced_name,
-                dependency_id=e.resource_name,
-                dependency_error=e.message,
-            ) from e
-        except Exception as e:
-            # This might catch other asyncio errors or unexpected issues from watch_ready.
-            # For now, treat as a pending dependency, as we don't know the exact state.
-            _LOGGER.error(
-                "Unexpected error while waiting for dependencies of Kustomization %s: %s",
-                resource_id.namespaced_name,
-                e,
-                exc_info=True,
-            )
-            pending_dep_names = [dep.namespaced_name for dep in dep_ids]
-            raise DependencyPendingError(
-                f"Kustomization {resource_id.namespaced_name} encountered an error while waiting for "
-                f"dependencies {', '.join(pending_dep_names)}: {type(e).__name__}"
-            ) from e
+            try:
+                async with asyncio.timeout(WAIT_TIMEOUT):
+                    await asyncio.wait(dep_tasks, return_when=asyncio.FIRST_COMPLETED)
+            except ResourceFailedError as e:
+                # A dependency has failed. This Kustomization should also be marked as Failed.
+                _LOGGER.warning(
+                    "Dependency %s for Kustomization %s failed: %s",
+                    e.resource_name,
+                    resource_id.namespaced_name,
+                    e.message,
+                )
+                # Update this Kustomization's status to reflect the dependency failure.
+                raise DependencyFailedError(
+                    kustomization_id=resource_id.namespaced_name,
+                    dependency_id=e.resource_name,
+                    dependency_error=e.message,
+                ) from e
+            except asyncio.TimeoutError:
+                _LOGGER.warning(
+                    "Timeout while waiting for dependencies of Kustomization %s: %s",
+                    resource_id.namespaced_name,
+                    dep_strs,
+                )
+                raise DependencyFailedError(
+                    kustomization_id=resource_id.namespaced_name,
+                    dependency_id=dep_strs[0],
+                    dependency_error=(
+                        f"Kustomization {resource_id.namespaced_name} is still waiting on dependencies: "
+                        f"{dep_strs}"
+                    ),
+                )
+            except Exception as e:
+                # This might catch other asyncio errors or unexpected issues from watch_ready.
+                # For now, treat as a pending dependency, as we don't know the exact state.
+                _LOGGER.error(
+                    "Unexpected error while waiting for dependencies of Kustomization %s: %s",
+                    resource_id.namespaced_name,
+                    e,
+                    exc_info=True,
+                )
+                pending_dep_names = [dep.namespaced_name for dep in dep_ids]
+                raise DependencyPendingError(
+                    f"Kustomization {resource_id.namespaced_name} encountered an error while waiting for "
+                    f"dependencies {', '.join(pending_dep_names)}: {type(e).__name__}"
+                ) from e
 
     async def _resolve_source(
         self, resource_id: NamedResource, kustomization: Kustomization
@@ -337,6 +370,11 @@ class KustomizationController:
             resource_id.namespaced_name,
             source_status.status.value,
         )
+        self._store.update_status(
+            resource_id,
+            Status.PENDING,
+            f"Processing {source_ref_id.namespaced_name} artifact",
+        )
 
         if (artifact := self._store.get_artifact(source_ref_id, Artifact)) is None:
             # This should ideally not happen if watch_ready succeeded and returned READY,
@@ -398,13 +436,8 @@ class KustomizationController:
         )
 
         try:
-            # Create a Path object from the source_path
             path = Path(source_path)
-
-            # Use the flux_build function to create a Kustomize instance
             kustomize = flux_build(kustomization, path)
-
-            # Execute the build and get the resulting objects
             objects = await kustomize.objects(
                 target_namespace=kustomization.target_namespace
             )
