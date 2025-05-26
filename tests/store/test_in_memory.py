@@ -134,7 +134,7 @@ async def test_watch_ready_becomes_ready(store: InMemoryStore) -> None:
     watch_task = asyncio.create_task(_watch())
 
     # Give the watch_task a moment to start waiting
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0)
     assert not watch_task.done(), "Watch task finished prematurely"
 
     expected_status_info = StatusInfo(status=Status.READY)
@@ -155,7 +155,7 @@ async def test_watch_ready_resource_fails(store: InMemoryStore) -> None:
     watch_task = asyncio.create_task(_watch())
 
     # Give the watch_task a moment to start waiting
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0)
     assert not watch_task.done(), "Watch task finished prematurely"
 
     error_message = "it borked"
@@ -249,12 +249,12 @@ async def test_watch_ready_unrelated_update(store: InMemoryStore) -> None:
 
     watch_task = asyncio.create_task(_watch())
 
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0)
     assert not watch_task.done()
 
     # Update another resource
     store.update_status(rid_other, Status.READY)
-    await asyncio.sleep(0.01)  # Give time for any incorrect wake-up
+    await asyncio.sleep(0)  # Give time for any incorrect wake-up
     assert not watch_task.done(), "Watch task woke up on unrelated update"
 
     # Now update the watched resource
@@ -277,14 +277,14 @@ async def test_watch_added_no_initial_then_add(store: InMemoryStore) -> None:
     watcher_task = asyncio.create_task(consume_watcher())
 
     # Give watcher a chance to start and confirm no initial items
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0)
     assert not received_items
 
     # Add first object
     obj1 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo1", value=1)
     rid1 = NamedResource(obj1.kind, obj1.namespace, obj1.name)
     store.add_object(obj1)
-    await asyncio.sleep(0.01)  # Allow event to propagate
+    await asyncio.sleep(0)  # Allow event to propagate
     assert len(received_items) == 1
     assert received_items[0] == (rid1, obj1)
 
@@ -292,7 +292,7 @@ async def test_watch_added_no_initial_then_add(store: InMemoryStore) -> None:
     obj2 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo2", value=2)
     rid2 = NamedResource(obj2.kind, obj2.namespace, obj2.name)
     store.add_object(obj2)
-    await asyncio.sleep(0.01)  # Allow event to propagate
+    await asyncio.sleep(0)  # Allow event to propagate
     assert len(received_items) == 2
     assert received_items[1] == (rid2, obj2)
 
@@ -318,7 +318,7 @@ async def test_watch_added_with_initial_then_add(store: InMemoryStore) -> None:
 
     watcher_task = asyncio.create_task(consume_watcher())
 
-    await asyncio.sleep(0.01)  # Allow initial items to be processed
+    await asyncio.sleep(0)  # Allow initial items to be processed
     assert len(received_items) == 1
     assert received_items[0] == (rid1, obj1)
 
@@ -326,7 +326,7 @@ async def test_watch_added_with_initial_then_add(store: InMemoryStore) -> None:
     obj2 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo2", value=2)
     rid2 = NamedResource(obj2.kind, obj2.namespace, obj2.name)
     store.add_object(obj2)
-    await asyncio.sleep(0.01)  # Allow event to propagate
+    await asyncio.sleep(0)  # Allow event to propagate
     assert len(received_items) == 2
     assert received_items[1] == (rid2, obj2)
 
@@ -352,14 +352,14 @@ async def test_watch_added_filters_by_kind(store: InMemoryStore) -> None:
     # Add KindB object - should not be received by KindA watcher
     obj_b = DummyManifest(kind=kind_b, namespace="ns", name="bar", value=100)
     store.add_object(obj_b)
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0)
     assert not received_items_a
 
     # Add KindA object - should be received
     obj_a = DummyManifest(kind=kind_a, namespace="ns", name="foo", value=1)
     rid_a = NamedResource(obj_a.kind, obj_a.namespace, obj_a.name)
     store.add_object(obj_a)
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0)
     assert len(received_items_a) == 1
     assert received_items_a[0] == (rid_a, obj_a)
 
@@ -385,7 +385,7 @@ async def test_watch_added_cancellation(store: InMemoryStore) -> None:
             raise
 
     watcher_task = asyncio.create_task(consume_watcher())
-    await asyncio.sleep(0.01)  # Let watcher start
+    await asyncio.sleep(0)  # Let watcher start
 
     watcher_task.cancel()
     with pytest.raises(asyncio.CancelledError):
@@ -400,7 +400,7 @@ async def test_watch_added_cancellation(store: InMemoryStore) -> None:
     store.add_object(
         obj1
     )  # If listener wasn't removed, this might cause issues with the closed queue
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0)
     assert not received_items  # Confirm no items were added after cancellation
 
 
@@ -420,13 +420,13 @@ async def test_watch_added_add_identical_object_no_new_event(
             received_items.append(item)
 
     watcher_task = asyncio.create_task(consume_watcher())
-    await asyncio.sleep(0.01)  # Process initial item
+    await asyncio.sleep(0)  # Process initial item
     assert len(received_items) == 1
     assert received_items[0] == (rid1, obj1)
 
     # Add the exact same object again
     store.add_object(obj1)
-    await asyncio.sleep(0.01)  # Give time for any potential event
+    await asyncio.sleep(0)  # Give time for any potential event
     assert len(received_items) == 1  # Should not have received it again
 
     watcher_task.cancel()
@@ -450,7 +450,7 @@ async def test_watch_added_add_updated_object_fires_event(store: InMemoryStore) 
             received_items.append(item)
 
     watcher_task = asyncio.create_task(consume_watcher())
-    await asyncio.sleep(0.01)  # Process initial item
+    await asyncio.sleep(0)  # Process initial item
     assert len(received_items) == 1
     assert received_items[0] == (rid1, obj1)
 
@@ -459,7 +459,7 @@ async def test_watch_added_add_updated_object_fires_event(store: InMemoryStore) 
         kind=kind_to_watch, namespace="ns", name="foo1", value=2
     )
     store.add_object(obj1_updated)
-    await asyncio.sleep(0.01)  # Allow event to propagate
+    await asyncio.sleep(0)  # Allow event to propagate
     assert len(received_items) == 2
     assert received_items[1] == (rid1, obj1_updated)  # rid1 is the same
 
@@ -487,12 +487,12 @@ async def test_watch_added_multiple_concurrent_watchers_same_kind(
     watcher_task1 = asyncio.create_task(consume_watcher(received_items1))
     watcher_task2 = asyncio.create_task(consume_watcher(received_items2))
 
-    await asyncio.sleep(0.01)  # Let watchers start
+    await asyncio.sleep(0)  # Let watchers start
 
     obj1 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo1", value=1)
     rid1 = NamedResource(obj1.kind, obj1.namespace, obj1.name)
     store.add_object(obj1)
-    await asyncio.sleep(0.01)  # Allow event to propagate
+    await asyncio.sleep(0)  # Allow event to propagate
 
     assert len(received_items1) == 1
     assert received_items1[0] == (rid1, obj1)
@@ -502,7 +502,7 @@ async def test_watch_added_multiple_concurrent_watchers_same_kind(
     obj2 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo2", value=2)
     rid2 = NamedResource(obj2.kind, obj2.namespace, obj2.name)
     store.add_object(obj2)
-    await asyncio.sleep(0.01)  # Allow event to propagate
+    await asyncio.sleep(0)  # Allow event to propagate
 
     assert len(received_items1) == 2
     assert received_items1[1] == (rid2, obj2)

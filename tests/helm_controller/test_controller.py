@@ -359,7 +359,7 @@ async def test_helm_release_becomes_ready_after_gitrepo_ready(
     store.add_object(helm_release)
 
     # Wait for reconciliation to start
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0.001)
 
     repo_artifact = GitArtifact(
         url=git_repo.url,

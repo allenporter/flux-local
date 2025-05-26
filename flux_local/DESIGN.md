@@ -330,3 +330,4 @@ This section provides a quick reference for understanding and navigating the cod
 - [ ] Helm controller does not retry when HelmRepository appears
 - [ ] NamedResource should be buildable from BaseManifest
 - [ ] State events should be intent based (e.g. "is ready")
+- [x] in memory store tests hang. In the middle of adding watches to simplify controllers
