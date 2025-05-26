@@ -1,9 +1,9 @@
 """Store module for holding state while visiting resources."""
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, AsyncGenerator
 from enum import Enum
-from typing import TypeVar
+from typing import TypeVar, TYPE_CHECKING
 
 from flux_local.manifest import BaseManifest, NamedResource
 
@@ -21,7 +21,6 @@ class StoreEvent(str, Enum):
 
     OBJECT_ADDED = "object_added"
     STATUS_UPDATED = "status_updated"
-    STATUS_READY = "status_ready"
     ARTIFACT_UPDATED = "artifact_updated"
 
 
@@ -77,3 +76,43 @@ class Store(ABC):
 
         Returns a callable that can be called to remove the listener.
         """
+
+    @abstractmethod
+    async def watch_ready(self, resource_id: NamedResource) -> StatusInfo:
+        """
+        Wait for the specified resource to become READY.
+
+        If the resource is already READY, returns its StatusInfo immediately.
+        If the resource is FAILED or transitions to FAILED, raises ResourceFailedError.
+        Handles asyncio.CancelledError.
+
+        Args:
+            resource_id: The NamedResource to watch.
+
+        Returns:
+            StatusInfo of the resource when it becomes READY.
+
+        Raises:
+            ResourceFailedError: If the resource is or becomes FAILED.
+            asyncio.CancelledError: If the watch is cancelled.
+        """
+
+    @abstractmethod
+    async def watch_added(
+        self, kind: str
+    ) -> AsyncGenerator[tuple[NamedResource, BaseManifest]]:
+        """
+        Watch for new objects of a specific kind being added to the store.
+
+        This is an asynchronous iterator that yields tuples of (NamedResource, BaseManifest)
+        as objects of the specified kind are added.
+
+        Args:
+            kind: The kind of resource to watch for (e.g., "Kustomization", "GitRepository").
+
+        Yields:
+            A tuple containing the NamedResource identifier and the BaseManifest object
+            when a new object of the specified kind is added.
+        """
+        if TYPE_CHECKING:
+            yield None, None  # type: ignore[misc]

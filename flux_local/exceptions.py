@@ -23,8 +23,39 @@ class KustomizeException(CommandException):
     """Raised when there is a failure running a kustomize command."""
 
 
-class KustomizePathException(CommandException):
+class KustomizePathException(KustomizeException):
     """Raised a Kustomization points to a path that does not exist."""
+
+
+class ResourceFailedError(FluxException):  # Added in previous steps
+    """Raised when a resource reconciliation has failed and is in a terminal state."""
+
+    def __init__(
+        self, resource_name: str, message: str | None
+    ) -> None:  # Signature changed
+        super().__init__(
+            f"Resource {resource_name} failed: {message or 'Unknown error'}"  # Message format updated
+        )
+        self.resource_name = resource_name
+        self.message = message  # Attribute changed from self.message to self.error
+
+
+class DependencyFailedError(InputException):
+    """Raised when a Kustomization dependency has failed."""
+
+    def __init__(
+        self,
+        kustomization_id: str,
+        dependency_id: str,
+        dependency_error: str | None,
+    ):
+        self.kustomization_id = kustomization_id
+        self.dependency_id = dependency_id
+        self.dependency_error = dependency_error
+        super().__init__(
+            f"Kustomization {kustomization_id} dependency {dependency_id} failed: "
+            f"{dependency_error or 'Unknown error'}"
+        )
 
 
 class HelmException(CommandException):

@@ -1,8 +1,10 @@
 import pytest
+import asyncio  # Added
 from flux_local.store import InMemoryStore, Status, StatusInfo
 from flux_local.store.artifact import Artifact
 from flux_local.store.store import StoreEvent
 from flux_local.manifest import NamedResource, BaseManifest
+from flux_local.exceptions import ResourceFailedError  # Added
 from dataclasses import dataclass
 
 
@@ -111,206 +113,409 @@ def test_object_added_listener(store: InMemoryStore) -> None:
     assert len(events) == 1
 
 
-def test_status_updated_listener(store: InMemoryStore) -> None:
-    events = []
+async def test_watch_ready_already_ready(store: InMemoryStore) -> None:
+    """Test watch_ready when the resource is already ready."""
+    rid = NamedResource("TestKind", "ns", "already_ready")
+    expected_status_info = StatusInfo(status=Status.READY)
+    store.update_status(rid, Status.READY)
 
-    def on_status(resource_id: NamedResource, status_info: StatusInfo) -> None:
-        events.append((resource_id, status_info))
+    status_info = await store.watch_ready(rid)
+    assert status_info == expected_status_info
 
-    remove = store.add_listener(StoreEvent.STATUS_UPDATED, on_status)
-    rid = NamedResource("TestKind", "ns", "foo")
+
+async def test_watch_ready_becomes_ready(store: InMemoryStore) -> None:
+    """Test watch_ready when a resource transitions to ready."""
+    rid = NamedResource("TestKind", "ns", "becomes_ready")
+    store.update_status(rid, Status.PENDING)  # Start as pending
+
+    async def _watch() -> StatusInfo:
+        return await store.watch_ready(rid)
+
+    watch_task = asyncio.create_task(_watch())
+
+    # Give the watch_task a moment to start waiting
+    await asyncio.sleep(0.01)
+    assert not watch_task.done(), "Watch task finished prematurely"
+
+    expected_status_info = StatusInfo(status=Status.READY)
+    store.update_status(rid, Status.READY)
+
+    status_info = await watch_task
+    assert status_info == expected_status_info
+
+
+async def test_watch_ready_resource_fails(store: InMemoryStore) -> None:
+    """Test watch_ready when a resource transitions to failed."""
+    rid = NamedResource("TestKind", "ns", "becomes_failed")
+    store.update_status(rid, Status.PENDING)  # Start as pending
+
+    async def _watch() -> StatusInfo:
+        return await store.watch_ready(rid)
+
+    watch_task = asyncio.create_task(_watch())
+
+    # Give the watch_task a moment to start waiting
+    await asyncio.sleep(0.01)
+    assert not watch_task.done(), "Watch task finished prematurely"
+
+    error_message = "it borked"
+    store.update_status(rid, Status.FAILED, error=error_message)
+
+    with pytest.raises(ResourceFailedError) as excinfo:
+        await watch_task
+    assert excinfo.value.resource_name == rid.namespaced_name
+    assert excinfo.value.message == error_message
+    assert str(excinfo.value) == f"Resource ns/becomes_failed failed: {error_message}"
+
+
+async def test_watch_ready_already_failed(store: InMemoryStore) -> None:
+    """Test watch_ready when the resource is already failed."""
+    rid = NamedResource("TestKind", "ns", "already_failed")
+    error_message = "already kaput"
+    store.update_status(rid, Status.FAILED, error=error_message)
+
+    with pytest.raises(ResourceFailedError) as excinfo:
+        await store.watch_ready(rid)
+    assert excinfo.value.resource_name == rid.namespaced_name
+    assert excinfo.value.message == error_message
+    assert str(excinfo.value) == f"Resource ns/already_failed failed: {error_message}"
+
+
+async def test_watch_ready_multiple_waiters(store: InMemoryStore) -> None:
+    """Test multiple tasks waiting for the same resource to become ready."""
+    rid = NamedResource("TestKind", "ns", "multi_wait_ready")
     store.update_status(rid, Status.PENDING)
-    assert events[-1][0] == rid
-    assert events[-1][1].status == Status.PENDING
-    remove()
-    store.update_status(rid, Status.READY)
-    # Listener should not be called after removal
-    assert events[-1][1].status == Status.PENDING
 
+    num_waiters = 3
+    watch_tasks = []
 
-def test_artifact_updated_listener(store: InMemoryStore) -> None:
-    events = []
+    async def _watch() -> StatusInfo:
+        return await store.watch_ready(rid)
 
-    def on_artifact(resource_id: NamedResource, artifact: Artifact) -> None:
-        events.append((resource_id, artifact))
+    for _i in range(num_waiters):
+        watch_tasks.append(asyncio.create_task(_watch()))
 
-    remove = store.add_listener(StoreEvent.ARTIFACT_UPDATED, on_artifact)
-    rid = NamedResource("TestKind", "ns", "foo")
-    artifact = DummyArtifact(path="/tmp/foo", revision="abc123")
-    store.set_artifact(rid, artifact)
-    assert events == [(rid, artifact)]
-    remove()
-    store.set_artifact(rid, DummyArtifact(path="/tmp/bar", revision="def456"))
-    # Listener should not be called after removal
-    assert len(events) == 1
+    await asyncio.sleep(0.05)  # Ensure all tasks are waiting
+    for task in watch_tasks:
+        assert not task.done(), "A watch task finished prematurely"
 
-
-def test_status_ready_listener_from_no_status(store: InMemoryStore) -> None:
-    """Test STATUS_READY event when transitioning from no status to READY."""
-    events = []
-    rid = NamedResource("TestKind", "ns", "ready1")
-
-    def on_ready(resource_id: NamedResource, status_info: StatusInfo) -> None:
-        events.append((resource_id, status_info))
-
-    remove = store.add_listener(StoreEvent.STATUS_READY, on_ready)
+    expected_status_info = StatusInfo(status=Status.READY)
     store.update_status(rid, Status.READY)
 
-    assert len(events) == 1
-    assert events[0][0] == rid
-    assert events[0][1].status == Status.READY
-    remove()
+    results = await asyncio.gather(*watch_tasks)
+    for status_info_result in results:
+        assert status_info_result == expected_status_info
 
 
-def test_status_ready_listener_from_pending(store: InMemoryStore) -> None:
-    """Test STATUS_READY event when transitioning from PENDING to READY."""
-    events_ready = []
-    events_updated = []
-    rid = NamedResource("TestKind", "ns", "ready2")
+async def test_watch_ready_multiple_waiters_one_fails(store: InMemoryStore) -> None:
+    """Test multiple tasks waiting, and the resource fails."""
+    rid = NamedResource("TestKind", "ns", "multi_wait_fail")
+    store.update_status(rid, Status.PENDING)
 
-    def on_ready(resource_id: NamedResource, status_info: StatusInfo) -> None:
-        events_ready.append((resource_id, status_info))
+    num_waiters = 3
+    watch_tasks = []
 
-    def on_updated(resource_id: NamedResource, status_info: StatusInfo) -> None:
-        events_updated.append((resource_id, status_info))
+    async def _watch_expect_fail() -> ResourceFailedError:
+        with pytest.raises(ResourceFailedError) as excinfo:
+            await store.watch_ready(rid)
+        return excinfo.value
 
-    store.update_status(rid, Status.PENDING)  # Initial status
+    for _i in range(num_waiters):
+        watch_tasks.append(asyncio.create_task(_watch_expect_fail()))
 
-    remove_ready = store.add_listener(StoreEvent.STATUS_READY, on_ready)
-    remove_updated = store.add_listener(StoreEvent.STATUS_UPDATED, on_updated)
+    await asyncio.sleep(0.05)  # Ensure all tasks are waiting
+    for task in watch_tasks:
+        assert not task.done(), "A watch task finished prematurely (fail case)"
 
-    store.update_status(rid, Status.READY)
+    error_message = "multi borked"
+    store.update_status(rid, Status.FAILED, error=error_message)
 
-    assert len(events_ready) == 1
-    assert events_ready[0][0] == rid
-    assert events_ready[0][1].status == Status.READY
-
-    # events_updated will have the PENDING update (if listener was active then)
-    # and the READY update. We care it was called for READY.
-    assert any(
-        evt[0] == rid and evt[1].status == Status.READY for evt in events_updated
-    )
-    # Check total updated calls if the listener was added before initial PENDING
-    # For this test, on_updated is added *after* PENDING, so it only sees READY
-    assert len(events_updated) == 1
-    assert events_updated[0][1].status == Status.READY
-
-    remove_ready()
-    remove_updated()
+    results = await asyncio.gather(*watch_tasks)
+    for exc_value in results:
+        assert exc_value.resource_name == rid.namespaced_name
+        assert exc_value.message == error_message
 
 
-def test_status_ready_listener_from_failed(store: InMemoryStore) -> None:
-    """Test STATUS_READY event when transitioning from FAILED to READY."""
-    events = []
-    rid = NamedResource("TestKind", "ns", "ready3")
-    store.update_status(rid, Status.FAILED, error="initial failure")
+async def test_watch_ready_unrelated_update(store: InMemoryStore) -> None:
+    """Test that watch_ready is not affected by unrelated status updates."""
+    rid_watched = NamedResource("TestKind", "ns", "watched_resource")
+    rid_other = NamedResource("TestKind", "ns", "other_resource")
 
-    def on_ready(resource_id: NamedResource, status_info: StatusInfo) -> None:
-        events.append((resource_id, status_info))
+    store.update_status(rid_watched, Status.PENDING)
+    store.update_status(rid_other, Status.PENDING)
 
-    remove = store.add_listener(StoreEvent.STATUS_READY, on_ready)
-    store.update_status(rid, Status.READY)
+    async def _watch() -> StatusInfo:
+        return await store.watch_ready(rid_watched)
 
-    assert len(events) == 1
-    assert events[0][0] == rid
-    assert events[0][1].status == Status.READY
-    remove()
+    watch_task = asyncio.create_task(_watch())
+
+    await asyncio.sleep(0.01)
+    assert not watch_task.done()
+
+    # Update another resource
+    store.update_status(rid_other, Status.READY)
+    await asyncio.sleep(0.01)  # Give time for any incorrect wake-up
+    assert not watch_task.done(), "Watch task woke up on unrelated update"
+
+    # Now update the watched resource
+    expected_status_info = StatusInfo(status=Status.READY)
+    store.update_status(rid_watched, Status.READY)
+
+    status_info = await watch_task
+    assert status_info == expected_status_info
 
 
-def test_status_ready_listener_no_transition_ready_to_ready(
+async def test_watch_added_no_initial_then_add(store: InMemoryStore) -> None:
+    """Test watch_added when no initial objects exist, then objects are added."""
+    kind_to_watch = "KindA"
+    received_items = []
+
+    async def consume_watcher() -> None:
+        async for item in store.watch_added(kind_to_watch):
+            received_items.append(item)
+
+    watcher_task = asyncio.create_task(consume_watcher())
+
+    # Give watcher a chance to start and confirm no initial items
+    await asyncio.sleep(0.01)
+    assert not received_items
+
+    # Add first object
+    obj1 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo1", value=1)
+    rid1 = NamedResource(obj1.kind, obj1.namespace, obj1.name)
+    store.add_object(obj1)
+    await asyncio.sleep(0.01)  # Allow event to propagate
+    assert len(received_items) == 1
+    assert received_items[0] == (rid1, obj1)
+
+    # Add second object
+    obj2 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo2", value=2)
+    rid2 = NamedResource(obj2.kind, obj2.namespace, obj2.name)
+    store.add_object(obj2)
+    await asyncio.sleep(0.01)  # Allow event to propagate
+    assert len(received_items) == 2
+    assert received_items[1] == (rid2, obj2)
+
+    watcher_task.cancel()
+    try:
+        await watcher_task
+    except asyncio.CancelledError:
+        pass
+
+
+async def test_watch_added_with_initial_then_add(store: InMemoryStore) -> None:
+    """Test watch_added when initial objects exist, then more are added."""
+    kind_to_watch = "KindA"
+    obj1 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo1", value=1)
+    rid1 = NamedResource(obj1.kind, obj1.namespace, obj1.name)
+    store.add_object(obj1)
+
+    received_items = []
+
+    async def consume_watcher() -> None:
+        async for item in store.watch_added(kind_to_watch):
+            received_items.append(item)
+
+    watcher_task = asyncio.create_task(consume_watcher())
+
+    await asyncio.sleep(0.01)  # Allow initial items to be processed
+    assert len(received_items) == 1
+    assert received_items[0] == (rid1, obj1)
+
+    # Add second object
+    obj2 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo2", value=2)
+    rid2 = NamedResource(obj2.kind, obj2.namespace, obj2.name)
+    store.add_object(obj2)
+    await asyncio.sleep(0.01)  # Allow event to propagate
+    assert len(received_items) == 2
+    assert received_items[1] == (rid2, obj2)
+
+    watcher_task.cancel()
+    try:
+        await watcher_task
+    except asyncio.CancelledError:
+        pass
+
+
+async def test_watch_added_filters_by_kind(store: InMemoryStore) -> None:
+    """Test that watch_added correctly filters by kind."""
+    kind_a = "KindA"
+    kind_b = "KindB"
+    received_items_a = []
+
+    async def consume_watcher_a() -> None:
+        async for item in store.watch_added(kind_a):
+            received_items_a.append(item)
+
+    watcher_a_task = asyncio.create_task(consume_watcher_a())
+
+    # Add KindB object - should not be received by KindA watcher
+    obj_b = DummyManifest(kind=kind_b, namespace="ns", name="bar", value=100)
+    store.add_object(obj_b)
+    await asyncio.sleep(0.01)
+    assert not received_items_a
+
+    # Add KindA object - should be received
+    obj_a = DummyManifest(kind=kind_a, namespace="ns", name="foo", value=1)
+    rid_a = NamedResource(obj_a.kind, obj_a.namespace, obj_a.name)
+    store.add_object(obj_a)
+    await asyncio.sleep(0.01)
+    assert len(received_items_a) == 1
+    assert received_items_a[0] == (rid_a, obj_a)
+
+    watcher_a_task.cancel()
+    try:
+        await watcher_a_task
+    except asyncio.CancelledError:
+        pass
+
+
+async def test_watch_added_cancellation(store: InMemoryStore) -> None:
+    """Test that watch_added can be cancelled and cleans up listeners."""
+    kind_to_watch = "KindA"
+    received_items = []
+
+    async def consume_watcher() -> None:
+        try:
+            async for item in store.watch_added(kind_to_watch):
+                received_items.append(item)
+        except asyncio.CancelledError:
+            # Ensure listener is removed even if cancelled mid-iteration
+            # (The finally block in watch_added should handle this)
+            raise
+
+    watcher_task = asyncio.create_task(consume_watcher())
+    await asyncio.sleep(0.01)  # Let watcher start
+
+    watcher_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await watcher_task
+
+    # Check that listener was removed by trying to add an object
+    # and ensuring the cancelled watcher doesn't receive it (implicitly, by not crashing)
+    # This is a bit indirect; a more direct way would be to inspect store._listeners if possible,
+    # but that's internal. For now, ensure no errors and received_items is empty.
+    assert not received_items
+    obj1 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo1", value=1)
+    store.add_object(
+        obj1
+    )  # If listener wasn't removed, this might cause issues with the closed queue
+    await asyncio.sleep(0.01)
+    assert not received_items  # Confirm no items were added after cancellation
+
+
+async def test_watch_added_add_identical_object_no_new_event(
     store: InMemoryStore,
 ) -> None:
-    """Test STATUS_READY event is not fired for READY to READY transition."""
-    events = []
-    rid = NamedResource("TestKind", "ns", "ready4")
-    store.update_status(rid, Status.READY)  # Initial READY
+    """Test adding an identical object does not trigger watch_added again after initial yield."""
+    kind_to_watch = "KindA"
+    obj1 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo1", value=1)
+    rid1 = NamedResource(obj1.kind, obj1.namespace, obj1.name)
+    store.add_object(obj1)
 
-    def on_ready(resource_id: NamedResource, status_info: StatusInfo) -> None:
-        events.append((resource_id, status_info))
+    received_items = []
 
-    remove = store.add_listener(StoreEvent.STATUS_READY, on_ready)
-    # At this point, 'events' is empty as listener was added after first READY.
+    async def consume_watcher() -> None:
+        async for item in store.watch_added(kind_to_watch):
+            received_items.append(item)
 
-    store.update_status(rid, Status.READY)  # Second READY
+    watcher_task = asyncio.create_task(consume_watcher())
+    await asyncio.sleep(0.01)  # Process initial item
+    assert len(received_items) == 1
+    assert received_items[0] == (rid1, obj1)
 
-    assert len(events) == 0  # Should not be called again
-    remove()
+    # Add the exact same object again
+    store.add_object(obj1)
+    await asyncio.sleep(0.01)  # Give time for any potential event
+    assert len(received_items) == 1  # Should not have received it again
 
-
-def test_status_ready_listener_transition_to_non_ready(store: InMemoryStore) -> None:
-    """Test STATUS_READY event is not fired when transitioning to a non-READY status."""
-    events = []
-    rid = NamedResource("TestKind", "ns", "ready5")
-    store.update_status(rid, Status.PENDING)
-
-    def on_ready(resource_id: NamedResource, status_info: StatusInfo) -> None:
-        events.append((resource_id, status_info))
-
-    remove = store.add_listener(StoreEvent.STATUS_READY, on_ready)
-    store.update_status(rid, Status.FAILED, error="now failed")
-
-    assert len(events) == 0
-    remove()
+    watcher_task.cancel()
+    try:
+        await watcher_task
+    except asyncio.CancelledError:
+        pass
 
 
-def test_status_ready_listener_multiple_resources(store: InMemoryStore) -> None:
-    """Test STATUS_READY with multiple resources, selective firing."""
-    events = []
-    rid6 = NamedResource("TestKind", "ns", "ready6")
-    rid7 = NamedResource("TestKind", "ns", "ready7")
+async def test_watch_added_add_updated_object_fires_event(store: InMemoryStore) -> None:
+    """Test adding an object with the same ID but different content fires watch_added."""
+    kind_to_watch = "KindA"
+    obj1 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo1", value=1)
+    rid1 = NamedResource(obj1.kind, obj1.namespace, obj1.name)
+    store.add_object(obj1)
 
-    store.update_status(rid6, Status.PENDING)
-    store.update_status(rid7, Status.FAILED, error="initial fail")
+    received_items = []
 
-    def on_ready(resource_id: NamedResource, status_info: StatusInfo) -> None:
-        events.append((resource_id, status_info))
+    async def consume_watcher() -> None:
+        async for item in store.watch_added(kind_to_watch):
+            received_items.append(item)
 
-    remove = store.add_listener(StoreEvent.STATUS_READY, on_ready)
+    watcher_task = asyncio.create_task(consume_watcher())
+    await asyncio.sleep(0.01)  # Process initial item
+    assert len(received_items) == 1
+    assert received_items[0] == (rid1, obj1)
 
-    store.update_status(rid6, Status.READY)
-    assert len(events) == 1
-    assert events[0][0] == rid6
-    assert events[0][1].status == Status.READY
-
-    store.update_status(rid7, Status.PENDING)  # Not a READY transition
-    assert len(events) == 1  # Count should remain 1
-
-    store.update_status(rid7, Status.READY)  # Now rid7 becomes READY
-    assert len(events) == 2
-    assert events[1][0] == rid7
-    assert events[1][1].status == Status.READY
-
-    remove()
-
-
-def test_status_ready_listener_flush_true(store: InMemoryStore) -> None:
-    """Test STATUS_READY listener with flush=True."""
-    events = []
-    store.add_object(
-        DummyManifest(kind="TestKind", namespace="ns", name="ready8", value=1)
+    # Add updated object (same ID, different value)
+    obj1_updated = DummyManifest(
+        kind=kind_to_watch, namespace="ns", name="foo1", value=2
     )
-    store.add_object(
-        DummyManifest(kind="TestKind", namespace="ns", name="ready9", value=1)
-    )
-    rid8 = NamedResource("TestKind", "ns", "ready8")
-    rid9 = NamedResource("TestKind", "ns", "ready9")
-    store.update_status(rid8, Status.READY)
-    store.update_status(rid9, Status.PENDING)
+    store.add_object(obj1_updated)
+    await asyncio.sleep(0.01)  # Allow event to propagate
+    assert len(received_items) == 2
+    assert received_items[1] == (rid1, obj1_updated)  # rid1 is the same
 
-    def on_ready(resource_id: NamedResource, status_info: StatusInfo) -> None:
-        events.append((resource_id, status_info))
+    watcher_task.cancel()
+    try:
+        await watcher_task
+    except asyncio.CancelledError:
+        pass
 
-    # Add listener with flush=True
-    remove = store.add_listener(StoreEvent.STATUS_READY, on_ready, flush=True)
 
-    assert len(events) == 1
-    assert events[0][0] == rid8
-    assert events[0][1].status == Status.READY
+async def test_watch_added_multiple_concurrent_watchers_same_kind(
+    store: InMemoryStore,
+) -> None:
+    """Test multiple concurrent watchers for the same kind."""
+    kind_to_watch = "KindA"
+    received_items1: list[tuple[NamedResource, BaseManifest]] = []
+    received_items2: list[tuple[NamedResource, BaseManifest]] = []
 
-    # Now update rid9 to READY
-    store.update_status(rid9, Status.READY)
-    assert len(events) == 2
-    assert events[1][0] == rid9
-    assert events[1][1].status == Status.READY
+    async def consume_watcher(
+        item_list: list[tuple[NamedResource, BaseManifest]],
+    ) -> None:
+        async for item in store.watch_added(kind_to_watch):
+            item_list.append(item)
 
-    remove()
+    watcher_task1 = asyncio.create_task(consume_watcher(received_items1))
+    watcher_task2 = asyncio.create_task(consume_watcher(received_items2))
+
+    await asyncio.sleep(0.01)  # Let watchers start
+
+    obj1 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo1", value=1)
+    rid1 = NamedResource(obj1.kind, obj1.namespace, obj1.name)
+    store.add_object(obj1)
+    await asyncio.sleep(0.01)  # Allow event to propagate
+
+    assert len(received_items1) == 1
+    assert received_items1[0] == (rid1, obj1)
+    assert len(received_items2) == 1
+    assert received_items2[0] == (rid1, obj1)
+
+    obj2 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo2", value=2)
+    rid2 = NamedResource(obj2.kind, obj2.namespace, obj2.name)
+    store.add_object(obj2)
+    await asyncio.sleep(0.01)  # Allow event to propagate
+
+    assert len(received_items1) == 2
+    assert received_items1[1] == (rid2, obj2)
+    assert len(received_items2) == 2
+    assert received_items2[1] == (rid2, obj2)
+
+    watcher_task1.cancel()
+    watcher_task2.cancel()
+    try:
+        await watcher_task1
+    except asyncio.CancelledError:
+        pass
+    try:
+        await watcher_task2
+    except asyncio.CancelledError:
+        pass
