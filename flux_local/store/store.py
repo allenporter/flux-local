@@ -21,6 +21,7 @@ class StoreEvent(str, Enum):
 
     OBJECT_ADDED = "object_added"
     STATUS_UPDATED = "status_updated"
+    STATUS_READY = "status_ready"
     ARTIFACT_UPDATED = "artifact_updated"
 
 

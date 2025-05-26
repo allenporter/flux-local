@@ -73,10 +73,17 @@ class InMemoryStore(Store):
         self, resource_id: NamedResource, status: Status, error: str | None = None
     ) -> None:
         """Update the processing status and optional error message for a resource."""
+        old_status = self._status.get(resource_id)
         self._status[resource_id] = StatusInfo(status=status, error=error)
         self._fire_event(
             StoreEvent.STATUS_UPDATED, resource_id, self._status[resource_id]
         )
+        if status == Status.READY and (
+            old_status is None or old_status.status != Status.READY
+        ):
+            self._fire_event(
+                StoreEvent.STATUS_READY, resource_id, self._status[resource_id]
+            )
 
     def get_status(self, resource_id: NamedResource) -> StatusInfo | None:
         """Retrieve the processing status for a resource."""
@@ -153,6 +160,11 @@ class InMemoryStore(Store):
                     callback(rid, obj)  # type: ignore
                 elif event == StoreEvent.STATUS_UPDATED:
                     if status := self._status.get(rid):
+                        callback(rid, status)  # type: ignore
+                elif event == StoreEvent.STATUS_READY:
+                    if (
+                        status := self._status.get(rid)
+                    ) is not None and status.status == Status.READY:
                         callback(rid, status)  # type: ignore
                 elif event == StoreEvent.ARTIFACT_UPDATED:
                     if artifact := self._artifacts.get(rid):
