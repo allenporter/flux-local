@@ -68,13 +68,15 @@ class DependencySummary:
     def summary_message(self) -> str:
         """Return a human-readable summary of the dependency states."""
         if self.any_failed:
-            failed_deps = [dep.resource_idnamespaced_name for dep in self.failed_dependencies]
+            failed_deps = [
+                dep.resource_id.namespaced_name for dep in self.failed_dependencies
+            ]
             return f"Failed dependencies: {failed_deps}"
         if self.pending_count > 0:
             pending_deps = [dep.namespaced_name for dep in self.pending_dependencies]
             return f"Pending dependencies: {pending_deps}"
         if self.all_ready:
-            return f"All dependencies ready."
+            return "All dependencies ready."
         # Default summary if no specific state is met
         return (
             f"Dependency Summary for {self.parent_resource_id.namespaced_name}:\n"
@@ -398,7 +400,7 @@ class DependencyWaiter:
                 self._parent_resource_id.namespaced_name,
                 "Exists" if task else "None",
             )
-            if task and not task.done():
+            if not task.done():
                 _LOGGER.debug(
                     "Actively cancelling task for dependency: %s for %s",
                     dep_id,
@@ -408,22 +410,6 @@ class DependencyWaiter:
                 cancelled_tasks.append(task)
                 # The task's CancelledError handler in _watch_single_dependency
                 # will update self._resolutions and remove from self._dependencies.
-            elif task is None:
-                _LOGGER.debug(
-                    "Dependency %s for %s was added but not started. Marking as CANCELLED.",
-                    dep_id,
-                    self._parent_resource_id,
-                )
-                if dep_id not in self._resolutions:
-                    event = DependencyResolutionEvent(
-                        resource_id=dep_id, state=DependencyState.CANCELLED
-                    )
-                    self._resolutions[dep_id] = event
-                    # Ensure this event is yielded if watch() is called later
-                    await self._event_queue.put(event)
-                # Remove from _dependencies as it\'s now handled and won\'t have a task.
-                if dep_id in self._dependencies:
-                    del self._dependencies[dep_id]
             else:
                 _LOGGER.debug(
                     "Dependency %s for %s task already done. Ensuring it's removed from active list.",

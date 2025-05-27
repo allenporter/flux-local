@@ -164,12 +164,18 @@ class KustomizationController:
             async with asyncio.timeout(DEPENDENCY_RESOLUTION_TIMEOUT):
                 async for event in dependency_waiter.watch():
                     summary = dependency_waiter.get_summary()
-                    if event.state not in (DependencyState.FAILED, DependencyState.TIMEOUT):
+                    if event.state not in (
+                        DependencyState.FAILED,
+                        DependencyState.TIMEOUT,
+                    ):
                         self._store.update_status(
                             resource_id, Status.PENDING, summary.summary_message
                         )
 
-                    if event.state == DependencyState.FAILED or event.state == DependencyState.TIMEOUT:
+                    if (
+                        event.state == DependencyState.FAILED
+                        or event.state == DependencyState.TIMEOUT
+                    ):
                         self._store.update_status(
                             resource_id,
                             Status.FAILED,
@@ -180,8 +186,9 @@ class KustomizationController:
 
             final_summary = dependency_waiter.get_summary()
             if not final_summary.all_ready:
-                _LOGGER.error(f"Kustomization %s status %s", resource_id.namespaced_name, final_summary.summary_message)
-                self._store.update_status(resource_id, Status.FAILED, error=final_summary.summary_message)
+                self._store.update_status(
+                    resource_id, Status.FAILED, error=final_summary.summary_message
+                )
                 return
 
         except asyncio.TimeoutError:
@@ -222,7 +229,9 @@ class KustomizationController:
         try:
             if source_ref_id:  # Source was defined (and waited for, if waiter was used)
                 # If waiter was used and completed successfully, source_ref_id is READY.
-                if (artifact := self._store.get_artifact(source_ref_id, Artifact)) is None:
+                if (
+                    artifact := self._store.get_artifact(source_ref_id, Artifact)
+                ) is None:
                     # This implies source_ref_id might not be ready or artifact missing post-ready.
                     # DependencyWaiter should ensure it's ready if it was watched.
                     # If it wasn't watched (e.g. only kustomization.path used), this check is vital.
