@@ -1,11 +1,17 @@
+"""Tests for the InMemoryStore class."""
+
+import asyncio
+import logging
+
 import pytest
-import asyncio  # Added
 from flux_local.store import InMemoryStore, Status, StatusInfo
 from flux_local.store.artifact import Artifact
 from flux_local.store.store import StoreEvent
 from flux_local.manifest import NamedResource, BaseManifest
-from flux_local.exceptions import ResourceFailedError  # Added
+from flux_local.exceptions import ResourceFailedError
 from dataclasses import dataclass
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -454,14 +460,16 @@ async def test_watch_added_add_updated_object_fires_event(store: InMemoryStore) 
     assert len(received_items) == 1
     assert received_items[0] == (rid1, obj1)
 
-    # Add updated object (same ID, different value)
+    # Add an updated object with the same ID
     obj1_updated = DummyManifest(
         kind=kind_to_watch, namespace="ns", name="foo1", value=2
     )
     store.add_object(obj1_updated)
-    await asyncio.sleep(0)  # Allow event to propagate
+    await asyncio.sleep(0)  # Give time for event to propagate
+
+    # The watch_added listener for OBJECT_ADDED should fire on update as well
     assert len(received_items) == 2
-    assert received_items[1] == (rid1, obj1_updated)  # rid1 is the same
+    assert received_items[1] == (rid1, obj1_updated)
 
     watcher_task.cancel()
     try:
@@ -519,3 +527,107 @@ async def test_watch_added_multiple_concurrent_watchers_same_kind(
         await watcher_task2
     except asyncio.CancelledError:
         pass
+
+
+async def test_watch_exists_object_already_exists(store: InMemoryStore) -> None:
+    """Test watch_exists when the object is already in the store."""
+    obj = DummyManifest(kind="TestKind", namespace="ns", name="exists_already", value=1)
+    rid = NamedResource(obj.kind, obj.namespace, obj.name)
+    store.add_object(obj)
+
+    retrieved_obj = await store.watch_exists(rid)
+    assert retrieved_obj == obj
+
+
+async def test_watch_exists_object_added_after_watch_starts(
+    store: InMemoryStore,
+) -> None:
+    """Test watch_exists when the object is added after the watch starts."""
+    obj_to_add = DummyManifest(
+        kind="TestKind", namespace="ns", name="add_later", value=2
+    )
+    rid = NamedResource(obj_to_add.kind, obj_to_add.namespace, obj_to_add.name)
+
+    async def _watch() -> BaseManifest:
+        return await store.watch_exists(rid)
+
+    watch_task = asyncio.create_task(_watch())
+
+    await asyncio.sleep(0.01)  # Give the watch_task a moment to start waiting
+    assert not watch_task.done(), "Watch task finished prematurely"
+
+    store.add_object(obj_to_add)
+    retrieved_obj = await watch_task
+    assert retrieved_obj == obj_to_add
+
+
+async def test_watch_exists_cancelled_while_waiting(store: InMemoryStore) -> None:
+    """Test watch_exists when the task is cancelled while waiting."""
+    rid = NamedResource("TestKind", "ns", "cancel_watch")
+
+    async def _watch() -> BaseManifest:
+        return await store.watch_exists(rid)
+
+    watch_task = asyncio.create_task(_watch())
+
+    await asyncio.sleep(0.01)  # Ensure watcher is waiting
+    assert not watch_task.done()
+
+    watch_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await watch_task
+
+
+async def test_watch_exists_multiple_waiters_for_same_object(
+    store: InMemoryStore,
+) -> None:
+    """Test multiple tasks waiting for the same object to exist."""
+    obj_to_add = DummyManifest(
+        kind="TestKind", namespace="ns", name="multi_wait_exists", value=3
+    )
+    rid = NamedResource(obj_to_add.kind, obj_to_add.namespace, obj_to_add.name)
+    num_waiters = 3
+    watch_tasks = []
+
+    async def _watch() -> BaseManifest:
+        return await store.watch_exists(rid)
+
+    for _i in range(num_waiters):
+        watch_tasks.append(asyncio.create_task(_watch()))
+
+    await asyncio.sleep(0.05)  # Ensure all tasks are waiting
+    for task in watch_tasks:
+        assert not task.done(), "A watch task finished prematurely"
+
+    store.add_object(obj_to_add)
+    results = await asyncio.gather(*watch_tasks)
+    for retrieved_obj in results:
+        assert retrieved_obj == obj_to_add
+
+
+async def test_watch_exists_wait_then_add_different_object(
+    store: InMemoryStore,
+) -> None:
+    """Test watch_exists is not triggered by a different object being added."""
+    rid_watched = NamedResource("TestKind", "ns", "watched_obj_exists")
+    obj_other = DummyManifest(
+        kind="OtherKind", namespace="ns", name="other_obj", value=100
+    )
+
+    async def _watch() -> BaseManifest:
+        return await store.watch_exists(rid_watched)
+
+    watch_task = asyncio.create_task(_watch())
+    await asyncio.sleep(0.01)  # Ensure watcher is waiting
+
+    store.add_object(obj_other)
+    await asyncio.sleep(0.01)  # Give time for any incorrect wake-up
+    assert not watch_task.done(), "Watch task woke up on unrelated object addition"
+
+    # Now add the watched object
+    obj_watched = DummyManifest(
+        kind="TestKind", namespace="ns", name="watched_obj_exists", value=1
+    )
+    store.add_object(obj_watched)
+    retrieved_obj = await watch_task
+    assert retrieved_obj == obj_watched

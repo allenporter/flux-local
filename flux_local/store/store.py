@@ -116,3 +116,22 @@ class Store(ABC):
         """
         if TYPE_CHECKING:
             yield None, None  # type: ignore[misc]
+
+    @abstractmethod
+    async def watch_exists(self, resource_id: NamedResource) -> BaseManifest:
+        """
+        Wait for the specified resource to exist in the store.
+
+        If the resource already exists, returns its BaseManifest immediately.
+        Handles asyncio.CancelledError. The caller is expected to handle timeouts.
+
+        Args:
+            resource_id: The NamedResource to watch for existence.
+
+        Returns:
+            BaseManifest of the resource when it is added to the store.
+
+        Raises:
+            asyncio.CancelledError: If the watch is cancelled.
+            ObjectNotFoundError: If the watch completes but the object is still not found (should not happen with correct event logic).
+        """
