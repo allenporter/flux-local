@@ -8,7 +8,7 @@
   "assignees": ["allenporter"],
   "packageRules": [
     {
-      "description": "Minor updates are automatic",
+      "description": "Patch updates are automatic",
       "automerge": true,
       "automergeType": "branch",
       "matchUpdateTypes": ["patch"]
