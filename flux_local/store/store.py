@@ -16,6 +16,17 @@ U = TypeVar("U", bound=StatusInfo)
 V = TypeVar("V", bound=BaseManifest | StatusInfo | Artifact)
 
 
+SUPPORTS_STATUS: set[str] = set({
+        "Kustomization",
+        "GitRepository",
+        "HelmRelease",
+        "HelmRepository",
+        "Bucket",
+        "OCIRepository",
+        "ImageRepository",
+})
+
+
 class StoreEvent(str, Enum):
     """Enum for store events."""
 
