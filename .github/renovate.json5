@@ -11,7 +11,7 @@
       "description": "Minor updates are automatic",
       "automerge": true,
       "automergeType": "branch",
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchUpdateTypes": ["patch"]
     }
   ],
   "regexManagers": [
