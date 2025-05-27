@@ -56,6 +56,10 @@ class DependencyFailedError(InputException):
         )
 
 
+class ObjectNotFoundError(FluxException):
+    """Raised when an object is not found in the store."""
+
+
 class HelmException(CommandException):
     """Raised when there is a failure running a helm command."""
 

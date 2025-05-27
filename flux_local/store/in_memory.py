@@ -9,7 +9,7 @@ from typing import Any, TypeVar, DefaultDict
 import logging
 
 from flux_local.manifest import BaseManifest, NamedResource
-from flux_local.exceptions import ResourceFailedError
+from flux_local.exceptions import ResourceFailedError, ObjectNotFoundError
 
 from .artifact import Artifact
 from .status import Status, StatusInfo
@@ -38,6 +38,12 @@ class InMemoryStore(Store):
         self._listeners: DefaultDict[StoreEvent, list[Callable[..., None]]] = (
             defaultdict(list)
         )
+        self._existence_waiters: DefaultDict[NamedResource, asyncio.Event] = (
+            defaultdict(asyncio.Event)
+        )
+        self._existence_waiter_locks: DefaultDict[NamedResource, asyncio.Lock] = (
+            defaultdict(asyncio.Lock)
+        )
 
     def add_object(self, obj: T) -> None:
         """Add a manifest object to the store."""
@@ -59,6 +65,18 @@ class InMemoryStore(Store):
 
         self._objects[resource_id] = obj
         self._fire_event(StoreEvent.OBJECT_ADDED, resource_id, obj)
+
+        # Notify any watchers waiting for this specific object's existence
+        if resource_id in self._existence_waiters:
+            self._existence_waiters[resource_id].set()
+            # The event is one-time, remove it after setting
+            # Consider if removal here is always correct or if event should persist
+            # For watch_exists, once it's set, the current waiters are done.
+            # New waiters will create a new event or find the object already present.
+            # However, to prevent old events from being reused if not cleaned up by waiter,
+            # it's safer to clear it. The waiter should also clean up.
+            # Let's have the waiter clean up its specific event.
+            # For now, just set. The waiter will handle its own cleanup.
 
     def get_object(self, resource_id: NamedResource, cls: type[T]) -> T | None:
         """Retrieve a manifest object by resource identity and type."""
@@ -294,3 +312,103 @@ class InMemoryStore(Store):
         finally:
             _LOGGER.debug("Cleaning up listener for watch_added (kind: %s)", kind)
             remove_listener()
+
+    async def watch_exists(self, resource_id: NamedResource) -> BaseManifest:
+        """
+        Wait for the specified resource to exist in the store.
+
+        If the resource already exists, returns its BaseManifest immediately.
+        Handles asyncio.CancelledError.
+        """
+        # Check if object already exists
+        if (obj := self._objects.get(resource_id)) is not None:
+            _LOGGER.debug("watch_exists: Object %s already in store.", resource_id)
+            return obj
+
+        # Lock to prevent race conditions when multiple coroutines check/create the event
+        async with self._existence_waiter_locks[resource_id]:
+            # Re-check after acquiring lock, in case it was added while waiting for the lock
+            if (obj := self._objects.get(resource_id)) is not None:
+                _LOGGER.debug(
+                    "watch_exists: Object %s found in store after acquiring lock.",
+                    resource_id,
+                )
+                # Clean up lock if no longer needed (optional, defaultdict handles creation)
+                # If we are sure this is the only waiter or last waiter, we could del self._existence_waiter_locks[resource_id]
+                # but defaultdict is fine.
+                return obj
+
+            # If still not found, get or create an event for this resource_id
+            # defaultdict(asyncio.Event) creates a new event if key doesn't exist
+            event = self._existence_waiters[resource_id]
+            # Ensure event is clear if it was somehow set and not cleaned up by a previous waiter
+            # This shouldn't happen if waiters clean up properly.
+            if event.is_set():  # Should only be set if object was added
+                if (obj := self._objects.get(resource_id)) is not None:
+                    _LOGGER.debug(
+                        "watch_exists: Event for %s was already set and object exists.",
+                        resource_id,
+                    )
+                    # Clean up if we are done with this event for this waiter
+                    if (
+                        self._existence_waiters[resource_id] is event
+                        and not event.is_set()
+                    ):  # Check if it's still our event and not set
+                        del self._existence_waiters[
+                            resource_id
+                        ]  # Or event.clear() if event is reused
+                    return obj
+                else:  # Event set but object not found - inconsistent state, clear and wait
+                    _LOGGER.warning(
+                        "watch_exists: Event for %s was set but object not found. Clearing and re-waiting.",
+                        resource_id,
+                    )
+                    event.clear()
+
+        _LOGGER.debug(
+            "watch_exists: Object %s not in store, waiting for it to be added.",
+            resource_id,
+        )
+        try:
+            await event.wait()
+            # After event is set, object should be in the store
+            if (obj := self._objects.get(resource_id)) is not None:
+                _LOGGER.debug(
+                    "watch_exists: Object %s added to store and event triggered.",
+                    resource_id,
+                )
+                return obj
+            else:
+                # This case should ideally not be reached if add_object correctly sets the event
+                # and the event is not cleared prematurely.
+                _LOGGER.error(
+                    "watch_exists: Event for %s triggered, but object not found in store.",
+                    resource_id,
+                )
+                raise ObjectNotFoundError(
+                    f"watch_exists: Event for {resource_id} triggered, but object not found."
+                )
+        except asyncio.CancelledError:
+            _LOGGER.debug("watch_exists for %s cancelled.", resource_id)
+            raise
+        finally:
+            # Clean up the specific event and lock if this waiter is done with it.
+            # This is important to prevent old events from affecting new waiters if the resource_id is watched again.
+            async with self._existence_waiter_locks[resource_id]:
+                if (
+                    resource_id in self._existence_waiters
+                    and self._existence_waiters[resource_id] is event
+                ):
+                    # If the event is set, it means it was triggered by add_object.
+                    # If not set, it means we were cancelled before it was triggered.
+                    # In either case, this specific waiter is done with this event instance.
+                    del self._existence_waiters[resource_id]
+                # Clean up the lock if no more waiters for this resource_id (heuristic)
+                if (
+                    resource_id not in self._existence_waiters
+                    and resource_id in self._existence_waiter_locks
+                ):
+                    # Check if lock is still held by current task before deleting
+                    # This part is tricky; defaultdict for locks is generally safe.
+                    # For simplicity, let defaultdict manage lock creation/existence.
+                    pass
