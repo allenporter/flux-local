@@ -70,7 +70,3 @@ class InvalidValuesReference(FluxException):
 
 class InvalidSubstituteReference(FluxException):
     """Exception raised for an unsupported SubstituteReference."""
-
-
-class ObjectNotFoundError(FluxException):
-    """Raised when an object is not found in the store."""
