@@ -75,6 +75,20 @@ class InMemoryStore(Store):
         self, resource_id: NamedResource, status: Status, error: str | None = None
     ) -> None:
         """Update the processing status and optional error message for a resource."""
+        if status == Status.FAILED:
+            _LOGGER.error(
+                "Resource %s status %s with error: %s",
+                resource_id.namespaced_name,
+                status,
+                error,
+            )
+        else:
+            _LOGGER.debug(
+                "Updating status for resource %s to %s (%s)",
+                resource_id.namespaced_name,
+                status,
+                error,
+            )
         self._status[resource_id] = StatusInfo(status=status, error=error)
         self._fire_event(
             StoreEvent.STATUS_UPDATED, resource_id, self._status[resource_id]

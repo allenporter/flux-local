@@ -20,12 +20,11 @@ Dependencies:
 """
 
 import asyncio
-from functools import partial
 import logging
 from pathlib import Path
 from typing import Any
 
-from flux_local.store import Store, Status, Artifact, StatusInfo
+from flux_local.store import Store, Status, Artifact
 from flux_local.source_controller.artifact import GitArtifact, OCIArtifact
 from flux_local.manifest import (
     NamedResource,
@@ -35,26 +34,21 @@ from flux_local.manifest import (
 )
 from flux_local.exceptions import (
     InputException,
-    ResourceFailedError,
-    DependencyFailedError,
 )
 from flux_local.kustomize import flux_build
 from flux_local.task import get_task_service
+from flux_local.store.watcher import (
+    DependencyWaiter,
+    DependencyState,
+)
 
 from .artifact import KustomizationArtifact
 
 
 _LOGGER = logging.getLogger(__name__)
 
-WAIT_TIMEOUT = 45  # seconds for dependency resolution
-
-
-class DependencyPendingError(Exception):
-    """Exception raised when a Kustomization dependency is not ready."""
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-        self.message = message
+WAIT_TIMEOUT = 45
+DEPENDENCY_RESOLUTION_TIMEOUT = 120
 
 
 class KustomizationController:
@@ -119,34 +113,169 @@ class KustomizationController:
         Reconcile a Kustomization resource.
 
         This method performs the following steps:
-        1. Checks dependencies using the new store.watch_ready API
-        2. Resolves source artifacts, also using store.watch_ready for the source
-        3. Builds the kustomization
-        4. Stores the resulting manifests
+        1. Waits for all dependencies (Kustomizations and Source) to be ready using DependencyWaiter.
+        2. Resolves the source artifact path.
+        3. Builds the kustomization.
+        4. Stores the resulting manifests.
 
         Args:
-            resource_id: The identifier for the Kustomization resource
-            kustomization: The Kustomization object to reconcile
+            resource_id: The identifier for the Kustomization resource.
+            kustomization: The Kustomization object to reconcile.
         """
         _LOGGER.info("Reconciling Kustomization %s", resource_id)
-        # Set initial status to PENDING. If reconcile fails before any watch_ready,
-        # this status will persist. If it's due to a dependency, _check_dependencies
-        # will update it more specifically.
         self._store.update_status(
             resource_id, Status.PENDING, "Starting reconciliation"
         )
 
-        try:
-            # 1. Check dependencies
-            await self._check_dependencies(resource_id, kustomization)
+        dependency_waiter = DependencyWaiter(
+            self._store, self._task_service, parent_resource_id=resource_id
+        )
+        source_ref_id: NamedResource | None = None
 
-            # 2. Resolve source artifacts
-            source_path = await self._resolve_source(resource_id, kustomization)
-        except DependencyPendingError as e:
-            self._store.update_status(resource_id, Status.PENDING, error=e.message)
-            return
-        except (DependencyFailedError, InputException) as e:
+        # 1. Gather dependencies and add to waiter
+        try:
+            for dep_full_name in kustomization.depends_on or ():
+                dep_namespace, dep_name = dep_full_name.split("/", 1)
+                dep_id = NamedResource(
+                    kind=KUSTOMIZE_KIND, namespace=dep_namespace, name=dep_name
+                )
+                dependency_waiter.add(dep_id)
+
+            if kustomization.source_kind and kustomization.source_name:
+                source_ns = kustomization.source_namespace or kustomization.namespace
+                source_ref_id = NamedResource(
+                    kind=kustomization.source_kind,
+                    namespace=source_ns,
+                    name=kustomization.source_name,
+                )
+                dependency_waiter.add(source_ref_id)
+        except InputException as e:
             self._store.update_status(resource_id, Status.FAILED, error=str(e))
+            return
+
+        source_path: str  # Will be set after dependency resolution or for local paths
+
+        _LOGGER.info(
+            "Kustomization %s waiting for %d dependencies...",
+            resource_id.namespaced_name,
+            dependency_waiter.get_summary().total_dependencies,
+        )
+        try:
+            async with asyncio.timeout(DEPENDENCY_RESOLUTION_TIMEOUT):
+                async for event in dependency_waiter.watch():
+                    summary = dependency_waiter.get_summary()
+                    if event.state not in (DependencyState.FAILED, DependencyState.TIMEOUT):
+                        self._store.update_status(
+                            resource_id, Status.PENDING, summary.summary_message
+                        )
+
+                    if event.state == DependencyState.FAILED or event.state == DependencyState.TIMEOUT:
+                        self._store.update_status(
+                            resource_id,
+                            Status.FAILED,
+                            summary.summary_message,
+                        )
+                        await dependency_waiter.cancel_pending_watches()
+                        return
+
+            final_summary = dependency_waiter.get_summary()
+            if not final_summary.all_ready:
+                _LOGGER.error(f"Kustomization %s status %s", resource_id.namespaced_name, final_summary.summary_message)
+                self._store.update_status(resource_id, Status.FAILED, error=final_summary.summary_message)
+                return
+
+        except asyncio.TimeoutError:
+            _LOGGER.error(
+                "Overall timeout (%s sec) reached while waiting for dependencies of Kustomization %s.",
+                DEPENDENCY_RESOLUTION_TIMEOUT,
+                resource_id.namespaced_name,
+            )
+            summary_on_timeout = dependency_waiter.get_summary()
+            self._store.update_status(
+                resource_id,
+                Status.FAILED,
+                error=f"Timed out waiting for dependencies: {summary_on_timeout.summary_message}",
+            )
+            await dependency_waiter.cancel_pending_watches()
+            return
+        except Exception as e:
+            _LOGGER.error(
+                "Unexpected error during dependency waiting for Kustomization %s: %s",
+                resource_id.namespaced_name,
+                e,
+                exc_info=True,
+            )
+            self._store.update_status(
+                resource_id,
+                Status.FAILED,
+                error=f"Unexpected error resolving dependencies: {type(e).__name__}",
+            )
+            await dependency_waiter.cancel_pending_watches()
+            return
+
+        _LOGGER.info(
+            "All dependencies for Kustomization %s are ready.",
+            resource_id.namespaced_name,
+        )
+
+        # 2. Resolve source path
+        try:
+            if source_ref_id:  # Source was defined (and waited for, if waiter was used)
+                # If waiter was used and completed successfully, source_ref_id is READY.
+                if (artifact := self._store.get_artifact(source_ref_id, Artifact)) is None:
+                    # This implies source_ref_id might not be ready or artifact missing post-ready.
+                    # DependencyWaiter should ensure it's ready if it was watched.
+                    # If it wasn't watched (e.g. only kustomization.path used), this check is vital.
+                    # However, if source_ref_id is set, it means it was added to the waiter.
+                    msg = (
+                        f"Source artifact {source_ref_id.namespaced_name} not found "
+                        f"for Kustomization {resource_id.namespaced_name}, though it was expected to be ready."
+                    )
+                    self._store.update_status(resource_id, Status.FAILED, error=msg)
+                    return
+
+                if isinstance(artifact, (GitArtifact, OCIArtifact)):
+                    ks_path_part = kustomization.path.strip("./")
+                    # Ensure Path objects are used for joining
+                    resolved_path = Path(artifact.local_path)
+                    if (
+                        ks_path_part
+                    ):  # Avoid joining with '.' or empty string if ks_path_part is such
+                        resolved_path = resolved_path / ks_path_part
+                    source_path = str(resolved_path)
+                    _LOGGER.debug(
+                        "Resolved source path for Kustomization %s to %s via sourceRef %s",
+                        resource_id.namespaced_name,
+                        source_path,
+                        source_ref_id.namespaced_name,
+                    )
+                else:
+                    msg = (
+                        f"Source artifact {source_ref_id.namespaced_name} for Kustomization {resource_id.namespaced_name} "
+                        f"is not a GitArtifact or OCIArtifact (type: {type(artifact).__name__})"
+                    )
+                    self._store.update_status(resource_id, Status.FAILED, error=msg)
+                    return
+            elif kustomization.path:  # No sourceRef, use path directly
+                _LOGGER.debug(
+                    "No sourceRef specified for Kustomization %s, using path directly: %s",
+                    kustomization.namespaced_name,
+                    kustomization.path,
+                )
+                source_path = kustomization.path
+            else:
+                msg = f"Kustomization {resource_id.namespaced_name} has neither sourceRef nor a local path specified."
+                self._store.update_status(resource_id, Status.FAILED, error=msg)
+                return
+        except InputException as e:
+            self._store.update_status(resource_id, Status.FAILED, error=str(e))
+            return
+        except Exception as e:
+            self._store.update_status(
+                resource_id,
+                Status.FAILED,
+                error=f"Unexpected error resolving source path: {type(e).__name__}",
+            )
             return
 
         # 3. Build the kustomization
@@ -162,14 +291,13 @@ class KustomizationController:
         self._store.update_status(
             resource_id, Status.PENDING, f"Applying {len(manifests)} object manifests"
         )
-
         try:
             _LOGGER.info("Applying Kustomization output %s", resource_id)
             await self._apply(manifests)
 
             # 4. Store results
             artifact = KustomizationArtifact(
-                path=source_path,
+                path=source_path,  # source_path is now guaranteed to be a string
                 manifests=manifests,
                 revision=getattr(kustomization, "revision", None),
             )
@@ -184,232 +312,6 @@ class KustomizationController:
                 exc_info=True,
             )
             self._store.update_status(resource_id, Status.FAILED, error=str(e))
-
-    async def _check_dependencies(
-        self, resource_id: NamedResource, kustomization: Kustomization
-    ) -> None:
-        """Verify all dependencies are ready using store.watch_ready.
-
-        Args:
-            resource_id: The Kustomization being reconciled.
-            kustomization: The Kustomization object to check dependencies for.
-
-        Raises:
-            DependencyPendingError: If any dependency is not yet ready (still pending).
-            DependencyFailedError: If any dependency has failed.
-        """
-        if not kustomization.depends_on:
-            return
-
-        dep_tasks: list[asyncio.Task[StatusInfo]] = []
-        dep_ids: list[NamedResource] = []
-
-        def task_complete(
-            dep_id: NamedResource, task: asyncio.Task[StatusInfo]
-        ) -> None:
-            """Callback to remove completed task from the pending list."""
-            _LOGGER.debug("Dependency %s is READY", dep_id.namespaced_name)
-            dep_ids.remove(dep_id)
-            dep_tasks.remove(task)
-
-        for dep_full_name in kustomization.depends_on:
-            try:
-                # Dependencies in depends_on can be 'name' (implicit same namespace) or 'namespace/name'
-                dep_namespace, dep_name = dep_full_name.split("/", 1)
-                dep_id = NamedResource(
-                    kind="Kustomization", namespace=dep_namespace, name=dep_name
-                )
-            except ValueError as e:
-                # Handle cases where splitting or parsing might fail if format is unexpected
-                msg = (
-                    f"Kustomization {resource_id.namespaced_name} has an invalid dependency format: "
-                    f"'{dep_full_name}'. Expected 'namespace/name'. Error: {e}"
-                )
-                _LOGGER.error(msg)
-                raise InputException(msg) from e
-
-            _LOGGER.debug(
-                "Kustomization %s waiting for dependency %s to be ready.",
-                resource_id.namespaced_name,
-                dep_id.namespaced_name,
-            )
-            task = self._task_service.create_task(self._store.watch_ready(dep_id))
-            dep_ids.append(dep_id)
-            dep_tasks.append(task)
-            # Task removes itself from the pending list when done
-            task.add_done_callback(partial(task_complete, dep_id))
-
-        # Refresh the status string any time any task completes
-        while dep_tasks:
-            dep_strs = [dep.namespaced_name for dep in dep_ids]
-            self._store.update_status(
-                resource_id, Status.PENDING, f"Waiting on {dep_strs}"
-            )
-
-            try:
-                async with asyncio.timeout(WAIT_TIMEOUT):
-                    await asyncio.wait(dep_tasks, return_when=asyncio.FIRST_COMPLETED)
-            except ResourceFailedError as e:
-                # A dependency has failed. This Kustomization should also be marked as Failed.
-                _LOGGER.warning(
-                    "Dependency %s for Kustomization %s failed: %s",
-                    e.resource_name,
-                    resource_id.namespaced_name,
-                    e.message,
-                )
-                # Update this Kustomization's status to reflect the dependency failure.
-                raise DependencyFailedError(
-                    kustomization_id=resource_id.namespaced_name,
-                    dependency_id=e.resource_name,
-                    dependency_error=e.message,
-                ) from e
-            except asyncio.TimeoutError:
-                _LOGGER.warning(
-                    "Timeout while waiting for dependencies of Kustomization %s: %s",
-                    resource_id.namespaced_name,
-                    dep_strs,
-                )
-                raise DependencyFailedError(
-                    kustomization_id=resource_id.namespaced_name,
-                    dependency_id=dep_strs[0],
-                    dependency_error=(
-                        f"Kustomization {resource_id.namespaced_name} is still waiting on dependencies: "
-                        f"{dep_strs}"
-                    ),
-                )
-            except Exception as e:
-                # This might catch other asyncio errors or unexpected issues from watch_ready.
-                # For now, treat as a pending dependency, as we don't know the exact state.
-                _LOGGER.error(
-                    "Unexpected error while waiting for dependencies of Kustomization %s: %s",
-                    resource_id.namespaced_name,
-                    e,
-                    exc_info=True,
-                )
-                pending_dep_names = [dep.namespaced_name for dep in dep_ids]
-                raise DependencyPendingError(
-                    f"Kustomization {resource_id.namespaced_name} encountered an error while waiting for "
-                    f"dependencies {', '.join(pending_dep_names)}: {type(e).__name__}"
-                ) from e
-
-    async def _resolve_source(
-        self, resource_id: NamedResource, kustomization: Kustomization
-    ) -> str:
-        """Resolve the source path for the kustomization, waiting if source is not ready.
-
-        Args:
-            resource_id: The Kustomization being reconciled.
-            kustomization: The Kustomization to resolve the source for
-
-        Returns:
-            The resolved source path
-
-        Raises:
-            DependencyPendingError: If the source is not yet ready (still pending).
-            DependencyFailedError: If the source has failed.
-            InputException: If the source cannot be resolved or is invalid for other reasons.
-        """
-        if not kustomization.source_kind or not kustomization.source_name:
-            _LOGGER.debug(
-                "No sourceRef specified for %s, using path directly: %s",
-                kustomization.namespaced_name,
-                kustomization.path,
-            )
-            # Ensure the path exists if it's a local path without a sourceRef
-            # This logic might need adjustment based on how local paths are meant to be handled.
-            # For now, assume it's valid if provided.
-            return kustomization.path
-
-        source_ns = kustomization.source_namespace or kustomization.namespace
-        source_ref_id = NamedResource(
-            kind=kustomization.source_kind,
-            namespace=source_ns,
-            name=kustomization.source_name,
-        )
-
-        _LOGGER.info(
-            "Kustomization %s waiting for source %s to be ready.",
-            resource_id.namespaced_name,
-            source_ref_id.namespaced_name,
-        )
-        self._store.update_status(
-            resource_id, Status.PENDING, f"Waiting on {source_ref_id.namespaced_name}"
-        )
-
-        try:
-            source_status = await self._store.watch_ready(source_ref_id)
-        except ResourceFailedError as e:
-            _LOGGER.warning(
-                "Source %s for Kustomization %s failed: %s",
-                e.resource_name,
-                resource_id.namespaced_name,
-                e.message,
-            )
-            raise DependencyFailedError(
-                kustomization_id=resource_id.namespaced_name,
-                dependency_id=e.resource_name,
-                dependency_error=e.message,
-            ) from e
-        except Exception as e:
-            # Catch other potential errors from watch_ready
-            _LOGGER.error(
-                "Unexpected error while waiting for source %s for Kustomization %s: %s",
-                source_ref_id.namespaced_name,
-                resource_id.namespaced_name,
-                e,
-                exc_info=True,
-            )
-            raise DependencyPendingError(
-                f"Kustomization {resource_id.namespaced_name} encountered an error while waiting for "
-                f"source {source_ref_id.namespaced_name}: {type(e).__name__}"
-            ) from e
-
-        _LOGGER.info(
-            "Source %s for Kustomization %s is READY (status: %s).",
-            source_ref_id.namespaced_name,
-            resource_id.namespaced_name,
-            source_status.status.value,
-        )
-        self._store.update_status(
-            resource_id,
-            Status.PENDING,
-            f"Processing {source_ref_id.namespaced_name} artifact",
-        )
-
-        if (artifact := self._store.get_artifact(source_ref_id, Artifact)) is None:
-            # This should ideally not happen if watch_ready succeeded and returned READY,
-            # as READY implies an artifact should be present for sources.
-            # However, to be safe, handle this case.
-            msg = (
-                f"Source artifact {source_ref_id.namespaced_name} not found "
-                f"for Kustomization {resource_id.namespaced_name}, despite source being ready."
-            )
-            _LOGGER.error(msg)
-            raise InputException(msg)
-
-        # Build the full source path by joining the artifact path with the kustomization path
-        if isinstance(artifact, (GitArtifact, OCIArtifact)):
-            # Ensure kustomization.path is treated as relative to the artifact's root
-            # and handles cases where kustomization.path might be '.' or empty.
-            ks_path_part = kustomization.path.strip("./")
-            if ks_path_part:
-                source_path = str(Path(artifact.local_path) / ks_path_part)
-            else:
-                source_path = str(Path(artifact.local_path))
-        else:
-            msg = (
-                f"Source artifact {source_ref_id.namespaced_name} for Kustomization {resource_id.namespaced_name} "
-                f"is not a GitArtifact or OCIArtifact (type: {type(artifact).__name__})"
-            )
-            _LOGGER.error(msg)
-            raise InputException(msg)
-
-        _LOGGER.debug(
-            "Resolved source path for Kustomization %s to %s",
-            resource_id.namespaced_name,
-            source_path,
-        )
-        return source_path
 
     async def _build_kustomization(
         self, source_path: str, kustomization: Kustomization

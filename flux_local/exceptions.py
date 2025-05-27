@@ -27,17 +27,15 @@ class KustomizePathException(KustomizeException):
     """Raised a Kustomization points to a path that does not exist."""
 
 
-class ResourceFailedError(FluxException):  # Added in previous steps
+class ResourceFailedError(FluxException):
     """Raised when a resource reconciliation has failed and is in a terminal state."""
 
-    def __init__(
-        self, resource_name: str, message: str | None
-    ) -> None:  # Signature changed
+    def __init__(self, resource_name: str, message: str | None) -> None:
         super().__init__(
-            f"Resource {resource_name} failed: {message or 'Unknown error'}"  # Message format updated
+            f"Resource {resource_name} failed: {message or 'Unknown error'}"
         )
         self.resource_name = resource_name
-        self.message = message  # Attribute changed from self.message to self.error
+        self.message = message
 
 
 class DependencyFailedError(InputException):
