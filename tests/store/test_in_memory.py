@@ -52,7 +52,7 @@ def test_add_and_get_object(store: InMemoryStore) -> None:
 
 def test_update_and_get_status(store: InMemoryStore) -> None:
     """Test updating and retrieving a status."""
-    rid = NamedResource("TestKind", "ns", "bar")
+    rid = NamedResource("HelmRelease", "ns", "bar")
     store.update_status(rid, Status.PENDING)
     assert store.get_status(rid) == StatusInfo(status=Status.PENDING)
     store.update_status(rid, Status.FAILED, error="boom")
@@ -63,7 +63,7 @@ def test_update_and_get_status(store: InMemoryStore) -> None:
 
 def test_set_and_get_artifact(store: InMemoryStore) -> None:
     """Test setting and retrieving an artifact."""
-    rid = NamedResource("TestKind", "ns", "baz")
+    rid = NamedResource("HelmRelease", "ns", "baz")
     artifact = DummyArtifact(path="/tmp/foo", revision="abc123")
     store.set_artifact(rid, artifact)
     result = store.get_artifact(rid, DummyArtifact)
@@ -121,7 +121,7 @@ def test_object_added_listener(store: InMemoryStore) -> None:
 
 async def test_watch_ready_already_ready(store: InMemoryStore) -> None:
     """Test watch_ready when the resource is already ready."""
-    rid = NamedResource("TestKind", "ns", "already_ready")
+    rid = NamedResource("HelmRelease", "ns", "already_ready")
     expected_status_info = StatusInfo(status=Status.READY)
     store.update_status(rid, Status.READY)
 
@@ -131,7 +131,7 @@ async def test_watch_ready_already_ready(store: InMemoryStore) -> None:
 
 async def test_watch_ready_becomes_ready(store: InMemoryStore) -> None:
     """Test watch_ready when a resource transitions to ready."""
-    rid = NamedResource("TestKind", "ns", "becomes_ready")
+    rid = NamedResource("HelmRelease", "ns", "becomes_ready")
     store.update_status(rid, Status.PENDING)  # Start as pending
 
     async def _watch() -> StatusInfo:
@@ -152,7 +152,7 @@ async def test_watch_ready_becomes_ready(store: InMemoryStore) -> None:
 
 async def test_watch_ready_resource_fails(store: InMemoryStore) -> None:
     """Test watch_ready when a resource transitions to failed."""
-    rid = NamedResource("TestKind", "ns", "becomes_failed")
+    rid = NamedResource("HelmRelease", "ns", "becomes_failed")
     store.update_status(rid, Status.PENDING)  # Start as pending
 
     async def _watch() -> StatusInfo:
@@ -176,7 +176,7 @@ async def test_watch_ready_resource_fails(store: InMemoryStore) -> None:
 
 async def test_watch_ready_already_failed(store: InMemoryStore) -> None:
     """Test watch_ready when the resource is already failed."""
-    rid = NamedResource("TestKind", "ns", "already_failed")
+    rid = NamedResource("HelmRelease", "ns", "already_failed")
     error_message = "already kaput"
     store.update_status(rid, Status.FAILED, error=error_message)
 
@@ -189,7 +189,7 @@ async def test_watch_ready_already_failed(store: InMemoryStore) -> None:
 
 async def test_watch_ready_multiple_waiters(store: InMemoryStore) -> None:
     """Test multiple tasks waiting for the same resource to become ready."""
-    rid = NamedResource("TestKind", "ns", "multi_wait_ready")
+    rid = NamedResource("HelmRelease", "ns", "multi_wait_ready")
     store.update_status(rid, Status.PENDING)
 
     num_waiters = 3
@@ -215,7 +215,7 @@ async def test_watch_ready_multiple_waiters(store: InMemoryStore) -> None:
 
 async def test_watch_ready_multiple_waiters_one_fails(store: InMemoryStore) -> None:
     """Test multiple tasks waiting, and the resource fails."""
-    rid = NamedResource("TestKind", "ns", "multi_wait_fail")
+    rid = NamedResource("HelmRelease", "ns", "multi_wait_fail")
     store.update_status(rid, Status.PENDING)
 
     num_waiters = 3
@@ -244,8 +244,8 @@ async def test_watch_ready_multiple_waiters_one_fails(store: InMemoryStore) -> N
 
 async def test_watch_ready_unrelated_update(store: InMemoryStore) -> None:
     """Test that watch_ready is not affected by unrelated status updates."""
-    rid_watched = NamedResource("TestKind", "ns", "watched_resource")
-    rid_other = NamedResource("TestKind", "ns", "other_resource")
+    rid_watched = NamedResource("HelmRelease", "ns", "watched_resource")
+    rid_other = NamedResource("HelmRelease", "ns", "other_resource")
 
     store.update_status(rid_watched, Status.PENDING)
     store.update_status(rid_other, Status.PENDING)
