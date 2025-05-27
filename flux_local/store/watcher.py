@@ -118,7 +118,6 @@ class DependencyWaiter:
         self._resolutions: dict[NamedResource, DependencyResolutionEvent] = {}
         self._watch_task: asyncio.Task[None] | None = None
         self._event_queue: asyncio.Queue[DependencyResolutionEvent] = asyncio.Queue()
-        self._summary_stale = True
         self._current_summary = DependencySummary(parent_resource_id=parent_resource_id)
 
     def add(self, resource_id: NamedResource) -> None:
@@ -137,7 +136,6 @@ class DependencyWaiter:
         # The task will be created when `watch` is called.
         # Store a placeholder or simply the ID for now.
         self._dependencies[resource_id] = None  # type: ignore[assignment]
-        self._summary_stale = True
 
     async def _watch_single_dependency(self, resource_id: NamedResource) -> None:
         """Internal task to watch a single dependency and put its resolution on the queue."""
@@ -215,7 +213,6 @@ class DependencyWaiter:
         # Remove from active dependencies task map
         if resource_id in self._dependencies:
             del self._dependencies[resource_id]
-        self._summary_stale = True
 
     async def watch(self) -> AsyncGenerator[DependencyResolutionEvent, None]:
         """
@@ -259,7 +256,6 @@ class DependencyWaiter:
                 try:
                     # Wait for the next event from the queue
                     event = await self._event_queue.get()
-                    self._summary_stale = True  # A new event means summary needs update
                     yield event
                     resolved_count += 1
                     if event.resource_id in self._dependencies:
@@ -279,7 +275,6 @@ class DependencyWaiter:
                     while not self._event_queue.empty():
                         try:
                             event = self._event_queue.get_nowait()
-                            self._summary_stale = True
                             yield event
                         except asyncio.QueueEmpty:
                             break
@@ -466,7 +461,6 @@ class DependencyWaiter:
             # This ensures _dependencies only contains truly pending items if watch were to continue.
             del self._dependencies[dep_id]
 
-        self._summary_stale = True
         _LOGGER.debug(
             "Finished cancelling pending watches for %s. Final dependencies count: %d. Resolutions count: %d.",
             self._parent_resource_id.namespaced_name,
