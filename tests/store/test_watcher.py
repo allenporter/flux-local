@@ -221,7 +221,7 @@ async def test_multiple_dependencies_all_become_ready(
     waiter: DependencyWaiter, mock_store: AsyncMock, mock_task_service: MagicMock
 ) -> None:
     """Test multiple dependencies all resolving to READY."""
-    dep1, dep2 = rn("dep1"), rn("dep2", "Source")
+    dep1, dep2 = rn("dep1"), rn("dep2", "GitRepository")
     status_dep1 = StatusInfo(status=Status.READY)
     status_dep2 = StatusInfo(status=Status.READY)
 

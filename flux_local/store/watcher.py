@@ -9,9 +9,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from flux_local.manifest import NamedResource
-from flux_local.store import Store, StatusInfo, Status
 from flux_local.exceptions import ResourceFailedError
 from flux_local.task import TaskService
+
+from .store import Store, SUPPORTS_STATUS
+from .status import Status, StatusInfo
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -141,13 +143,32 @@ class DependencyWaiter:
         """Internal task to watch a single dependency and put its resolution on the queue."""
         try:
             _LOGGER.debug(
-                "Parent %s starting watch for dependency: %s",
+                "Parent %s starting watch for dependency: %s (kind: %s)",
                 self._parent_resource_id.namespaced_name,
                 resource_id.namespaced_name,
+                resource_id.kind,
             )
             async with asyncio.timeout(self._timeout_seconds):
-                status_info = await self._store.watch_ready(resource_id)
-            # watch_ready only returns if status is READY or raises ResourceFailedError
+                if resource_id.kind not in SUPPORTS_STATUS:
+                    _LOGGER.debug(
+                        "Using watch_exists for %s %s",
+                        resource_id.kind,
+                        resource_id.namespaced_name,
+                    )
+                    # For ConfigMap and Secret, existence implies readiness.
+                    # watch_exists returns the manifest, but we don't need it here,
+                    # just the fact that it returned successfully.
+                    await self._store.watch_exists(resource_id)
+                    # Create a synthetic StatusInfo indicating readiness.
+                    status_info = StatusInfo(status=Status.READY)
+                else:
+                    _LOGGER.debug(
+                        "Using watch_ready for %s %s",
+                        resource_id.kind,
+                        resource_id.namespaced_name,
+                    )
+                    status_info = await self._store.watch_ready(resource_id)
+
             _LOGGER.debug(
                 "Dependency %s for %s resolved as %s.",
                 resource_id.namespaced_name,

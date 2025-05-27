@@ -13,7 +13,7 @@ from flux_local.exceptions import ResourceFailedError, ObjectNotFoundError
 
 from .artifact import Artifact
 from .status import Status, StatusInfo
-from .store import Store, StoreEvent
+from .store import Store, StoreEvent, SUPPORTS_STATUS
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -93,6 +93,10 @@ class InMemoryStore(Store):
         self, resource_id: NamedResource, status: Status, error: str | None = None
     ) -> None:
         """Update the processing status and optional error message for a resource."""
+        if resource_id.kind not in SUPPORTS_STATUS:
+            raise ValueError(
+                f"Resource kind {resource_id.kind} does not support status updates"
+            )
         if status == Status.FAILED:
             _LOGGER.error(
                 "Resource %s status %s with error: %s",
