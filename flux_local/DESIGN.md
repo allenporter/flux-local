@@ -140,52 +140,70 @@ This centralized state store provides the necessary decoupling between controlle
 - Handles dependency management (spec.dependsOn)
 - Stores build status and outputs in the Object State Store
 
-### In Progress
+### Active Roadmap: CLI Cutover & Core Refinement
 
-**Phase 3: HelmReleaseController Integration**  🔄
-- [x] Implement HelmRelease resource handling
-  - Basic controller implementation complete
-  - Handles HelmRelease lifecycle and state management
-  - Integrates with the central Store
+This section outlines the current focus on migrating core CLI functionality to the new controller-based architecture and addressing key bugs.
 
-- [x] Integrate with SourceController for chart sources
-  - Supports Git and OCI repositories
-  - Handles repository authentication
-  - Manages chart dependencies
+**Phase 3: HelmReleaseController Core Integration & Initial CLI Cutover (Current Focus)**
+- **Overall Goal:** Stabilize `HelmReleaseController` and begin migrating `build` and `get` CLI commands for HelmReleases.
+- **Key Priorities:**
+    - [ ] **Fully integrate `valuesFrom` resolution (`values.py`) into the `HelmReleaseController` reconciliation flow.** (❗**Top Priority from previous plan - CRITICAL**)
+    - [ ] Enhance error handling specifically for Helm operations within the controller.
+    - [ ] Increase test coverage for `HelmReleaseController` and `values.py` interactions.
+    - [ ] Address Helm-specific bugs (e.g., Helm controller does not retry when `HelmRepository` appears).
+- **CLI Cutover - HelmRelease:**
+    - [ ] **`flux-local build helmreleases`:**
+        - Modify to use the `Orchestrator` to run `SourceController`, `KustomizationController` (for dependencies), and `HelmReleaseController`.
+        - Retrieve rendered Helm templates from `Store` artifacts for output.
+    - [ ] **`flux-local get helmreleases`:**
+        - Modify to query the `Store` for `HelmRelease` definitions, statuses, and artifact information.
+- **Supporting Tasks:**
+    - [ ] Ensure `Orchestrator` can manage `HelmReleaseController` dependencies and execution flow correctly.
+    - [ ] Update documentation for `HelmReleaseController` as features stabilize.
 
-- [~] Handle values resolution (including valuesFrom)
-  - Basic implementation exists in `values.py`
-  - Supports ConfigMap and Secret references
-  - ❗ Not yet fully integrated with reconciliation flow
+**Phase 4: Kustomization CLI Cutover & Foundational Bug Squashing**
+- **Overall Goal:** Migrate `build` and `get` CLI commands for Kustomizations to the new core and address high-impact general bugs.
+- **CLI Cutover - Kustomization:**
+    - [ ] **`flux-local build kustomizations`:**
+        - Modify to use the `Orchestrator` (running `SourceController`, `KustomizationController`).
+        - Retrieve rendered manifests from `Store` artifacts.
+    - [ ] **`flux-local get kustomizations`:**
+        - Modify to query the `Store` for `Kustomization` definitions and statuses.
+- **Core Improvements & Bug Fixes (Addressing items from "Pending Bugs & improvements" list):**
+    - [ ] Handle target namespace consistently across controllers and CLI.
+    - [ ] Implement re-reconciliation in controllers on relevant state changes (e.g., dependency ready).
+    - [ ] Allow `NamedResource` to be buildable from `BaseManifest` (utility improvement).
+    - [ ] Refactor store events to be more intent-based (e.g., "is ready") if beneficial for controller logic.
+- **Supporting Tasks:**
+    - [ ] Deprecate/remove old `git_repo.py` and `visitor.py` paths for the transitioned CLI commands.
+    - [ ] Add/update tests for new CLI flows and bug fixes.
 
-- [x] Implement template rendering
-  - Uses existing Helm class for rendering
-  - Handles chart templating
-  - Supports various chart sources (Git, OCI, local)
+**Phase 5: Comprehensive CLI Migration & Advanced Shell**
+- **Overall Goal:** Complete the migration of primary CLI tools and enhance the interactive shell.
+- **CLI Cutover - `build all`:**
+    - [ ] Modify `flux-local build all` to use the `Orchestrator` for both Kustomizations and HelmReleases.
+- **Other CLI Tools:**
+    - [ ] **`flux-local diff`:** Plan and begin migration to use the `Store` and artifacts for comparisons.
+- **Shell Enhancements:**
+    - [ ] Enhance interactive shell (`flux_local/tool/shell/`) with more commands leveraging the `Store`.
+    - [ ] Improve UX of the interactive shell.
+- **Documentation:**
+    - [ ] Update CLI documentation to reflect new architecture and commands.
 
-**Current Limitations**
-- Values resolution needs integration with reconciliation
-- Limited test coverage for Helm-specific features
-- Basic error handling could be enhanced
-- Documentation needs improvement
+### Longer-Term Future Work (Post CLI Cutover)
 
-**Phase 4: Shell and CLI Improvements**
-- [x] Basic interactive shell implementation
-- [ ] Enhance shell with more commands and better UX
-- [ ] Add more CLI commands for common operations
+This corresponds to the previous high-level Phase 5 & 6, to be prioritized after the core CLI tools are stable on the new architecture.
 
-### Future Work
+**Advanced Orchestration & Feature Expansion**
+- [ ] Implement async task graph for more parallel execution in the `Orchestrator`.
+- [ ] Add support for dynamic dependency resolution beyond `spec.dependsOn`.
+- [ ] Further improve error handling and reporting across all controllers.
+- [ ] Add support for Flux Operator resources (e.g., `ResourceSet`).
 
-**Phase 5: Advanced Orchestration**
-- [ ] Implement async task graph for parallel execution
-- [ ] Add support for dynamic dependency resolution
-- [ ] Improve error handling and reporting
-- [ ] Add support for Flux Operator resources
-
-**Phase 6: Performance Optimizations**
-- [ ] Implement incremental builds
-- [ ] Add caching for build artifacts
-- [ ] Optimize memory usage for large clusters
+**Performance Optimizations**
+- [ ] Implement incremental builds where feasible (e.g., only rebuild changed Kustomizations).
+- [ ] Add caching for build artifacts beyond source code (e.g., rendered manifests).
+- [ ] Optimize memory usage for large repositories/clusters.
 
 ## Codebase Navigation
 
@@ -325,6 +343,7 @@ This section provides a quick reference for understanding and navigating the cod
 
 ## Pending Bugs & improvements
 
+<!-- Note: Items from this list are being actively integrated into the 'Active Roadmap' phases. -->
 - [ ] Does not handle target namespace
 - [ ] Does not re-reconcile on state change
 - [ ] Helm controller does not retry when HelmRepository appears
