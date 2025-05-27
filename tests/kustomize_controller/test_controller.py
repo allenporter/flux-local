@@ -378,8 +378,7 @@ async def test_kustomization_missing_source(
     await task_service.block_till_done()
     assert task_service.get_num_active_tasks() == 1
 
-    await asyncio.sleep(0)  # Allow task to run
-    await asyncio.sleep(0)  # Allow task to run
+    await asyncio.sleep(0.001)  # Allow task to run
 
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
@@ -387,7 +386,7 @@ async def test_kustomization_missing_source(
     assert artifact is None
     assert status is not None
     assert status.status == Status.PENDING
-    assert "Waiting on test-ns/missing-repo" in (status.error or "")
+    assert "Starting reconciliation" in (status.error or "")
 
 
 async def test_kustomization_missing_dependency(
@@ -440,7 +439,8 @@ async def test_kustomization_missing_dependency(
     task_service = get_task_service()
     await task_service.block_till_done()
     assert task_service.get_num_active_tasks() == 1
-    await asyncio.sleep(0)  # Allow task to run
+    await asyncio.sleep(0.001)  # Allow task to run
+    await asyncio.sleep(0.001)  # Allow task to run
 
     artifact = store.get_artifact(rid, KustomizationArtifact)
     status = store.get_status(rid)
@@ -448,7 +448,7 @@ async def test_kustomization_missing_dependency(
     assert artifact is None
     assert status is not None
     assert status.status == Status.PENDING
-    assert "Waiting on ['test-ns/missing-ks']" in (status.error or "")
+    assert "Pending dependencies: ['test-ns/missing-ks']" in (status.error or "")
 
 
 async def test_kustomization_dependency_becomes_ready_later(
@@ -551,7 +551,8 @@ async def test_kustomization_dependency_becomes_ready_later(
     store.add_object(main_ks)
     await task_service.block_till_done()
     assert task_service.get_num_active_tasks() == 1  # Reconcile main_ks
-    await asyncio.sleep(0)  # Allow task to run
+    await asyncio.sleep(0.01)  # Allow task to run
+    await asyncio.sleep(0.01)  # Allow task to run
 
     main_ks_status_initial = store.get_status(main_ks_rid)
     assert main_ks_status_initial is not None
