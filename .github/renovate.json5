@@ -8,10 +8,10 @@
   "assignees": ["allenporter"],
   "packageRules": [
     {
-      "description": "Patch updates are automatic",
+      "description": "Minor updates are automatic",
       "automerge": true,
       "automergeType": "branch",
-      "matchUpdateTypes": ["patch"]
+      "matchUpdateTypes": ["minor", "patch"]
     }
   ],
   "regexManagers": [
