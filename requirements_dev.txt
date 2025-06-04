@@ -1,25 +1,26 @@
 -e .
 black==25.1.0
-coverage==7.8.0
+coverage==7.8.2
 mypy==1.15.0
 pdoc==15.0.3
 pip==25.1.1
 pre-commit==4.2.0
 pytest-cov==6.1.1
 pytest==8.3.5
-ruff==0.11.9
+ruff==0.11.12
 
 
 aiofiles==24.1.0
 GitPython==3.1.44
-mashumaro==3.15
+mashumaro==3.16
 nest_asyncio==1.6.0
-pytest-asyncio==0.26.0
-python-slugify==8.0.4
+pytest-asyncio==1.0.0
+python-slugify>=8.0.1
 PyYAML==6.0.2
-types-aiofiles==24.1.0.20250326
-types-PyYAML==6.0.12.20250402
+types-aiofiles==24.1.0.20250516
+types-PyYAML==6.0.12.20250516
 typing-extensions==4.13.2
 types-python-slugify==8.0.2.20240310
 yamllint==1.37.1
 syrupy==4.9.1
+oras==0.2.31

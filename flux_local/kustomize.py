@@ -113,6 +113,8 @@ class Kustomize:
         """Run the kustomize command and return the result documents."""
         out = await self.run()
         for doc in yaml.safe_load_all(out):
+            if doc is None:
+                continue
             if target_namespace is not None:
                 doc = update_namespace(doc, target_namespace)
             yield doc

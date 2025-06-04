@@ -32,7 +32,7 @@ CWD = Path.cwd()
                     "ghcr.io/cloudnative-pg/postgis:17-3.4",
                 },
             },
-        )
+        ),
     ],
 )
 async def test_image_visitor(

@@ -1,19 +1,27 @@
 """OCI repository controller."""
 
-import asyncio
 import logging
 
 from flux_local.manifest import OCIRepository
+from oras.client import OrasClient
 
 from .artifact import OCIArtifact
+from .cache import get_git_cache
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def fetch_oci(obj: OCIRepository) -> OCIArtifact:
     """Fetch an OCI repository."""
+    cache = get_git_cache()
+    oci_repo_path = cache.get_repo_path(obj.url, obj.version())
+
     _LOGGER.info("Fetching OCI repository %s", obj)
-    await asyncio.sleep(0)
+    client = OrasClient()
+    res = await client.pull(target=obj.versioned_url(), outdir=str(oci_repo_path))
+    _LOGGER.debug("Downloaded resources: %s", res)
     return OCIArtifact(
-        path="/tmp/oci", digest="sha256:dummy", url="oci://example.com/repo"
+        url=obj.url,
+        ref=obj.ref,
+        local_path=str(oci_repo_path),
     )

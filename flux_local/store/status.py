@@ -18,3 +18,9 @@ class StatusInfo:
 
     status: Status
     error: str | None = None
+
+    def __str__(self) -> str:
+        """Return a string representation of the status."""
+        if self.error:
+            return f"{self.status}: {self.error}"
+        return str(self.status)

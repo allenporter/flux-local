@@ -58,6 +58,7 @@ from .manifest import (
     SECRET_KIND,
     CONFIG_MAP_KIND,
     OCIRepository,
+    HELM_REPO_KIND,
 )
 from .exceptions import InputException
 from .context import trace_context
@@ -73,8 +74,6 @@ __all__ = [
 _LOGGER = logging.getLogger(__name__)
 
 CLUSTER_KUSTOMIZE_KIND = "Kustomization"
-KUSTOMIZE_KIND = "Kustomization"
-HELM_REPO_KIND = "HelmRepository"
 HELM_RELEASE_KIND = "HelmRelease"
 GIT_REPO_KIND = "GitRepository"
 OCI_REPO_KIND = "OCIRepository"

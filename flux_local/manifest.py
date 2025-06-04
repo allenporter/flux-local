@@ -9,7 +9,7 @@ import base64
 from dataclasses import dataclass, field
 import logging
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Optional, cast, ClassVar
 
 import aiofiles
 from mashumaro.codecs.yaml import yaml_decode, yaml_encode
@@ -40,6 +40,7 @@ FLUXTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
 KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
+GIT_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
 OCI_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
 CRD_KIND = "CustomResourceDefinition"
 SECRET_KIND = "Secret"
@@ -47,9 +48,11 @@ CONFIG_MAP_KIND = "ConfigMap"
 DEFAULT_NAMESPACE = "flux-system"
 VALUE_PLACEHOLDER_TEMPLATE = "..PLACEHOLDER_{name}.."
 HELM_RELEASE = "HelmRelease"
-HELM_REPOSITORY = "HelmRepository"
+HELM_REPO_KIND = "HelmRepository"
+HELM_CHART = "HelmChart"
 GIT_REPOSITORY = "GitRepository"
 OCI_REPOSITORY = "OCIRepository"
+KUSTOMIZE_KIND = "Kustomization"
 
 
 REPO_TYPE_DEFAULT = "default"
@@ -103,10 +106,54 @@ class NamedResource:
             return f"{self.namespace}/{self.name}"
         return self.name
 
+    def __str__(self) -> str:
+        """Return the kind and namespaced name concatenated as an id."""
+        return f"{self.kind}/{self.namespaced_name}"
+
+
+@dataclass
+class RawObject(BaseManifest):
+    """Raw kubernetes object."""
+
+    kind: str
+    """The kind of the object."""
+
+    api_version: str
+    """The apiVersion of the object."""
+
+    name: str
+    """The name of the object."""
+
+    namespace: str | None
+    """The namespace of the object."""
+
+    spec: dict[str, Any] | None = None
+    """The spec of the object."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "RawObject":
+        """Parse a RawObject from a raw kubernetes object."""
+        if not (api_version := doc.get("apiVersion")):
+            raise InputException("Invalid object missing apiVersion: {doc}")
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid object missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid object missing metadata.name: {doc}")
+        return cls(
+            kind=doc["kind"],
+            api_version=api_version,
+            name=name,
+            namespace=metadata.get("namespace", DEFAULT_NAMESPACE),
+            spec=doc.get("spec", {}),
+        )
+
 
 @dataclass
 class HelmChart(BaseManifest):
     """A representation of an instantiation of a chart for a HelmRelease."""
+
+    kind: ClassVar[str] = HELM_CHART
+    """The kind of the object."""
 
     name: str
     """The name of the chart within the HelmRepository."""
@@ -120,7 +167,7 @@ class HelmChart(BaseManifest):
     repo_namespace: str
     """The namespace of the repository."""
 
-    repo_kind: str = HELM_REPOSITORY
+    repo_kind: str = HELM_REPO_KIND
     """The kind of the soruceRef of the repository (e.g. HelmRepository, GitRepository)."""
 
     @classmethod
@@ -164,7 +211,7 @@ class HelmChart(BaseManifest):
             version=version,
             repo_name=source_ref["name"],
             repo_namespace=source_ref.get("namespace", default_namespace),
-            repo_kind=source_ref.get("kind", HELM_REPOSITORY),
+            repo_kind=source_ref.get("kind", HELM_REPO_KIND),
         )
 
     @property
@@ -205,6 +252,9 @@ class ValuesReference(BaseManifest):
 @dataclass
 class HelmRelease(BaseManifest):
     """A representation of a Flux HelmRelease."""
+
+    kind: ClassVar[str] = HELM_RELEASE
+    """The kind of the object."""
 
     name: str
     """The name of the HelmRelease."""
@@ -338,6 +388,9 @@ class HelmRelease(BaseManifest):
 class HelmRepository(BaseManifest):
     """A representation of a flux HelmRepository."""
 
+    kind: ClassVar[str] = HELM_REPO_KIND
+    """The kind of the object."""
+
     name: str
     """The name of the HelmRepository."""
 
@@ -376,10 +429,145 @@ class HelmRepository(BaseManifest):
         """Identifier for the HelmRepository."""
         return f"{self.namespace}-{self.name}"
 
+    def helm_chart_name(self, chart: HelmChart) -> str:
+        """Get the name or URL for a specific chart for helm template."""
+        if self.repo_type == REPO_TYPE_OCI:
+            # For OCI repositories, we need to append the chart short name to the URL
+            return f"{self.url}/{chart.name}"
+        # For regular helm repositories, we just return the full chart name
+        return chart.chart_name
+
+
+@dataclass
+class GitRepositoryRef:
+    """GitRepositoryRef defines the Git ref used for pull and checkout operations."""
+
+    branch: str | None = field(default=None)
+    """The Git branch to checkout, defaults to master."""
+
+    tag: str | None = field(default=None)
+    """The Git tag to checkout."""
+
+    semver: str | None = field(default=None)
+    """The Git tag semver expression."""
+
+    commit: str | None = field(default=None)
+    """The Git commit SHA to checkout."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "GitRepositoryRef":
+        """Parse a GitRepositoryRef from a kubernetes resource."""
+        return cls(
+            branch=doc.get("branch"),
+            tag=doc.get("tag"),
+            semver=doc.get("semver"),
+            commit=doc.get("commit"),
+        )
+
+    @property
+    def ref_str(self) -> str | None:
+        """Get the reference string for the GitRepository."""
+        if self.commit:
+            return f"commit:{self.commit}"
+        if self.tag:
+            return f"tag:{self.tag}"
+        if self.branch:
+            return f"branch:{self.branch}"
+        if self.semver:
+            return f"semver:{self.semver}"
+        return None
+
+    class Config(BaseConfig):
+        omit_none = True
+
+
+@dataclass
+class GitRepository(BaseManifest):
+    """GitRepository represents a Git repository."""
+
+    kind: ClassVar[str] = GIT_REPOSITORY
+    """The kind of the object."""
+
+    name: str
+    """The name of the GitRepository."""
+
+    namespace: str
+    """The namespace of owning the GitRepository."""
+
+    url: str
+    """The URL to the repository."""
+
+    ref: GitRepositoryRef | None = None
+    """The Git reference to use for pull and checkout operations."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "GitRepository":
+        """Parse a GitRepxository from a kubernetes resource."""
+        _check_version(doc, GIT_REPOSITORY_DOMAIN)
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not (name := metadata.get("name")):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        if not (namespace := metadata.get("namespace")):
+            raise InputException(f"Invalid {cls} missing metadata.namespace: {doc}")
+        if not (spec := doc.get("spec")):
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
+        if not (url := spec.get("url")):
+            raise InputException(f"Invalid {cls} missing spec.url: {doc}")
+
+        ref = None
+        if ref_dict := spec.get("ref"):
+            ref = GitRepositoryRef.parse_doc(ref_dict)
+
+        return cls(
+            name=name,
+            namespace=namespace,
+            url=url,
+            ref=ref,
+        )
+
+    @property
+    def repo_name(self) -> str:
+        """Identifier for the GitRepository."""
+        return f"{self.namespace}-{self.name}"
+
+
+@dataclass
+class OCIRepositoryRef:
+    """OCIRepositoryRef defines the image reference for the OCIRepository's URL."""
+
+    digest: str | None = None
+    """The image digest to pull, takes precedence over SemVer."""
+
+    tag: str | None = None
+    """The image tag to pull, defaults to latest."""
+
+    semver: str | None = None
+    """The range of tags to pull selecting the latest within the range."""
+
+    semver_filter: str | None = None
+    """A regex pattern to filter the tags within the SemVer range."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "OCIRepositoryRef":
+        """Parse a dictionary into an OCIRepositoryRef."""
+        return cls(
+            digest=doc.get("digest"),
+            tag=doc.get("tag"),
+            semver=doc.get("semver"),
+            semver_filter=doc.get("semverFilter"),
+        )
+
+    class Config(BaseConfig):
+        omit_none = True
+
 
 @dataclass
 class OCIRepository(BaseManifest):
     """A representation of a flux OCIRepository."""
+
+    kind: ClassVar[str] = OCI_REPOSITORY
+    """The kind of the object."""
 
     name: str
     """The name of the OCIRepository."""
@@ -390,8 +578,8 @@ class OCIRepository(BaseManifest):
     url: str
     """The URL to the repository."""
 
-    ref_tag: str | None = None
-    """The version tag of the repository."""
+    ref: OCIRepositoryRef | None = None
+    """The OCI reference (tag or digest) to use."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "OCIRepository":
@@ -407,13 +595,42 @@ class OCIRepository(BaseManifest):
             raise InputException(f"Invalid {cls} missing spec: {doc}")
         if not (url := spec.get("url")):
             raise InputException(f"Invalid {cls} missing spec.url: {doc}")
-        ref_tag = spec.get("ref", {}).get("tag")
+        repo_ref: OCIRepositoryRef | None = None
+        if ref := spec.get("ref"):
+            repo_ref = OCIRepositoryRef.parse_doc(ref)
         return cls(
             name=name,
             namespace=namespace,
             url=url,
-            ref_tag=ref_tag,
+            ref=repo_ref,
         )
+
+    def version(self) -> str | None:
+        """Get the version of the OCI repository."""
+        if self.ref is not None:
+            if self.ref.semver_filter:
+                raise ValueError(
+                    f"OCIRepository has unsupported field semvar_filter: {self.ref}"
+                )
+            if self.ref.digest:
+                return self.ref.digest
+            if self.ref.tag:
+                return self.ref.tag
+            if self.ref.semver:
+                return self.ref.semver
+        return None
+
+    def versioned_url(self) -> str:
+        """Get the URL with the version."""
+        if self.ref is None:
+            return self.url
+        if self.ref.digest:
+            return f"{self.url}@{self.ref.digest}"
+        if self.ref.tag:
+            return f"{self.url}:{self.ref.tag}"
+        if self.ref.semver:
+            return f"{self.url}:{self.ref.semver}"
+        return self.url
 
     @property
     def repo_name(self) -> str:
@@ -425,8 +642,11 @@ class OCIRepository(BaseManifest):
 class ConfigMap(BaseManifest):
     """A ConfigMap is an API object used to store data in key-value pairs."""
 
+    kind: ClassVar[str] = CONFIG_MAP_KIND
+    """The kind of the ConfigMap."""
+
     name: str
-    """The name of the kustomization."""
+    """The name of the ConfigMap."""
 
     namespace: str | None = None
     """The namespace of the kustomization."""
@@ -460,11 +680,14 @@ class ConfigMap(BaseManifest):
 class Secret(BaseManifest):
     """A Secret contains a small amount of sensitive data."""
 
+    kind: ClassVar[str] = SECRET_KIND
+    """The kind of the Secret."""
+
     name: str
-    """The name of the kustomization."""
+    """The name of the Secret."""
 
     namespace: str | None = None
-    """The namespace of the kustomization."""
+    """The namespace of the Secret."""
 
     data: dict[str, Any] | None = field(metadata={"serialize": "omit"}, default=None)
     """The data in the Secret."""
@@ -520,6 +743,9 @@ class Kustomization(BaseManifest):
     contains typical `kustomize` Kustomizations on local disk that
     may be flat or contain overlays.
     """
+
+    kind: ClassVar[str] = KUSTOMIZE_KIND
+    """The kind of the object."""
 
     name: str
     """The name of the kustomization."""
@@ -745,3 +971,31 @@ async def update_manifest(manifest_path: Path, manifest: Manifest) -> None:
         return
     async with aiofiles.open(str(manifest_path), mode="w") as manifest_file:
         await manifest_file.write(new_content)
+
+
+def parse_raw_obj(obj: dict[str, Any]) -> BaseManifest:
+    """Parse a raw kubernetes object into a BaseManifest."""
+    if not (kind := obj.get("kind")):
+        raise InputException("Invalid object missing kind: {obj}")
+    if not (api_version := obj.get("apiVersion")):
+        raise InputException("Invalid object missing apiVersion: {obj}")
+    if kind == KUSTOMIZE_KIND and api_version.startswith(FLUXTOMIZE_DOMAIN):
+        return Kustomization.parse_doc(obj)
+    if kind == HELM_RELEASE:
+        return HelmRelease.parse_doc(obj)
+    if kind == GIT_REPOSITORY:
+        return GitRepository.parse_doc(obj)
+    if kind == OCI_REPOSITORY:
+        return OCIRepository.parse_doc(obj)
+    if kind == CONFIG_MAP_KIND:
+        return ConfigMap.parse_doc(obj)
+    if kind == SECRET_KIND:
+        return Secret.parse_doc(obj)
+    return RawObject.parse_doc(obj)
+
+
+def is_kustomization(obj: dict[str, Any]) -> bool:
+    """Check if the object is a Kustomization."""
+    return obj.get("kind") == KUSTOMIZE_KIND and obj.get("apiVersion", "").startswith(
+        KUSTOMIZE_DOMAIN
+    )

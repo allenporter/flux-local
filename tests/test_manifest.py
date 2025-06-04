@@ -7,12 +7,18 @@ import yaml
 
 from flux_local.manifest import (
     Cluster,
+    GitRepositoryRef,
     HelmRelease,
+    Kustomization,
+    ConfigMap,
+    RawObject,
+    parse_raw_obj,
     HelmRepository,
     Manifest,
+    NamedResource,
+    OCIRepository,
     read_manifest,
     write_manifest,
-    NamedResource,
 )
 
 TESTDATA_DIR = Path("tests/testdata/cluster/infrastructure")
@@ -69,16 +75,41 @@ def test_parse_helm_repository() -> None:
         )
     )
     assert len(docs) == 3
-    repo = HelmRepository.parse_doc(docs[0])
-    assert repo.name == "bitnami"
-    assert repo.namespace == "flux-system"
-    assert repo.url == "https://charts.bitnami.com/bitnami"
-    assert repo.repo_type == "default"
-    repo = HelmRepository.parse_doc(docs[1])
-    assert repo.name == "podinfo"
-    assert repo.namespace == "flux-system"
-    assert repo.url == "oci://ghcr.io/stefanprodan/charts"
-    assert repo.repo_type == "oci"
+    helm_repo = HelmRepository.parse_doc(docs[0])
+    assert helm_repo.name == "bitnami"
+    assert helm_repo.namespace == "flux-system"
+    assert helm_repo.url == "https://charts.bitnami.com/bitnami"
+    oci_repo = OCIRepository.parse_doc(docs[1])
+    assert oci_repo.name == "podinfo"
+    assert oci_repo.namespace == "flux-system"
+    assert oci_repo.url == "oci://ghcr.io/stefanprodan/charts"
+
+
+def test_git_repository_ref_str() -> None:
+    """Test GitRepositoryRef ref_str property."""
+    # Test with commit
+    ref = GitRepositoryRef(commit="abc123")
+    assert ref.ref_str == "commit:abc123"
+
+    # Test with tag
+    ref = GitRepositoryRef(tag="v1.0.0")
+    assert ref.ref_str == "tag:v1.0.0"
+
+    # Test with branch
+    ref = GitRepositoryRef(branch="main")
+    assert ref.ref_str == "branch:main"
+
+    # Test with semver
+    ref = GitRepositoryRef(semver="1.0.0")
+    assert ref.ref_str == "semver:1.0.0"
+
+    # Test with no references
+    ref = GitRepositoryRef()
+    assert ref.ref_str is None
+
+    # Test with multiple references (should use first non-None)
+    ref = GitRepositoryRef(commit="abc123", tag="v1.0.0")
+    assert ref.ref_str == "commit:abc123"
 
 
 async def test_write_manifest_file() -> None:
@@ -143,6 +174,65 @@ def test_parse_helmrelease_chartref() -> None:
     assert release.chart.repo_name == "podinfo"
     assert release.chart.repo_namespace == "default"
     assert release.values
+
+
+def test_parse_raw_obj() -> None:
+    """Test parsing raw objects into BaseManifest."""
+    # Test parsing a Kustomization
+    kustomization = {
+        "apiVersion": "kustomize.toolkit.fluxcd.io/v1",
+        "kind": "Kustomization",
+        "metadata": {"name": "app", "namespace": "default"},
+        "spec": {
+            "interval": "10m",
+            "targetNamespace": "default",
+            "sourceRef": {
+                "kind": "GitRepository",
+                "name": "git-repo",
+                "namespace": "test-ns",
+            },
+            "path": "./app",
+        },
+    }
+    parsed = parse_raw_obj(kustomization)
+    assert isinstance(parsed, Kustomization)
+    assert parsed.name == "app"
+    assert parsed.namespace == "default"
+    assert parsed.path == "./app"
+
+    # Test parsing a ConfigMap
+    configmap = {
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {"name": "app-config", "namespace": "default"},
+        "data": {"key": "value"},
+    }
+    parsed = parse_raw_obj(configmap)
+    assert isinstance(parsed, ConfigMap)
+    assert parsed.name == "app-config"
+    assert parsed.namespace == "default"
+    assert parsed.data == {"key": "value"}
+
+
+def test_parse_raw_doc() -> None:
+    """Test parsing a raw YAML document into RawObject."""
+    yaml_doc = """
+apiVersion: v1
+kind: UnknownKind
+metadata:
+  name: my-object
+  namespace: default
+spec:
+  someField: value
+"""
+    doc = yaml.load(yaml_doc, Loader=yaml.CLoader)
+    parsed = parse_raw_obj(doc)
+    assert isinstance(parsed, RawObject)
+    assert parsed.kind == "UnknownKind"
+    assert parsed.api_version == "v1"
+    assert parsed.name == "my-object"
+    assert parsed.namespace == "default"
+    assert parsed.spec == {"someField": "value"}
 
 
 def test_helmrelease_dependencies() -> None:

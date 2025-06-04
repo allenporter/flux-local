@@ -12,6 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 FAIL = "[DIAGNOSTICS FAIL]"
 OK = "[DIAGNOSTICS OK]"
+IGNORE_DIRS = {"venv", ".venv"}
 
 
 class DiagnosticsAction:
@@ -49,12 +50,12 @@ class DiagnosticsAction:
 
         # Parse directories to ignore from `.krmignore`
         krmignore = pathlib.Path(path) / ".krmignore"
-        ignoredirs = []
+        ignoredirs = list(IGNORE_DIRS)
         if krmignore.exists():
             with krmignore.open() as fd:
-                ignoredirs = [
+                ignoredirs.extend(
                     str(pathlib.Path(line.strip())) for line in fd.readlines()
-                ]
+                )
 
         errors = []
         for root, dirs, files in os.walk(str(path)):

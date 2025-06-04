@@ -13,6 +13,7 @@ spec:
         kind: HelmRepository
         name: podinfo
         namespace: flux-system
+      version: 6.8.0
   interval: 50m
   install:
     remediation:

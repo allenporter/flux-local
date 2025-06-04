@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Flux CLI
-        uses: fluxcd/flux2/action@v2.5.1
+        uses: fluxcd/flux2/action@v2.6.0
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
@@ -34,7 +34,7 @@ jobs:
       - name: Test with pytest
         run: |
           SKIP_DIFF_TESTS=1 pytest --cov=flux_local --cov-report=term-missing --snapshot-warn-unused
-      - uses: codecov/codecov-action@v5.4.2
+      - uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           env_vars: OS,PYTHON

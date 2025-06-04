@@ -25,10 +25,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Setup Flux CLI
-      uses: fluxcd/flux2/action@v2.5.1
+      uses: fluxcd/flux2/action@v2.6.0
     - uses: ./action/test
       with:
         enable-helm: true
         sources: cluster=tests/testdata/cluster3,flux-system,home-ops-kubernetes
         path: ${{ matrix.cluster_path }}
         api-versions: batch/v1/CronJob
+        debug: true

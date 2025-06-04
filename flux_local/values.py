@@ -201,7 +201,7 @@ def _update_helmrelease_values(
     if ref.target_path:
 
         raw_parts = re.split(r"(?<!\\)\.", ref.target_path)
-        parts = [re.sub(r'\\(.)', r'\1', raw_part) for raw_part in raw_parts]
+        parts = [re.sub(r"\\(.)", r"\1", raw_part) for raw_part in raw_parts]
 
         inner_values = values
         for part in parts[:-1]:
