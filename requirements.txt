@@ -7,4 +7,4 @@ pytest-asyncio==1.0.0
 pytest-cov==6.2.1
 PyYAML==6.0.2
 python-slugify==8.0.4
-oras==0.2.35
+oras==0.2.37
