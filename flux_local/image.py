@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from . import git_repo, manifest
+from .exceptions import FluxException
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +41,10 @@ def _extract_images(kind: str, doc: dict[str, Any]) -> set[str]:
 
     for key, value in doc.items():
         if key == image_key:
+            if not isinstance(value, str):
+                raise ValueError(
+                    f"Expected string for image key '{image_key}', got type {type(value).__name__}: {value}"
+                )
             images.add(value)
         elif isinstance(value, dict):
             images.update(_extract_images(kind, value))
@@ -71,7 +76,12 @@ class ImageVisitor:
             Updates the image set with the images found in the document.
             """
             kind: str = doc["kind"]
-            images = _extract_images(kind, doc)
+            try:
+                images = _extract_images(kind, doc)
+            except ValueError as err:
+                raise FluxException(
+                    f"Error extracting images from document '{name}' of kind '{kind}': {err}"
+                )
             if not images:
                 return
             if name in self.images:
