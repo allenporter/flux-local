@@ -51,9 +51,10 @@
 # ---
 # name: test_get_hr[cluster7]
   '''
-  NAMESPACE      NAME           REVISION    CHART                       SOURCE            
-  flux-system    cloudflared    None        flux-system-app-template    app-template      
-  database       postgresql     12.7.1      database-postgresql         bitnami-charts    
+  NAMESPACE      NAME                REVISION    CHART                       SOURCE            
+  flux-system    cloudflared         None        flux-system-app-template    app-template      
+  database       postgresql          12.7.1      database-postgresql         bitnami-charts    
+  flux-system    unifi-controller    None        flux-system-app-template    app-template      
   
   '''
 # ---
