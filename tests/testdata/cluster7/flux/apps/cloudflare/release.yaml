@@ -17,3 +17,13 @@ spec:
     cleanupOnFail: true
     remediation:
       retries: 3
+  values:
+    controllers:
+      cloudflared:
+        replicas: 2
+        strategy: RollingUpdate
+        containers:
+          app:
+            image:
+              repository: docker.io/cloudflare/cloudflared
+              tag: 2025.6.1
