@@ -136,6 +136,47 @@ async def test_helm_repository_causes_diff() -> None:
     ]
 
 
+CLUSTER7_PATH = pathlib.Path("tests/testdata/cluster7")
+
+
+async def test_oci_repository_diff() -> None:
+    """Test get_helm_release_diff_keys with a diff in the input dependencies."""
+
+    content, helm_visitor = await visit_helm_content(CLUSTER7_PATH)
+    with mirror_worktree(CLUSTER7_PATH) as new_cluster_path:
+
+        # Generate a diff by changing a value in the HelmRelease
+        charts_path = new_cluster_path / "flux/charts/app-template.yaml"
+        charts_doc = list(
+            yaml.load_all(charts_path.read_text(), Loader=yaml.SafeLoader)
+        )
+        assert len(charts_doc) == 1
+        assert charts_doc[0]["kind"] == "OCIRepository"
+        assert (
+            charts_doc[0]["spec"]["url"] == "oci://ghcr.io/bjw-s-labs/helm/app-template"
+        )
+        charts_doc[0]["spec"]["ref"]["tag"] = "4.1.1"
+        charts_path.write_text(yaml.dump_all(charts_doc))
+
+        content_new, helm_visitor_new = await visit_helm_content(new_cluster_path)
+
+    dep_map = build_helm_dependency_map(helm_visitor, helm_visitor_new)
+    assert get_helm_release_diff_keys(content, content_new, dep_map) == [
+        ResourceKey(
+            kustomization_path=str(CLUSTER7_PATH / "flux/apps"),
+            kind="HelmRelease",
+            namespace="flux-system",
+            name="cloudflared",
+        ),
+        ResourceKey(
+            kustomization_path=str(CLUSTER7_PATH / "flux/apps"),
+            kind="HelmRelease",
+            namespace="flux-system",
+            name="unifi-controller",
+        ),
+    ]
+
+
 async def test_merge_helm_releases() -> None:
     """Test merge_helm_releases."""
 
