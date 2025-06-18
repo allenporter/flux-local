@@ -10,3 +10,23 @@ spec:
     kind: OCIRepository
     name: app-template
     namespace: flux-system
+  values:
+    controllers:
+      main:
+        type: statefulset
+        containers:
+          main:
+            image:
+              repository: jacobalberty/unifi
+              tag: v9.1.120
+            env:
+              TZ: America/Los_Angeles
+              RUNAS_UID0: "false"
+              UNIFI_UID: "999"
+              UNIFI_GID: "999"
+              JVM_INIT_HEAP_SIZE:
+              JVM_MAX_HEAP_SIZE: 1024M
+            resources:
+              requests:
+                memory: 1.2Gi
+                cpu: 50m
