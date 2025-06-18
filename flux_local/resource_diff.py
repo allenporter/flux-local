@@ -211,13 +211,13 @@ def merge_named_resources(
 
 def build_helm_dependency_map(
     a_visitor: HelmVisitor, b_visitor: HelmVisitor
-) -> dict[NamedResource, NamedResource]:
-    """Return a map of all resources to the HelmRelease resource that depends on them.
+) -> dict[NamedResource, list[NamedResource]]:
+    """Return a map of all resources to the list of HelmReleases that depends on them.
 
     This is a mapping of all the named resources. If any of them changed, then we
     need to diff the HelmRelease to look for changes in the rendered output.
     """
-    results: dict[NamedResource, NamedResource] = {}
+    results: dict[NamedResource, list[NamedResource]] = {}
     for helmrelease_a, helmrelease_b in merge_helm_releases(
         a_visitor.releases, b_visitor.releases
     ):
@@ -230,13 +230,17 @@ def build_helm_dependency_map(
             name=hr.name,
         )
         for named_resource in merge_named_resources(resources_a, resources_b):
-            results[named_resource] = hr_named_resource
+            results[named_resource] = results.get(named_resource, []) + [
+                hr_named_resource
+            ]
 
     return results
 
 
 def get_helm_release_diff_keys(
-    a: ObjectOutput, b: ObjectOutput, dependency_map: dict[NamedResource, NamedResource]
+    a: ObjectOutput,
+    b: ObjectOutput,
+    dependency_map: dict[NamedResource, list[NamedResource]],
 ) -> list[ResourceKey]:
     """Return HelmRelease resource keys with diffs, by cluster."""
 
@@ -250,17 +254,17 @@ def get_helm_release_diff_keys(
         b_resources = b.content.get(kustomization_key, {})
         for resource_key in _unique_keys(a_resources, b_resources):
             if (
-                hr_named_resource := dependency_map.get(resource_key.named_resource)
+                hr_named_resources := dependency_map.get(resource_key.named_resource)
             ) is None:
                 continue
             if a_resources.get(resource_key) != b_resources.get(resource_key):
                 _LOGGER.info(
-                    "HelmRelease %s detected potential change in resource %s (Kustomization %s)",
-                    hr_named_resource.namespaced_name,
+                    "HelmReleases [%s] detected potential change in resource %s (Kustomization %s)",
+                    [hr.namespaced_name for hr in hr_named_resources],
                     resource_key.namespaced_name,
                     kustomization_key.namespaced_name,
                 )
-                hrs_to_check.add(hr_named_resource)
+                hrs_to_check.update(set(hr_named_resources))
 
     # Pass #2: Find the ResourceKey of all the changed HelmReleases
     results: list[ResourceKey] = []
