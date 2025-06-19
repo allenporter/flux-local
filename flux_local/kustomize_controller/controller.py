@@ -34,6 +34,7 @@ from flux_local.manifest import (
 )
 from flux_local.exceptions import (
     InputException,
+    KustomizeException,
 )
 from flux_local.kustomize import flux_build
 from flux_local.task import get_task_service
@@ -359,6 +360,11 @@ class KustomizationController:
                 kustomization.namespaced_name,
             )
             return objects
+
+        except KustomizeException as e:
+            error_msg = f"Failed to build kustomization {kustomization.namespaced_name}: {str(e)}"
+            _LOGGER.info(error_msg)
+            raise InputException(error_msg) from e
 
         except Exception as e:
             error_msg = f"Failed to build kustomization {kustomization.namespaced_name}: {str(e)}"
