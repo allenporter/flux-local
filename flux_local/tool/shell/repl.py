@@ -252,7 +252,6 @@ class FluxShell(cmd.Cmd):
             return args
 
         except SystemExit:
-            # Handle argparse exit
             # Handle argparse exit from help or error
             return None
 

@@ -169,7 +169,7 @@ class ResourceLoader:
                 _LOGGER.info("Bootstrapping resource %s from %s", resource.name, path)
                 self.store.add_object(resource)
         except FluxException as e:
-            _LOGGER.warning("Skipping document in %s: %s", path, e)
+            _LOGGER.info("Skipping document in %s: %s", path, e)
         except Exception as e:
             _LOGGER.error(
                 "Failed to process document from %s: %s", path, e, exc_info=True

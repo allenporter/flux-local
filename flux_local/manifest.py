@@ -976,9 +976,9 @@ async def update_manifest(manifest_path: Path, manifest: Manifest) -> None:
 def parse_raw_obj(obj: dict[str, Any]) -> BaseManifest:
     """Parse a raw kubernetes object into a BaseManifest."""
     if not (kind := obj.get("kind")):
-        raise InputException("Invalid object missing kind: {obj}")
+        raise InputException(f"Invalid object missing kind: {obj}")
     if not (api_version := obj.get("apiVersion")):
-        raise InputException("Invalid object missing apiVersion: {obj}")
+        raise InputException(f"Invalid object missing apiVersion: {obj}")
     if kind == KUSTOMIZE_KIND and api_version.startswith(FLUXTOMIZE_DOMAIN):
         return Kustomization.parse_doc(obj)
     if kind == HELM_RELEASE:

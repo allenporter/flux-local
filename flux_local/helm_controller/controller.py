@@ -12,7 +12,7 @@ import asyncio
 import logging
 from typing import Any
 
-from flux_local.exceptions import InputException
+from flux_local.exceptions import InputException, HelmException
 from flux_local.helm import Helm, Options, LocalGitRepository
 from flux_local.manifest import (
     NamedResource,
@@ -120,6 +120,16 @@ class HelmReleaseController:
 
         try:
             await self.reconcile_helm_release(resource_id, obj)
+        except HelmControllerException as e:
+            _LOGGER.warning(
+                "Failed to reconcile HelmRelease %s: %s", resource_id, str(e)
+            )
+            # Update status with error
+            self.store.update_status(
+                resource_id,
+                Status.FAILED,
+                error=f"Reconciliation failed: {type(e).__name__}: {str(e)}",
+            )
         except Exception as e:
             _LOGGER.exception(
                 "Failed to reconcile HelmRelease %s: %s", resource_id, str(e)
@@ -166,7 +176,12 @@ class HelmReleaseController:
 
         # Use Helm's template functionality
         # TODO: Add a flag to limit helm concurrency for buggy helm clients
-        kustomize = await self.helm.template(helm_release, options)
+        try:
+            kustomize = await self.helm.template(helm_release, options)
+        except HelmException as err:
+            raise HelmControllerException(
+                f"Failed to template HelmRelease {resource_id}: {err}"
+            ) from err
         objects = await kustomize.objects()
         _LOGGER.info(
             "Chart %s rendered %d objects", helm_release.chart.name, len(objects)
