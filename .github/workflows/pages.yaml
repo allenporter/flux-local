@@ -18,9 +18,6 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
-env:
-  PYTHON_VERSION: 3.13
-
 jobs:
   deploy:
     environment:
@@ -34,7 +31,6 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
           cache-dependency-glob: "requirements_dev.txt"
           activate-environment: true
