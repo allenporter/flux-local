@@ -1,0 +1,10 @@
+diff a/.pre-commit-config.yaml b/.pre-commit-config.yaml	(rejected hunks)
+@@ -31,7 +31,7 @@ repos:
+     hooks:
+       - id: codespell
+   - repo: https://github.com/adrienverge/yamllint.git
+-    rev: v1.35.1
++    rev: v1.37.1
+     hooks:
+       - id: yamllint
+         exclude: '^tests/tool/testdata/.*\.yaml$'

@@ -1,0 +1,10 @@
+diff a/.github/workflows/lint.yaml b/.github/workflows/lint.yaml	(rejected hunks)
+@@ -19,7 +19,7 @@ jobs:
+     steps:
+       - uses: actions/checkout@v4
+       - uses: astral-sh/ruff-action@v3
+-      - uses: codespell-project/actions-codespell@v2.0
++      - uses: codespell-project/actions-codespell@v2.1
+         with:
+           check_hidden: false
+       - name: Run yamllint
