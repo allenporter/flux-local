@@ -9,7 +9,7 @@ COPY setup.cfg .
 
 RUN pip install -e .
 
-COPY --from=ghcr.io/fluxcd/flux-cli:v2.6.2              /usr/local/bin/flux              /usr/local/bin/flux
+COPY --from=ghcr.io/fluxcd/flux-cli:v2.6.3              /usr/local/bin/flux              /usr/local/bin/flux
 COPY --from=docker.io/alpine/helm:3.18.3                /usr/bin/helm                    /usr/local/bin/helm
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.6.0  /app/kustomize                   /usr/local/bin/kustomize
 
