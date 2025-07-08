@@ -25,7 +25,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Setup Flux CLI
-      uses: fluxcd/flux2/action@v2.6.3
+      uses: fluxcd/flux2/action@v2.6.4
     - uses: ./action/test
       with:
         enable-helm: true
