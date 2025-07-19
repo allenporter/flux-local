@@ -1,0 +1,9 @@
+diff a/.pre-commit-config.yaml b/.pre-commit-config.yaml	(rejected hunks)
+@@ -39,7 +39,3 @@ repos:
+           - --strict
+           - -c
+           - ".yaml-lint.yaml"
+-  - repo: https://github.com/asottile/setup-cfg-fmt
+-    rev: v2.5.0
+-    hooks:
+-      - id: setup-cfg-fmt
