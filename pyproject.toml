@@ -1,6 +1,40 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=77.0"]
+
+[project]
+name = "flux_local"
+version = "7.5.6"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+description = "flux-local is a set of tools and libraries for managing a local flux gitops repository focused on validation steps to help improve quality of commits, PRs, and general local testing."
+readme = "README.md"
+authors = [{ name = "Allen Porter", email = "allen.porter@gmail.com" }]
+requires-python = ">=3.10"
+classifiers = []
+dependencies = [
+  "GitPython>=3.1.30",
+  "PyYAML>=6.0",
+  "aiofiles>=22.1.0",
+  "mashumaro>=3.12",
+  "nest-asyncio>=1.5.6",
+  "oras>=0.2.31",
+  "pytest>=7.2.1",
+  "pytest-asyncio>=0.20.3",
+  "python-slugify>=8.0.1",
+]
+
+[project.urls]
+Source = "https://github.com/allenporter/flux_local"
+
+[tool.setuptools.packages.find]
+include = ["flux_local*"]
+
+[project.entry-points."console_scripts"]
+flux-local  = "flux_local.tool.flux_local:main"
+
 [tool.mypy]
 exclude = [
-  "setup.py",
   "venv/",
 ]
 platform = "linux"

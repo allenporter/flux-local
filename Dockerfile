@@ -4,8 +4,7 @@ RUN apk add --no-cache ca-certificates git
 
 WORKDIR /app
 COPY flux_local/ ./flux_local
-COPY setup.py .
-COPY setup.cfg .
+COPY pyproject.toml .
 
 RUN pip install -e .
 
