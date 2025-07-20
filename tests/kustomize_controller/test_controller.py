@@ -120,6 +120,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - config_map.yaml
+- helm_repo.yaml
+- helm_release.yaml
 """,
         encoding="utf-8",
     )
@@ -134,6 +136,42 @@ metadata:
   name: app-config
 data:
   key: value
+""",
+        encoding="utf-8",
+    )
+
+    helm_repo_path = app_dir / "helm_repo.yaml"
+    helm_repo_path.write_text(
+        """apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: podinfo
+  namespace: flux-system
+spec:
+  interval: 5m
+  type: oci
+  url: oci://ghcr.io/stefanprodan/charts
+""",
+        encoding="utf-8",
+    )
+
+    helm_release_path = app_dir / "helm_release.yaml"
+    helm_release_path.write_text(
+        """
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: podinfo
+  namespace: podinfo
+spec:
+  releaseName: podinfo
+  chart:
+    spec:
+      chart: podinfo
+      sourceRef:
+        kind: HelmRepository
+        name: podinfo
+        namespace: flux-system
 """,
         encoding="utf-8",
     )

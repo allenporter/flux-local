@@ -51,6 +51,7 @@ HELM_RELEASE = "HelmRelease"
 HELM_REPO_KIND = "HelmRepository"
 HELM_CHART = "HelmChart"
 GIT_REPOSITORY = "GitRepository"
+HELM_REPOSITORY = "HelmRepository"
 OCI_REPOSITORY = "OCIRepository"
 KUSTOMIZE_KIND = "Kustomization"
 
@@ -983,6 +984,8 @@ def parse_raw_obj(obj: dict[str, Any]) -> BaseManifest:
         return Kustomization.parse_doc(obj)
     if kind == HELM_RELEASE:
         return HelmRelease.parse_doc(obj)
+    if kind == HELM_REPOSITORY:
+        return HelmRepository.parse_doc(obj)
     if kind == GIT_REPOSITORY:
         return GitRepository.parse_doc(obj)
     if kind == OCI_REPOSITORY:

@@ -154,16 +154,16 @@ class HelmReleaseController:
         """
         _LOGGER.info("Reconciling HelmRelease %s", resource_id)
 
-        if self._need_update:
-            _LOGGER.info("Updating Helm repositories")
-            await self.helm.update()
-            self._need_update = False
-
         # Update status to processing
         self.store.update_status(resource_id, Status.PENDING)
 
         # Wait for dependencies to be ready
         await self.wait_for_dependencies(helm_release)
+
+        if self._need_update:
+            _LOGGER.info("Updating Helm repositories")
+            await self.helm.update()
+            self._need_update = False
 
         # TODO: Exercise ValuesFrom logic
 
