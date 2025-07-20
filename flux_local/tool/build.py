@@ -13,7 +13,7 @@ import yaml
 
 from flux_local import git_repo
 from flux_local.store import InMemoryStore
-from flux_local.orchestrator import Orchestrator, OrchestratorConfig
+from flux_local.orchestrator import Orchestrator, OrchestratorConfig, BootstrapOptions
 from flux_local.manifest import KUSTOMIZE_KIND, Kustomization, NamedResource
 from flux_local.kustomize_controller.artifact import KustomizationArtifact
 from flux_local.visitor import ContentOutput, HelmVisitor
@@ -226,8 +226,8 @@ class BuildKustomizationNewAction:
         # Disable Helm for ks-only build
         config = OrchestratorConfig(enable_helm=False)
         orchestrator = Orchestrator(store, config)
-
-        if not await orchestrator.bootstrap(path):
+        bootstrap_options = BootstrapOptions(path=path)
+        if not await orchestrator.bootstrap(bootstrap_options):
             _LOGGER.error("Orchestrator bootstrap failed for path %s", path)
             # Consider if we need to exit or raise an exception here
             return

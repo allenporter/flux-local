@@ -19,17 +19,16 @@ After bootstrap, controllers take over for:
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, AsyncGenerator
+import asyncio
 
 import yaml
 
-from flux_local.store import Store
 from flux_local.manifest import (
     parse_raw_obj,
-    Kustomization,
-    FLUXTOMIZE_DOMAIN,
+    BaseManifest,
 )
-from flux_local.exceptions import FluxException
+from flux_local.exceptions import FluxException, InputException
 
 __all__ = ["ResourceLoader", "LoadOptions"]
 
@@ -50,14 +49,10 @@ class LoadOptions:
         path: Filesystem path to load resources from. Can be a file or directory.
         recursive: If True and path is a directory, load resources from all
                   subdirectories as well.
-        include_crds: If False, CustomResourceDefinition resources will be filtered out.
-        include_secrets: If False, Secret resources will be filtered out.
     """
 
     path: Path
     recursive: bool = True
-    include_crds: bool = True
-    include_secrets: bool = True
 
     def __post_init__(self) -> None:
         """Resolve the path after initialization."""
@@ -65,18 +60,13 @@ class LoadOptions:
 
 
 class ResourceLoader:
-    """Loads resources from the filesystem into the store."""
+    """Loads resources from the filesystem."""
 
-    def __init__(self, store: Store) -> None:
-        """Initialize the resource loader.
-
-        Args:
-            store: The store to load resources into.
-        """
-        self.store = store
+    def __init__(self) -> None:
+        """Initialize the resource loader."""
         self._processed_files: set[Path] = set()
 
-    async def load(self, options: LoadOptions) -> None:
+    async def load(self, options: LoadOptions) -> AsyncGenerator[BaseManifest, None]:
         """Load resources from the given options.
 
         Args:
@@ -88,15 +78,19 @@ class ResourceLoader:
             raise FluxException(f"Path does not exist: {options.path}")
 
         if options.path.is_file():
-            await self._load_file(options.path, options)
+            async for resource in self._load_file(options.path, options):
+                yield resource
         elif options.path.is_dir():
-            await self._load_directory(options.path, options)
+            async for resource in self._load_directory(options.path, options):
+                yield resource
         else:
             raise FluxException(f"Path is not a file or directory: {options.path}")
 
         _LOGGER.info("Finished loading resources")
 
-    async def _load_directory(self, path: Path, options: LoadOptions) -> None:
+    async def _load_directory(
+        self, path: Path, options: LoadOptions
+    ) -> AsyncGenerator[BaseManifest, None]:
         """Load resources from a directory.
 
         Args:
@@ -108,14 +102,15 @@ class ResourceLoader:
         # Process files first, then recurse into subdirectories if enabled
         for entry in sorted(path.iterdir()):
             if entry.is_file() and entry.suffix.lower() in (".yaml", ".yml", ".json"):
-                await self._load_file(entry, options)
+                async for resource in self._load_file(entry, options):
+                    yield resource
+            elif options.recursive and entry.is_dir():
+                async for resource in self._load_directory(entry, options):
+                    yield resource
 
-        if options.recursive:
-            for entry in sorted(path.iterdir()):
-                if entry.is_dir():
-                    await self._load_directory(entry, options)
-
-    async def _load_file(self, path: Path, options: LoadOptions) -> None:
+    async def _load_file(
+        self, path: Path, options: LoadOptions
+    ) -> AsyncGenerator[BaseManifest, None]:
         """Load resources from a file.
 
         Args:
@@ -129,48 +124,23 @@ class ResourceLoader:
             _LOGGER.debug("Skipping already processed file: %s", path)
             return
 
-        _LOGGER.debug("Loading file: %s", path)
+        _LOGGER.debug("Processing file: %s", path)
         self._processed_files.add(path)
 
         try:
-            content = path.read_text(encoding="utf-8")
+            content = await asyncio.to_thread(path.read_text, encoding="utf-8")
         except OSError as e:
-            _LOGGER.warning("Failed to read file %s: %s", path, e)
-            return
+            raise FluxException(f"Failed to read file {path}: {e}") from e
 
         try:
             for doc in yaml.safe_load_all(content):
                 if not doc:
                     continue
-                await self._process_document(doc, path, options)
+                try:
+                    yield parse_raw_obj(doc)
+                except InputException as e:
+                    _LOGGER.info("Skipping document in %s: %s", path, e)
         except yaml.YAMLError as e:
-            _LOGGER.warning("Invalid YAML in file %s: %s", path, e)
+            raise FluxException(f"Invalid YAML in file {path}: {e}") from e
         except Exception as e:
-            _LOGGER.error(
-                "Error processing documents from file %s: %s", path, e, exc_info=True
-            )
-
-    async def _process_document(
-        self, doc: document, path: Path, options: LoadOptions
-    ) -> None:
-        """Process a single YAML document.
-
-        Args:
-            doc: The YAML document to process.
-            path: Path to the file containing the document.
-            options: Load options.
-        """
-        _LOGGER.info("Processing document from %s", path)
-        if doc.get("api_version", "").startswith(FLUXTOMIZE_DOMAIN):
-            return
-        try:
-            resource = parse_raw_obj(doc)
-            if isinstance(resource, Kustomization):
-                _LOGGER.info("Bootstrapping resource %s from %s", resource.name, path)
-                self.store.add_object(resource)
-        except FluxException as e:
-            _LOGGER.info("Skipping document in %s: %s", path, e)
-        except Exception as e:
-            _LOGGER.error(
-                "Failed to process document from %s: %s", path, e, exc_info=True
-            )
+            raise FluxException(f"Error processing file {path}: {e}") from e
