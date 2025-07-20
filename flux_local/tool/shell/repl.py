@@ -379,7 +379,7 @@ class FluxShell(cmd.Cmd):
             tabulate(
                 rows,
                 headers=headers,
-                tablefmt="grid",
+                tablefmt="plain",
                 maxcolwidths=[None, None, None, 50],
             ),
             file=self.stdout,

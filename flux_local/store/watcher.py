@@ -71,7 +71,8 @@ class DependencySummary:
         """Return a human-readable summary of the dependency states."""
         if self.any_failed:
             failed_deps = [
-                dep.resource_id.namespaced_name for dep in self.failed_dependencies
+                f"{dep.resource_id.namespaced_name}: {dep.state}"
+                for dep in self.failed_dependencies
             ]
             return f"Failed dependencies: {failed_deps}"
         if self.pending_count > 0:

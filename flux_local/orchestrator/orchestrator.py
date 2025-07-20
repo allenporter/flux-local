@@ -12,11 +12,12 @@ import tempfile
 from typing import Any
 import yaml
 
+from flux_local.exceptions import FluxException
 from flux_local.store import Store, Status
 from flux_local.source_controller import GitArtifact, SourceController
 from flux_local.kustomize_controller.controller import KustomizationController
 from flux_local.helm_controller.controller import HelmReleaseController
-from flux_local.manifest import GitRepository, NamedResource
+from flux_local.manifest import GitRepository, Kustomization, NamedResource
 from flux_local.helm import Helm
 from flux_local.task import get_task_service
 from flux_local import git_repo
@@ -50,6 +51,21 @@ class OrchestratorConfig:
     """
 
     enable_helm: bool = True
+
+
+@dataclass
+class BootstrapOptions:
+    """Options for configuring the bootstrap process.
+
+    Attributes:
+        path: The path to the repository root to load resources from.
+        bootstrap_repo_name: An optional name of a GitRepository to use for
+            associating with the local git repository. If not specified, one
+            will be inferred if there is only a single GitRepository found.
+    """
+
+    path: Path
+    bootstrap_repo_name: str | None = None
 
 
 class Orchestrator:
@@ -142,28 +158,40 @@ class Orchestrator:
         # If we get here, all tasks are done and no resources have failed
         return True
 
-    async def bootstrap(self, path: Path) -> bool:
-        """Bootstrap the system by loading resources and starting controllers.
+    def _find_or_create_bootstrap_repo(
+        self,
+        git_repos: list[GitRepository],
+        options: BootstrapOptions,
+        repo_root: Path,
+    ) -> GitRepository:
+        """Find the bootstrap GitRepository or create a synthetic one."""
+        if options.bootstrap_repo_name:
+            for repo in git_repos:
+                if repo.name == options.bootstrap_repo_name:
+                    _LOGGER.info(
+                        "Found bootstrap GitRepository specified by name: %s",
+                        repo.repo_name,
+                    )
+                    return repo
+            raise FluxException(
+                f"Bootstrap GitRepository '{options.bootstrap_repo_name}' not found"
+            )
 
-        This is a convenience method that loads resources and starts the orchestrator.
+        if len(git_repos) == 1:
+            _LOGGER.info(
+                "Found single bootstrap GitRepository: %s", git_repos[0].repo_name
+            )
+            return git_repos[0]
 
-        Args:
-            path: Path to load initial resources from
+        if len(git_repos) > 1:
 
-        Returns:
-            bool: True if bootstrap was successful, False otherwise
-        """
+            raise FluxException(
+                "Multiple GitRepository objects found, specify one with "
+                "'bootstrap_repo_name' option"
+            )
 
-        _LOGGER.info("Starting bootstrap from path: %s", path)
-        repo = git_repo.git_repo(path)
-        repo_root = git_repo.repo_root(repo)
-        abs_root = repo_root.expanduser().resolve()
-        repo_id = NamedResource(
-            kind="GitRepository",
-            namespace="flux-system",
-            name="flux-system",
-        )
-        git_repository = GitRepository.parse_doc(
+        _LOGGER.info("No GitRepository found; creating a synthetic one")
+        return GitRepository.parse_doc(
             yaml.load(
                 BOOTSTRAP_GIT_REPO_TEMPLATE.format(
                     name="flux-system",
@@ -173,7 +201,54 @@ class Orchestrator:
                 Loader=yaml.SafeLoader,
             )
         )
-        self.store.add_object(git_repository)
+
+    async def bootstrap(self, options: BootstrapOptions) -> bool:
+        """Bootstrap the system by loading resources and starting controllers.
+
+        This is a convenience method that loads resources and starts the orchestrator.
+
+        Args:
+            options: The bootstrap options for finding resources.
+
+        Returns:
+            bool: True if bootstrap was successful, False otherwise
+        """
+
+        _LOGGER.info("Starting bootstrap from path: %s", options.path)
+
+        # 1. Load initial resources
+        loader = ResourceLoader()
+        git_repos: list[GitRepository] = []
+        kustomizations: list[Kustomization] = []
+        try:
+            async for resource in loader.load(
+                LoadOptions(path=options.path, recursive=True)
+            ):
+                if isinstance(resource, GitRepository):
+                    git_repos.append(resource)
+                elif isinstance(resource, Kustomization):
+                    kustomizations.append(resource)
+        except FluxException as e:
+            _LOGGER.error("Failed to load initial resources: %s", e, exc_info=True)
+            return False
+        except Exception as e:
+            _LOGGER.error("Failed to load initial resources: %s", e, exc_info=True)
+            return False
+
+        # 2. Find the bootstrap GitRepository to associate with the local path
+        repo = git_repo.git_repo(options.path)
+        repo_root = git_repo.repo_root(repo)
+        abs_root = repo_root.expanduser().resolve()
+
+        bootstrap_repo = self._find_or_create_bootstrap_repo(
+            git_repos, options, repo_root
+        )
+        repo_id = NamedResource(
+            kind="GitRepository",
+            namespace=bootstrap_repo.namespace,
+            name=bootstrap_repo.name,
+        )
+        self.store.add_object(bootstrap_repo)
         self.store.set_artifact(
             repo_id,
             GitArtifact(
@@ -185,17 +260,13 @@ class Orchestrator:
             repo_id,
             Status.READY,
         )
-        _LOGGER.info("Added bootstrap GitRepository: %s", repo)
+        _LOGGER.info("Added bootstrap GitRepository: %s", repo_id)
 
-        # 1. Load initial resources
-        loader = ResourceLoader(self.store)
-        try:
-            await loader.load(LoadOptions(path=Path(path), recursive=True))
-        except Exception as e:
-            _LOGGER.error("Failed to load initial resources: %s", e, exc_info=True)
-            return False
+        # Add Kustomization resources to the store
+        for resource in kustomizations:
+            self.store.add_object(resource)
 
-        # 2. Start controllers and run
+        # 3. Start controllers and run
         await self.start()
         try:
             return await self.run()

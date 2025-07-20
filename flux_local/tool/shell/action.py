@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from flux_local.store import InMemoryStore
-from flux_local.orchestrator import Orchestrator
+from flux_local.orchestrator import Orchestrator, BootstrapOptions
 from flux_local.exceptions import FluxException
 
 from .repl import FluxShell
@@ -50,10 +50,11 @@ class ShellAction:
         # Initialize store and orchestrator
         store = InMemoryStore()
         orchestrator = Orchestrator(store=store)
+        bootstrap_options = BootstrapOptions(path=path)
 
         try:
             # Bootstrap the system with the specified path
-            task = asyncio.create_task(orchestrator.bootstrap(path))
+            task = asyncio.create_task(orchestrator.bootstrap(bootstrap_options))
             _LOGGER.debug("Orchestrator started, bootstrapping with path: %s", path)
 
             # Create the shell with the bootstrapped store
