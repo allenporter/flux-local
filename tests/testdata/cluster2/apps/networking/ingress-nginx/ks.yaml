@@ -5,8 +5,10 @@ metadata:
   name: cluster-apps-ingress-nginx-certificates
   namespace: flux-system
 spec:
-  dependsOn:
-    - name: cluster-apps-cert-manager-issuers
+  # The real kustomization this was copied from depends on a Kustomziation that
+  # we don't have in this cluster.
+  # dependsOn:
+  #   - name: cluster-apps-cert-manager-issuers
   path: ./tests/testdata/cluster2/apps/networking/ingress-nginx/certificates
   prune: true
   sourceRef:

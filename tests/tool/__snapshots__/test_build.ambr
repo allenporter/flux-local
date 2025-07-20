@@ -64,8 +64,6 @@
       config.kubernetes.io/index: '3'
       internal.config.kubernetes.io/index: '3'
   spec:
-    dependsOn:
-    - name: cluster-apps-cert-manager-issuers
     interval: 30m
     path: ./tests/testdata/cluster2/apps/networking/ingress-nginx/certificates
     prune: true
