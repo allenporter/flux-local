@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - gotk-sync.yaml
   - cluster-config.yaml
+  - cluster-secrets.yaml
