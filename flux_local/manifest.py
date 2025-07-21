@@ -59,6 +59,13 @@ KUSTOMIZE_KIND = "Kustomization"
 REPO_TYPE_DEFAULT = "default"
 REPO_TYPE_OCI = "oci"
 
+# Strip any annotations from kustomize that contribute to diff noise when
+# objects are re-ordered in the output
+STRIP_ATTRIBUTES = [
+    "config.kubernetes.io/index",
+    "internal.config.kubernetes.io/index",
+]
+
 
 def _check_version(doc: dict[str, Any], version: str) -> None:
     """Assert that the resource has the specified version."""
@@ -1002,3 +1009,40 @@ def is_kustomization(obj: dict[str, Any]) -> bool:
     return obj.get("kind") == KUSTOMIZE_KIND and obj.get("apiVersion", "").startswith(
         KUSTOMIZE_DOMAIN
     )
+
+
+def _strip_attrs(metadata: dict[str, Any], strip_attributes: list[str]) -> None:
+    """Update the resource object, stripping any requested labels to simplify diff."""
+
+    for attr_key in ("annotations", "labels"):
+        if not (val := metadata.get(attr_key)):
+            continue
+        for key in strip_attributes:
+            if key in val:
+                del val[key]
+            if not val:
+                del metadata[attr_key]
+                break
+
+
+def strip_resource_attributes(
+    resource: dict[str, Any], strip_attributes: list[str]
+) -> None:
+    """Strip any annotations from kustomize that contribute to diff noise when objects are re-ordered in the output."""
+    _strip_attrs(resource["metadata"], strip_attributes)
+    # Remove common noisy labels in commonly used templates
+    if (
+        (spec := resource.get("spec"))
+        and (templ := spec.get("template"))
+        and (meta := templ.get("metadata"))
+    ):
+        _strip_attrs(meta, strip_attributes)
+    if (
+        resource["kind"] == "List"
+        and (items := resource.get("items"))
+        and isinstance(items, list)
+    ):
+        for item in items:
+            if not (item_meta := item.get("metadata")):
+                continue
+            _strip_attrs(item_meta, strip_attributes)

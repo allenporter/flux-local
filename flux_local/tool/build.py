@@ -14,7 +14,13 @@ import yaml
 from flux_local import git_repo
 from flux_local.store import InMemoryStore
 from flux_local.orchestrator import Orchestrator, OrchestratorConfig, BootstrapOptions
-from flux_local.manifest import KUSTOMIZE_KIND, Kustomization, NamedResource
+from flux_local.manifest import (
+    KUSTOMIZE_KIND,
+    Kustomization,
+    NamedResource,
+    strip_resource_attributes,
+    STRIP_ATTRIBUTES
+)
 from flux_local.kustomize_controller.artifact import KustomizationArtifact
 from flux_local.visitor import ContentOutput, HelmVisitor
 
@@ -273,7 +279,10 @@ class BuildKustomizationNewAction:
                             resource_id,
                         )
                         for manifest_item in artifact.manifests:
-                            # The manifests in KustomizationArtifact are already dicts
+                            strip_resource_attributes(
+                                manifest_item,
+                                STRIP_ATTRIBUTES,
+                            )
                             print("---", file=file)
                             yaml.dump(manifest_item, file, sort_keys=False)
                         results_found = True
