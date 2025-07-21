@@ -11,7 +11,6 @@ import logging
 import pathlib
 import tempfile
 import yaml
-from typing import Any
 
 from flux_local import git_repo, image
 from flux_local.helm import Helm, Options
