@@ -9,22 +9,14 @@ import tempfile
 import pathlib
 import logging
 from typing import cast
-import yaml
 
 from flux_local import git_repo
-from flux_local.store import InMemoryStore
-from flux_local.orchestrator import Orchestrator, OrchestratorConfig, BootstrapOptions
-from flux_local.manifest import (
-    KUSTOMIZE_KIND,
-    Kustomization,
-    NamedResource,
-    strip_resource_attributes,
-    STRIP_ATTRIBUTES
-)
-from flux_local.kustomize_controller.artifact import KustomizationArtifact
 from flux_local.visitor import ContentOutput, HelmVisitor
 
 from . import selector
+from .build_kustomization import (
+    BuildKustomizationAction as BuildKustomizationNewAction,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -181,136 +173,6 @@ class BuildKustomizationAction:
             for key in keys:
                 for line in content.content[key]:
                     print(line, file=file)
-
-
-class BuildKustomizationNewAction:
-    """Flux-local build for Kustomizations using the new Orchestrator."""
-
-    @classmethod
-    def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
-    ) -> ArgumentParser:
-        """Register the subparser commands."""
-        args: ArgumentParser = cast(
-            ArgumentParser,
-            subparsers.add_parser(
-                "kustomizations-new",
-                aliases=["ks-new"],
-                help="Build Kustomization objects using the new experimental Orchestrator",
-                description=(
-                    "The build command uses the new orchestrator to build Kustomization objects."
-                ),
-            ),
-        )
-        args.add_argument(
-            "path",
-            type=pathlib.Path,
-            help="Path to the directory tree containing Kustomization objects",
-        )
-        args.add_argument(
-            "--output-file",
-            type=str,
-            default="/dev/stdout",
-            help="Output file for the results of the command",
-        )
-        selector.add_ks_selector_flags(args)
-        args.set_defaults(cls=cls)
-        return args
-
-    async def run(  # type: ignore[no-untyped-def]
-        self,
-        path: pathlib.Path,
-        output_file: str,
-        **kwargs,  # pylint: disable=unused-argument
-    ) -> None:
-        """Async Action implementation."""
-        _LOGGER.info(
-            "Building Kustomizations from path %s using new orchestrator", path
-        )
-
-        store = InMemoryStore()
-        # Disable Helm for ks-only build
-        config = OrchestratorConfig(enable_helm=False)
-        orchestrator = Orchestrator(store, config)
-        bootstrap_options = BootstrapOptions(path=path)
-        if not await orchestrator.bootstrap(bootstrap_options):
-            _LOGGER.error("Orchestrator bootstrap failed for path %s", path)
-            # Consider if we need to exit or raise an exception here
-            return
-
-        # Build the selector for filtering results
-        # Note: The 'path' for the selector here is the root path used by bootstrap.
-        # We are not using selector.build_ks_selector directly as it has
-        # different assumptions about how paths are handled compared to orchestrator.
-        cli_selector = git_repo.ResourceSelector(path=git_repo.PathSelector(path=path))
-        cli_selector.kustomization.name = kwargs.get("name")
-        cli_selector.kustomization.namespace = kwargs.get("namespace")
-        cli_selector.kustomization.skip_crds = kwargs.get("skip_crds", False)
-        cli_selector.kustomization.skip_secrets = kwargs.get("skip_secrets", False)
-        cli_selector.kustomization.skip_kinds = kwargs.get("skip_kinds", [])
-
-        results_found = False
-        is_match = cli_selector.kustomization.predicate
-        with open(output_file, "w") as file:
-            processed_kustomizations = []
-            for manifest_obj in store.list_objects(kind=KUSTOMIZE_KIND):
-                if not isinstance(manifest_obj, Kustomization):
-                    continue
-                resource_id = NamedResource(
-                    kind=manifest_obj.kind,
-                    name=manifest_obj.name,
-                    namespace=manifest_obj.namespace,
-                )
-
-                # Apply selector filtering
-                if not is_match(manifest_obj):
-                    _LOGGER.debug(
-                        "Kustomization %s did not match selector", resource_id
-                    )
-                    continue
-
-                status = store.get_status(resource_id)
-                if status and status.status == "Ready":
-                    artifact = store.get_artifact(resource_id, KustomizationArtifact)
-                    if artifact and artifact.manifests:
-                        _LOGGER.info(
-                            "Writing %d manifests for Kustomization %s",
-                            len(artifact.manifests),
-                            resource_id,
-                        )
-                        for manifest_item in artifact.manifests:
-                            strip_resource_attributes(
-                                manifest_item,
-                                STRIP_ATTRIBUTES,
-                            )
-                            print("---", file=file)
-                            yaml.dump(manifest_item, file, sort_keys=False)
-                        results_found = True
-                    else:
-                        _LOGGER.warning(
-                            "Kustomization %s is Ready but has no artifact or manifests",
-                            resource_id,
-                        )
-                elif status:
-                    _LOGGER.error(
-                        "Kustomization %s failed: %s", resource_id, status.error
-                    )
-                else:
-                    _LOGGER.warning(
-                        "Kustomization %s has no status in the store", resource_id
-                    )
-                processed_kustomizations.append(resource_id)
-
-            if not results_found and not processed_kustomizations:
-                _LOGGER.warning(
-                    "No Kustomizations found or processed from path %s that matched selector",
-                    path,
-                )
-            elif not results_found and processed_kustomizations:
-                _LOGGER.warning(
-                    "No Kustomizations that matched the selector were successfully built from path %s",
-                    path,
-                )
 
 
 class BuildHelmReleaseAction:
