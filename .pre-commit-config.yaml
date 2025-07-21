@@ -8,6 +8,8 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
         exclude: '^tests/testdata/cluster8/apps/.*\.yaml|tests/testdata/cluster/apps/prod/.*\.yaml|tests/testdata/.*/gotk-sync\.yaml$'
+        args:
+          - --allow-multiple-documents
       - id: check-added-large-files
   - repo: https://github.com/psf/black
     rev: 25.1.0

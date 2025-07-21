@@ -23,6 +23,7 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Any, cast
+from dataclasses import dataclass
 
 from flux_local.store import Store, Status, Artifact
 from flux_local.source_controller.artifact import GitArtifact, OCIArtifact
@@ -57,6 +58,13 @@ WAIT_TIMEOUT = 45
 DEPENDENCY_RESOLUTION_TIMEOUT = 120
 
 
+@dataclass
+class KustomizationControllerConfig:
+    """Configuration for the KustomizationController."""
+
+    wipe_secrets: bool = True
+
+
 class KustomizationController:
     """
     Controller for reconciling Kustomization resources.
@@ -65,7 +73,7 @@ class KustomizationController:
     dependencies, builds the kustomization, and stores the resulting manifests.
     """
 
-    def __init__(self, store: Store) -> None:
+    def __init__(self, store: Store, config: KustomizationControllerConfig) -> None:
         """
         Initialize the controller with a store.
 
@@ -74,8 +82,10 @@ class KustomizationController:
 
         Args:
             store: The central store for managing state and artifacts
+            config: The configuration for the controller
         """
         self._store = store
+        self._config = config
         self._tasks: list[asyncio.Task[None]] = []
         self._task_service = get_task_service()
         self._tasks.append(

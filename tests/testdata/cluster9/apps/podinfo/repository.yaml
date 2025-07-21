@@ -12,3 +12,16 @@ spec:
   url: oci://ghcr.io/stefanprodan/charts/podinfo
   ref:
     tag: "6.7.1"
+  secretRef:
+    name: podinfo-pull-secret
+---
+# Created with:
+#   flux create secret oci podinfo-pull-secret --url=ghcr.io --username=flux --password=foo --export
+apiVersion: v1
+kind: Secret
+metadata:
+  name: podinfo-pull-secret
+  namespace: default
+stringData:
+  .dockerconfigjson: '{"auths":{"ghcr.io":{"username":"flux","password":"foo","auth":"Zmx1eDpmb28="}}}'
+type: kubernetes.io/dockerconfigjson

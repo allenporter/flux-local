@@ -19,7 +19,12 @@ from flux_local.manifest import (
 from flux_local.store.in_memory import InMemoryStore
 from flux_local.store.status import Status
 from flux_local.store.store import StoreEvent
-from flux_local.source_controller import GitArtifact, OCIArtifact, SourceController
+from flux_local.source_controller import (
+    GitArtifact,
+    OCIArtifact,
+    SourceController,
+    SourceControllerConfig,
+)
 from flux_local.task import get_task_service, task_service_context, TaskService
 
 
@@ -108,7 +113,7 @@ async def controller_fixture(
     store: InMemoryStore,
 ) -> AsyncGenerator[SourceController, None]:
     """Create a test controller."""
-    controller = SourceController(store)
+    controller = SourceController(store, SourceControllerConfig())
     yield controller
     await controller.close()
 

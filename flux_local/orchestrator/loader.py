@@ -39,6 +39,13 @@ document = dict[str, Any]
 
 
 @dataclass
+class ReadAction:
+    """Configuration for reading resources."""
+
+    wipe_secrets: bool = True
+
+
+@dataclass
 class LoadOptions:
     """Options for configuring resource loading during bootstrap.
 
@@ -62,8 +69,9 @@ class LoadOptions:
 class ResourceLoader:
     """Loads resources from the filesystem."""
 
-    def __init__(self) -> None:
+    def __init__(self, config: ReadAction) -> None:
         """Initialize the resource loader."""
+        self._config = config
         self._processed_files: set[Path] = set()
 
     async def load(self, options: LoadOptions) -> AsyncGenerator[BaseManifest, None]:
@@ -137,7 +145,7 @@ class ResourceLoader:
                 if not doc:
                     continue
                 try:
-                    yield parse_raw_obj(doc)
+                    yield parse_raw_obj(doc, wipe_secrets=self._config.wipe_secrets)
                 except InputException as e:
                     _LOGGER.info("Skipping document in %s: %s", path, e)
         except yaml.YAMLError as e:
