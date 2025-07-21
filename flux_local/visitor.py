@@ -11,7 +11,6 @@ import logging
 import pathlib
 import tempfile
 import yaml
-from typing import Any
 
 from flux_local import git_repo, image
 from flux_local.helm import Helm, Options
@@ -23,18 +22,12 @@ from flux_local.manifest import (
     Manifest,
     OCIRepository,
     NamedResource,
+    strip_resource_attributes,
+    STRIP_ATTRIBUTES,
 )
 
 
 _LOGGER = logging.getLogger(__name__)
-
-
-# Strip any annotations from kustomize that contribute to diff noise when
-# objects are re-ordered in the output
-STRIP_ATTRIBUTES = [
-    "config.kubernetes.io/index",
-    "internal.config.kubernetes.io/index",
-]
 
 
 ResourceType = Kustomization | HelmRelease | HelmRepository | OCIRepository
@@ -134,20 +127,6 @@ class ContentOutput(ResourceOutput):
             self.content[self.key_func(kustomization_path, doc)] = lines
 
 
-def strip_attrs(metadata: dict[str, Any], strip_attributes: list[str]) -> None:
-    """Update the resource object, stripping any requested labels to simplify diff."""
-
-    for attr_key in ("annotations", "labels"):
-        if not (val := metadata.get(attr_key)):
-            continue
-        for key in strip_attributes:
-            if key in val:
-                del val[key]
-            if not val:
-                del metadata[attr_key]
-                break
-
-
 class ImageOutput(ResourceOutput):
     """Resource visitor that builds outputs for objects within the kustomization."""
 
@@ -181,29 +160,6 @@ class ImageOutput(ResourceOutput):
                         helm_release.images.sort()
 
 
-def strip_resource_attributes(
-    resource: dict[str, Any], strip_attributes: list[str]
-) -> None:
-    """Strip any annotations from kustomize that contribute to diff noise when objects are re-ordered in the output."""
-    strip_attrs(resource["metadata"], strip_attributes)
-    # Remove common noisy labels in commonly used templates
-    if (
-        (spec := resource.get("spec"))
-        and (templ := spec.get("template"))
-        and (meta := templ.get("metadata"))
-    ):
-        strip_attrs(meta, strip_attributes)
-    if (
-        resource["kind"] == "List"
-        and (items := resource.get("items"))
-        and isinstance(items, list)
-    ):
-        for item in items:
-            if not (item_meta := item.get("metadata")):
-                continue
-            strip_attrs(item_meta, strip_attributes)
-
-
 class ObjectOutput(ResourceOutput):
     """Resource visitor that builds outputs for objects within the kustomization."""
 
@@ -211,9 +167,10 @@ class ObjectOutput(ResourceOutput):
         """Initialize ObjectOutput."""
         # Map of kustomizations to the map of built objects as lines of the yaml string
         self.content: dict[ResourceKey, dict[ResourceKey, list[str]]] = {}
-        self.strip_attributes = STRIP_ATTRIBUTES
-        if strip_attributes:
-            self.strip_attributes.extend(strip_attributes)
+        self.strip_attributes = [
+            *STRIP_ATTRIBUTES,
+            *(strip_attributes or []),
+        ]
 
     async def call_async(
         self,
