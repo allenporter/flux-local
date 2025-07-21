@@ -351,3 +351,4 @@ This section provides a quick reference for understanding and navigating the cod
 - [ ] State events should be intent based (e.g. "is ready")
 - [x] in memory store tests hang. In the middle of adding watches to simplify controllers
 - [ ] does not limit objects returned to just those from the kustomization in `build new-ks` and returns stuff from bootstrap also
+- [ ] KS Substitution from a secret/configmap mutates the kustomization and changes the output. It needs to be temporary within the controller?

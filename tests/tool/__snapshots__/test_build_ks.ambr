@@ -2623,6 +2623,11 @@
     postBuild:
       substitute:
         cluster_env: production
+        SECRET_DOMAIN: example.com
+        SECRET_DOMAIN2: other.com
+        cluster_label: example-value
+        SECRET_DOMAIN3: ..PLACEHOLDER_SECRET_DOMAIN3..
+        SECRET_DOMAIN4: ..PLACEHOLDER_SECRET_DOMAIN4..
       substituteFrom:
       - kind: ConfigMap
         name: cluster-config
