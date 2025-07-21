@@ -14,7 +14,7 @@ from flux_local.manifest import GitRepository, GIT_REPOSITORY
 from flux_local.store.in_memory import InMemoryStore
 from flux_local.store import Store, Status
 from flux_local.helm_controller.artifact import HelmReleaseArtifact
-from flux_local.helm_controller import HelmReleaseController
+from flux_local.helm_controller import HelmReleaseController, HelmControllerConfig
 from flux_local.manifest import (
     NamedResource,
     HelmRelease,
@@ -266,7 +266,7 @@ async def controller_fixture(
     store: Store, helm: Helm
 ) -> AsyncGenerator[HelmReleaseController, None]:
     """Create a test controller."""
-    controller = HelmReleaseController(store, helm)
+    controller = HelmReleaseController(store, helm, HelmControllerConfig())
     yield controller
     await controller.close()
 

@@ -7,22 +7,32 @@ various controllers to manage the reconciliation of Flux resources.
 import asyncio
 import logging
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import tempfile
 from typing import Any
 import yaml
 
 from flux_local.exceptions import FluxException
 from flux_local.store import Store, Status
-from flux_local.source_controller import GitArtifact, SourceController
-from flux_local.kustomize_controller.controller import KustomizationController
-from flux_local.helm_controller.controller import HelmReleaseController
+from flux_local.source_controller import (
+    SourceController,
+    SourceControllerConfig,
+    GitArtifact,
+)
+from flux_local.kustomize_controller.controller import (
+    KustomizationController,
+    KustomizationControllerConfig,
+)
+from flux_local.helm_controller.controller import (
+    HelmReleaseController,
+    HelmControllerConfig,
+)
 from flux_local.manifest import GitRepository, Kustomization, NamedResource
 from flux_local.helm import Helm
 from flux_local.task import get_task_service
 from flux_local import git_repo
 
-from .loader import ResourceLoader, LoadOptions
+from .loader import ResourceLoader, LoadOptions, ReadAction
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,6 +61,16 @@ class OrchestratorConfig:
     """
 
     enable_helm: bool = True
+    helm_controller_config: HelmControllerConfig = field(
+        default_factory=HelmControllerConfig
+    )
+    kustomization_controller_config: KustomizationControllerConfig = field(
+        default_factory=KustomizationControllerConfig
+    )
+    source_controller_config: SourceControllerConfig = field(
+        default_factory=SourceControllerConfig
+    )
+    read_action_config: ReadAction = field(default_factory=ReadAction)
 
 
 @dataclass
@@ -92,8 +112,12 @@ class Orchestrator:
         """Create and initialize all controllers."""
 
         self.controllers = {
-            "source": SourceController(self.store),
-            "kustomize": KustomizationController(self.store),
+            "source": SourceController(
+                self.store, self.config.source_controller_config
+            ),
+            "kustomize": KustomizationController(
+                self.store, self.config.kustomization_controller_config
+            ),
         }
 
         if self.config.enable_helm:
@@ -102,6 +126,7 @@ class Orchestrator:
             self.controllers["helm"] = HelmReleaseController(
                 self.store,
                 Helm(tmp_dir=helm_tmp_dir, cache_dir=helm_cache_dir),
+                self.config.helm_controller_config,
             )
 
         _LOGGER.debug("Initialized controllers: %s", ", ".join(self.controllers.keys()))
@@ -217,7 +242,7 @@ class Orchestrator:
         _LOGGER.info("Starting bootstrap from path: %s", options.path)
 
         # 1. Load initial resources
-        loader = ResourceLoader()
+        loader = ResourceLoader(self.config.read_action_config)
         git_repos: list[GitRepository] = []
         kustomizations: list[Kustomization] = []
         try:

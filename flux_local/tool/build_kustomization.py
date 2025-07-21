@@ -2,7 +2,11 @@
 
 import logging
 import pathlib
-from argparse import ArgumentParser, _SubParsersAction as SubParsersAction
+from argparse import (
+    ArgumentParser,
+    _SubParsersAction as SubParsersAction,
+    BooleanOptionalAction,
+)
 from typing import Any, cast
 import yaml
 
@@ -70,15 +74,24 @@ class BuildKustomizationAction:
             ),
         )
         args.add_argument(
-            "path",
-            type=pathlib.Path,
-            help="Path to the directory tree containing Kustomization objects",
-        )
-        args.add_argument(
             "--output-file",
             type=str,
             default="/dev/stdout",
             help="Output file for the results of the command",
+        )
+        args.add_argument(
+            "--wipe-secrets",
+            type=str,
+            default=True,
+            action=BooleanOptionalAction,
+            help="Wipe secrets from the output",
+        )
+        args.add_argument(
+            "--enable-oci",
+            type=str,
+            default=False,
+            action=BooleanOptionalAction,
+            help="Enable OCI repository sources",
         )
         selector.add_ks_selector_flags(args)
         args.set_defaults(cls=cls)
@@ -116,7 +129,7 @@ class BuildKustomizationAction:
             if filter_manifest(manifest_item, **kwargs)
         ]
 
-    async def run( 
+    async def run(
         self,
         path: pathlib.Path,
         output_file: str,
@@ -130,6 +143,9 @@ class BuildKustomizationAction:
         store = InMemoryStore()
         # Disable Helm for ks-only build
         config = OrchestratorConfig(enable_helm=False)
+        config.kustomization_controller_config.wipe_secrets = kwargs["wipe_secrets"]
+        config.read_action_config.wipe_secrets = kwargs["wipe_secrets"]
+        config.source_controller_config.enable_oci = kwargs["enable_oci"]
         orchestrator = Orchestrator(store, config)
         bootstrap_options = BootstrapOptions(path=path)
         if not await orchestrator.bootstrap(bootstrap_options):
@@ -168,8 +184,7 @@ class BuildKustomizationAction:
                         manifest_item,
                         STRIP_ATTRIBUTES,
                     )
-                    print("---", file=file)
-                    yaml.dump(manifest_item, file, sort_keys=False)
+                    yaml.dump(manifest_item, file, sort_keys=False, explicit_start=True)
 
             if not manifest_match:
                 if not manifest_found:

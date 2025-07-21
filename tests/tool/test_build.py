@@ -51,6 +51,13 @@ async def test_build_all(args: list[str], snapshot: SnapshotAssertion) -> None:
 
 
 @pytest.mark.parametrize(
+    ("cmd"),
+    [
+        "ks",
+        "ks-new",
+    ],
+)
+@pytest.mark.parametrize(
     ("args"),
     [
         (["--path=tests/testdata/cluster/"]),
@@ -67,9 +74,9 @@ async def test_build_all(args: list[str], snapshot: SnapshotAssertion) -> None:
         "build-ks-single-cluster9",
     ],
 )
-async def test_build_ks(args: list[str], snapshot: SnapshotAssertion) -> None:
+async def test_build_ks(args: list[str], cmd: str, snapshot: SnapshotAssertion) -> None:
     """Test build commands."""
-    result = await run_command(["build", "ks"] + args)
+    result = await run_command(["build", cmd] + args)
     assert result == snapshot
 
 

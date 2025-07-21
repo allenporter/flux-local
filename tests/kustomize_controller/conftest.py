@@ -5,7 +5,10 @@ from typing import AsyncGenerator
 import pytest
 from flux_local.manifest import GitRepository, OCIRepository
 from flux_local.store.in_memory import InMemoryStore
-from flux_local.kustomize_controller.controller import KustomizationController
+from flux_local.kustomize_controller.controller import (
+    KustomizationController,
+    KustomizationControllerConfig,
+)
 
 
 @pytest.fixture
@@ -19,7 +22,7 @@ async def controller(
     store: InMemoryStore,
 ) -> AsyncGenerator[KustomizationController, None]:
     """Create a KustomizationController with an in-memory store."""
-    controller = KustomizationController(store)
+    controller = KustomizationController(store, KustomizationControllerConfig())
     yield controller
     await controller.close()
 

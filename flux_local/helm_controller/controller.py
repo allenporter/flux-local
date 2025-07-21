@@ -11,8 +11,9 @@ Key Concepts:
 import asyncio
 import logging
 from typing import Any
+from dataclasses import dataclass
 
-from flux_local.exceptions import InputException, HelmException
+from flux_local.exceptions import HelmException, InputException
 from flux_local.helm import Helm, Options, LocalGitRepository
 from flux_local.manifest import (
     NamedResource,
@@ -34,6 +35,13 @@ from .artifact import HelmReleaseArtifact
 _LOGGER = logging.getLogger(__name__)
 
 
+@dataclass
+class HelmControllerConfig:
+    """Configuration for the HelmReleaseController."""
+
+    wipe_secrets: bool = True
+
+
 class HelmControllerException(Exception):
     """Exception raised by the Helm controller."""
 
@@ -46,16 +54,18 @@ class HelmReleaseController:
     the existing Helm class for chart operations and template rendering.
     """
 
-    def __init__(self, store: Store, helm: Helm) -> None:
+    def __init__(self, store: Store, helm: Helm, config: HelmControllerConfig) -> None:
         """
         Initialize the controller with a store and Helm instance.
 
         Args:
             store: The central store for managing state and artifacts
             helm: The Helm instance for chart operations
+            config: The configuration for the controller
         """
         self.store = store
         self.helm = helm
+        self._config = config
         self._tasks: list[asyncio.Task[None]] = []
         self._task_service = get_task_service()
         self._need_update = False
@@ -336,7 +346,7 @@ class HelmReleaseController:
         _LOGGER.debug("Applying manifests: %s", manifests)
         for manifest in manifests:
             try:
-                obj = parse_raw_obj(manifest)
+                obj = parse_raw_obj(manifest, wipe_secrets=self._config.wipe_secrets)
             except ValueError as e:
                 raise InputException(f"Failed to parse manifest: {manifest}") from e
             _LOGGER.debug("Applying %s", obj)

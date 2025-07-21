@@ -22,13 +22,16 @@ Integration Points:
 
 import asyncio
 import logging
+from dataclasses import dataclass
 
 from flux_local.store import Store, StoreEvent, Status
+from flux_local.store.watcher import DependencyWaiter
 from flux_local.manifest import (
     NamedResource,
     BaseManifest,
     OCIRepository,
     GitRepository,
+    Secret,
 )
 from flux_local.task import get_task_service
 
@@ -36,8 +39,16 @@ from flux_local.task import get_task_service
 from .git import fetch_git
 from .oci import fetch_oci
 from .artifact import GitArtifact
+from .secret import get_auth_from_secret
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass
+class SourceControllerConfig:
+    """Configuration for the SourceController."""
+
+    enable_oci: bool = True
 
 
 class SourceController:
@@ -51,14 +62,16 @@ class SourceController:
 
     SUPPORTED_KINDS = {"GitRepository", "OCIRepository"}
 
-    def __init__(self, store: Store) -> None:
+    def __init__(self, store: Store, config: SourceControllerConfig) -> None:
         """
         Initialize the source controller.
 
         Args:
             store: The central store for managing state and artifacts
+            config: The configuration for the controller
         """
         self._store = store
+        self._config = config
         self._tasks: list[asyncio.Task[None]] = []
         self._task_service = get_task_service()
 
@@ -116,6 +129,9 @@ class SourceController:
                 resource_id,
             )
             return
+        if isinstance(obj, OCIRepository) and not self._config.enable_oci:
+            _LOGGER.info("OCI support is disabled, skipping %s", resource_id)
+            return
         if isinstance(obj, GitRepository) and self._store.get_artifact(
             resource_id, GitArtifact
         ):
@@ -150,7 +166,32 @@ class SourceController:
 
     async def _fetch_oci(self, resource_id: NamedResource, obj: OCIRepository) -> None:
         """Fetch an OCI repository."""
-        artifact = await fetch_oci(obj)
+        auth = None
+        if obj.secret_ref:
+            waiter = DependencyWaiter(
+                self._store,
+                self._task_service,
+                resource_id,
+            )
+            secret_resource_id = NamedResource(
+                name=obj.secret_ref.name,
+                namespace=resource_id.namespace,
+                kind="Secret",
+            )
+            waiter.add(secret_resource_id)
+            async for event in waiter.watch():
+                if not event.success:
+                    self._store.update_status(
+                        resource_id,
+                        Status.FAILED,
+                        error=f"Failed to get secret {secret_resource_id} for OCI repository {resource_id}: {event.error_message}",
+                    )
+                    return
+                if secret := self._store.get_object(secret_resource_id, Secret):
+                    auth = get_auth_from_secret(obj.url, secret)
+                break
+
+        artifact = await fetch_oci(obj, auth)
         _LOGGER.info("Fetched OCI repository %s", resource_id)
         self._store.set_artifact(resource_id, artifact)
         self._store.update_status(resource_id, Status.READY)

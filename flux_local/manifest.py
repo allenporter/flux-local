@@ -258,6 +258,14 @@ class ValuesReference(BaseManifest):
 
 
 @dataclass
+class LocalObjectReference(BaseManifest):
+    """A reference to a local object."""
+
+    name: str
+    """The name of the object."""
+
+
+@dataclass
 class HelmRelease(BaseManifest):
     """A representation of a Flux HelmRelease."""
 
@@ -589,6 +597,11 @@ class OCIRepository(BaseManifest):
     ref: OCIRepositoryRef | None = None
     """The OCI reference (tag or digest) to use."""
 
+    secret_ref: LocalObjectReference | None = field(
+        metadata=field_options(alias="secretRef"), default=None
+    )
+    """The local secret reference."""
+
     @classmethod
     def parse_doc(cls, doc: dict[str, Any]) -> "OCIRepository":
         """Parse a HelmRepository from a kubernetes resource."""
@@ -606,11 +619,15 @@ class OCIRepository(BaseManifest):
         repo_ref: OCIRepositoryRef | None = None
         if ref := spec.get("ref"):
             repo_ref = OCIRepositoryRef.parse_doc(ref)
+        secret_ref: LocalObjectReference | None = None
+        if secret_ref_dict := spec.get("secretRef"):
+            secret_ref = LocalObjectReference.from_dict(secret_ref_dict)
         return cls(
             name=name,
             namespace=namespace,
             url=url,
             ref=repo_ref,
+            secret_ref=secret_ref,
         )
 
     def version(self) -> str | None:
@@ -706,7 +723,7 @@ class Secret(BaseManifest):
     """The string data in the Secret."""
 
     @classmethod
-    def parse_doc(cls, doc: dict[str, Any]) -> "Secret":
+    def parse_doc(cls, doc: dict[str, Any], *, wipe_secrets: bool = True) -> "Secret":
         """Parse a secret object from a kubernetes resource."""
         _check_version(doc, "v1")
         if not (metadata := doc.get("metadata")):
@@ -716,12 +733,14 @@ class Secret(BaseManifest):
         namespace = metadata.get("namespace")
         # While secrets are not typically stored in the cluster, we replace with
         # placeholder values anyway.
-        if data := doc.get("data"):
+        data = doc.get("data")
+        if data and wipe_secrets:
             for key, value in data.items():
                 data[key] = base64.b64encode(
                     VALUE_PLACEHOLDER_TEMPLATE.format(name=key).encode()
                 )
-        if string_data := doc.get("stringData"):
+        string_data = doc.get("stringData")
+        if string_data and wipe_secrets:
             for key, value in string_data.items():
                 string_data[key] = VALUE_PLACEHOLDER_TEMPLATE.format(name=key)
         return Secret(
@@ -981,7 +1000,7 @@ async def update_manifest(manifest_path: Path, manifest: Manifest) -> None:
         await manifest_file.write(new_content)
 
 
-def parse_raw_obj(obj: dict[str, Any]) -> BaseManifest:
+def parse_raw_obj(obj: dict[str, Any], *, wipe_secrets: bool = True) -> BaseManifest:
     """Parse a raw kubernetes object into a BaseManifest."""
     if not (kind := obj.get("kind")):
         raise InputException(f"Invalid object missing kind: {obj}")
@@ -1000,7 +1019,7 @@ def parse_raw_obj(obj: dict[str, Any]) -> BaseManifest:
     if kind == CONFIG_MAP_KIND:
         return ConfigMap.parse_doc(obj)
     if kind == SECRET_KIND:
-        return Secret.parse_doc(obj)
+        return Secret.parse_doc(obj, wipe_secrets=wipe_secrets)
     return RawObject.parse_doc(obj)
 
 
