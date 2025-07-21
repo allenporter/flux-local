@@ -37,8 +37,6 @@ The `LoadOptions` class provides several options to customize the resource loadi
 options = LoadOptions(
     path=Path("/path/to/resources"),  # Path to load resources from
     recursive=True,                   # Whether to load from subdirectories
-    include_crds=True,               # Whether to include CustomResourceDefinitions
-    include_secrets=True,            # Whether to include Secrets
 )
 ```
 

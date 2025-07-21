@@ -22,7 +22,7 @@ Dependencies:
 import asyncio
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from flux_local.store import Store, Status, Artifact
 from flux_local.source_controller.artifact import GitArtifact, OCIArtifact
@@ -31,6 +31,10 @@ from flux_local.manifest import (
     Kustomization,
     parse_raw_obj,
     KUSTOMIZE_KIND,
+    Secret,
+    ConfigMap,
+    SECRET_KIND,
+    CONFIG_MAP_KIND,
 )
 from flux_local.exceptions import (
     InputException,
@@ -42,6 +46,7 @@ from flux_local.store.watcher import (
     DependencyWaiter,
     DependencyState,
 )
+from flux_local import values
 
 from .artifact import KustomizationArtifact
 
@@ -150,6 +155,22 @@ class KustomizationController:
                     name=kustomization.source_name,
                 )
                 dependency_waiter.add(source_ref_id)
+
+            # Block on any post-build substitution from config or secrets
+            for sub_ref in kustomization.postbuild_substitute_from or ():
+                if not sub_ref.kind or not sub_ref.name:
+                    raise InputException(
+                        f"Invalid postbuild substitute reference in Kustomization {kustomization.namespaced_name}: "
+                        f"kind and name must be specified."
+                    )
+                sub_ref_id = NamedResource(
+                    kind=sub_ref.kind,
+                    namespace=kustomization.namespace,
+                    name=sub_ref.name,
+                )
+                if not sub_ref.optional:
+                    dependency_waiter.add(sub_ref_id)
+
         except InputException as e:
             self._store.update_status(resource_id, Status.FAILED, error=str(e))
             return
@@ -288,10 +309,18 @@ class KustomizationController:
             )
             return
 
+        # Load values for substitution
+        if kustomization.postbuild_substitute_from:
+            values.expand_postbuild_substitute_reference(
+                kustomization,
+                cluster_config_store(self._store),
+            )
+
         # 3. Build the kustomization
         self._store.update_status(
             resource_id, Status.PENDING, f"Building Kustomization from {source_path}"
         )
+
         try:
             manifests = await self._build_kustomization(source_path, kustomization)
         except InputException as e:
@@ -381,3 +410,11 @@ class KustomizationController:
                 raise InputException(f"Failed to parse manifest: {manifest}") from e
             _LOGGER.debug("Applying %s", obj)
             self._store.add_object(obj)
+
+
+def cluster_config_store(store: Store) -> values.ClusterConfig:
+    """Create a ClusterConfig from the store's secrets and configmaps."""
+    return values.ClusterConfig(
+        lambda: cast(list[Secret], store.list_objects(SECRET_KIND)),
+        lambda: cast(list[ConfigMap], store.list_objects(CONFIG_MAP_KIND)),
+    )

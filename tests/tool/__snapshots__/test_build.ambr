@@ -3103,8 +3103,8 @@
     name: infra-controllers
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '4'
-      internal.config.kubernetes.io/index: '4'
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
   spec:
     interval: 1h
     path: ./tests/testdata/cluster/infrastructure/controllers
@@ -3125,8 +3125,8 @@
     name: infra-configs
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '5'
-      internal.config.kubernetes.io/index: '5'
+      config.kubernetes.io/index: '6'
+      internal.config.kubernetes.io/index: '6'
   spec:
     dependsOn:
     - name: infra-controllers
@@ -4936,8 +4936,8 @@
     name: infra-controllers
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '4'
-      internal.config.kubernetes.io/index: '4'
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
   spec:
     interval: 1h
     path: ./tests/testdata/cluster/infrastructure/controllers
@@ -4958,8 +4958,8 @@
     name: infra-configs
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '5'
-      internal.config.kubernetes.io/index: '5'
+      config.kubernetes.io/index: '6'
+      internal.config.kubernetes.io/index: '6'
   spec:
     dependsOn:
     - name: infra-controllers
@@ -7055,8 +7055,8 @@
     name: infra-controllers
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '4'
-      internal.config.kubernetes.io/index: '4'
+      config.kubernetes.io/index: '5'
+      internal.config.kubernetes.io/index: '5'
   spec:
     interval: 1h
     path: ./tests/testdata/cluster/infrastructure/controllers
@@ -7077,8 +7077,8 @@
     name: infra-configs
     namespace: flux-system
     annotations:
-      config.kubernetes.io/index: '5'
-      internal.config.kubernetes.io/index: '5'
+      config.kubernetes.io/index: '6'
+      internal.config.kubernetes.io/index: '6'
   spec:
     dependsOn:
     - name: infra-controllers
