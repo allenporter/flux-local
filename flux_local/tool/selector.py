@@ -128,6 +128,12 @@ def add_common_flags(args: ArgumentParser) -> None:
         help="A comma separated list of CRDs to omit from the output.",
     )
     args.add_argument(
+        "--skip-invalid-kustomization-paths",
+        default=False,
+        action=BooleanOptionalAction,
+        help="Don't validate kustomization paths exist.",
+    )
+    args.add_argument(
         "--kustomize-build-flags",
         type=str,
         default="",
@@ -153,6 +159,9 @@ def options(  # type: ignore[no-untyped-def]
     """Create an Options object based on flags."""
     options = git_repo.Options()
     options.kustomize_flags = shlex.split(kustomize_build_flags or "")
+    options.skip_kustomize_path_validation = kwargs.get(
+        "skip_invalid_kustomization_paths", False
+    )
     return options
 
 

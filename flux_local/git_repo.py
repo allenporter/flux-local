@@ -42,6 +42,7 @@ from typing import Any, Generator
 
 import git
 
+from aiofiles.ospath import isdir
 from . import kustomize, values
 from .exceptions import FluxException, KustomizePathException
 from .manifest import (
@@ -313,6 +314,7 @@ class Options:
     """Options for the resource selector for building manifets."""
 
     kustomize_flags: list[str] = field(default_factory=list)
+    skip_kustomize_path_validation: bool = False
 
 
 @dataclass
@@ -455,6 +457,7 @@ async def visit_kustomization(
     builder: CachableBuilder,
     path: Path,
     visit_ks: Kustomization | None,
+    options: Options,
 ) -> VisitResult:
     """Visit a path and return a list of Kustomizations."""
 
@@ -468,6 +471,17 @@ async def visit_kustomization(
         if visit_ks is None:
             cmd = kustomize.filter_resources(kinds, selector.root / path)
         else:
+            if not await isdir(selector.root / path):
+                if options.skip_kustomize_path_validation:
+                    _LOGGER.debug(
+                        "Skipping Kustomization '%s' since path does not exist: %s",
+                        visit_ks.namespaced_name,
+                        selector.root / path,
+                    )
+                    return VisitResult(kustomizations=[], config_maps=[], secrets=[])
+                raise KustomizePathException(
+                    f"Kustomization '{visit_ks.namespaced_name}' path field '{visit_ks.path or ''}' is not a directory: {selector.root / path}"
+                )
             cmd = await builder.build(visit_ks, selector.root / path)
             cmd = cmd.filter_resources(kinds)
         cmd = await cmd.stash()
@@ -512,7 +526,7 @@ async def visit_kustomization(
 
 
 async def kustomization_traversal(
-    selector: PathSelector, builder: CachableBuilder
+    selector: PathSelector, builder: CachableBuilder, options: Options
 ) -> list[Kustomization]:
     """Search for kustomizations in the specified path."""
 
@@ -534,7 +548,9 @@ async def kustomization_traversal(
                 continue
             visited_paths.add(path)
 
-            tasks.append(visit_kustomization(selector, builder, path, visit_ks))
+            tasks.append(
+                visit_kustomization(selector, builder, path, visit_ks, options)
+            )
 
         # Find new kustomizations
         kustomizations = []
@@ -740,7 +756,7 @@ async def build_manifest(
     builder = CachableBuilder()
 
     with trace_context(f"Cluster '{str(selector.path.path)}'"):
-        results = await kustomization_traversal(selector.path, builder)
+        results = await kustomization_traversal(selector.path, builder, options)
         clusters = [
             Cluster(
                 path=str(selector.path.relative_path),
