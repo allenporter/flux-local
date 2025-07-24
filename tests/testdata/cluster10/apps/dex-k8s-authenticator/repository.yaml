@@ -1,0 +1,17 @@
+# From https://github.com/xunholy/k8s-gitops/blob/main/kubernetes/apps/base/flux-system/addons/repositories/git/dex-k8s-authenticator-chart.yaml
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: dex-k8s-authenticator-chart-git
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: https://github.com/mintel/dex-k8s-authenticator
+  ref:
+    branch: master
+  ignore: |
+    # exclude all
+    /*
+    # include charts directory
+    !/charts/

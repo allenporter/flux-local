@@ -209,10 +209,10 @@ class Orchestrator:
             return git_repos[0]
 
         if len(git_repos) > 1:
-
+            names = [repo.name for repo in git_repos]
             raise FluxException(
                 "Multiple GitRepository objects found, specify one with "
-                "'bootstrap_repo_name' option"
+                f"'bootstrap_repo_name' option: {names}"
             )
 
         _LOGGER.info("No GitRepository found; creating a synthetic one")
