@@ -606,7 +606,6 @@ async def build_kustomization(
     builder: CachableBuilder,
 ) -> None:
     """Build helm objects for the Kustomization and update state."""
-
     root: Path = selector.path.root
     kustomization_selector: MetadataSelector = selector.kustomization
     helm_repo_selector: MetadataSelector = selector.helm_repo
@@ -778,6 +777,14 @@ async def build_manifest(
                         kustomization.name,
                         kustomization.path,
                     )
+                    if not await isdir(selector.path.root / kustomization.path):
+                        if options.skip_kustomize_path_validation:
+                            _LOGGER.debug(
+                                "Skipping Kustomization '%s' since path does not exist: %s",
+                                kustomization.namespaced_name,
+                                selector.path.root / kustomization.path,
+                            )
+                            continue
 
                     if kustomization.postbuild_substitute_from:
                         values.expand_postbuild_substitute_reference(
