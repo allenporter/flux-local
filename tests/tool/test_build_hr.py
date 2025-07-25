@@ -34,6 +34,13 @@ from . import run_command
         ),
         (["podinfo", "-n", "podinfo", "--path=tests/testdata/cluster8/"]),
         (["podinfo", "-n", "default", "--path=tests/testdata/cluster9/clusters/dev"]),
+        (
+            [
+                "-A",
+                "--path=tests/testdata/cluster10",
+                "--skip-invalid-kustomization-paths",
+            ]
+        ),
     ],
     ids=[
         "build-hr",
@@ -42,6 +49,7 @@ from . import run_command
         "build-hr-single-cluster6",
         "build-hr-single-cluster8",
         "build-hr-single-cluster9",
+        "build-hr-cluster10-invalid-paths",
     ],
 )
 async def test_build_hr(args: list[str], snapshot: SnapshotAssertion) -> None:

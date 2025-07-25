@@ -279,14 +279,22 @@ class HelmVisitor:
             if active_repos := self.active_repos:
                 helm.add_repos(active_repos)
                 await helm.update()
-            tasks = [
-                inflate_release(
-                    helm,
-                    release,
-                    visitor,
-                    options,
+            tasks = []
+            for release in self.releases:
+                if options.skip_invalid_paths and helm.is_invalid_local_path(release):
+                    _LOGGER.info(
+                        "Skipping HelmRelease %s with invalid path %s",
+                        release.name,
+                        release.chart.repo_full_name,
+                    )
+                    continue
+                tasks.append(
+                    inflate_release(
+                        helm,
+                        release,
+                        visitor,
+                        options,
+                    )
                 )
-                for release in self.releases
-            ]
             _LOGGER.debug("Waiting for inflate tasks to complete")
             await asyncio.gather(*tasks)
