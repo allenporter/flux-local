@@ -4,7 +4,7 @@ requires = ["setuptools>=77.0"]
 
 [project]
 name = "flux_local"
-version = "7.6.0"
+version = "7.7.0"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 description = "flux-local is a set of tools and libraries for managing a local flux gitops repository focused on validation steps to help improve quality of commits, PRs, and general local testing."
