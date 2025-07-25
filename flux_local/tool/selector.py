@@ -233,6 +233,13 @@ def add_helm_options_flags(args: ArgumentParser) -> None:
         "--registry-config",
         help="Path to a helm registry config file",
     )
+    args.add_argument(
+        "--skip-invalid-helm-release-paths",
+        type=bool,
+        default=True,
+        action=BooleanOptionalAction,
+        help="When true, skip helm releases with local paths that do not exist",
+    )
 
 
 def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def]
@@ -248,6 +255,7 @@ def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def
         kube_version=kwargs.get("kube_version"),
         api_versions=kwargs.get("api_versions"),
         registry_config=kwargs.get("registry_config"),
+        skip_invalid_paths=kwargs.get("skip_invalid_helm_release_paths", True),
     )
 
 

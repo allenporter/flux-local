@@ -43,6 +43,7 @@ import tempfile
 from typing import Any
 
 import aiofiles
+from aiofiles.ospath import exists
 import yaml
 
 from . import command
@@ -223,6 +224,9 @@ class Options:
     registry_config: str | None = None
     """Value of the helm --registry-config flag."""
 
+    skip_invalid_paths: bool = True
+    """Skip HelmReleases with invalid local paths."""
+
     @property
     def base_args(self) -> list[str]:
         """Helm template CLI arguments built from the options."""
@@ -313,6 +317,21 @@ class Helm:
             args.extend(Options().base_args)
             args.extend(self._flags)
             await command.run(command.Command(args, exc=HelmException))
+
+    async def is_invalid_local_path(
+        self,
+        release: HelmRelease,
+    ) -> bool:
+        """Check if the HelmRelease has an invalid GitRepository path."""
+        repo = next(
+            iter([repo for repo in self._repos if repo.repo_name == release.repo_name]),
+            None,
+        )
+        chart_name = _chart_name(release, repo)
+        if release.chart.repo_kind == GIT_REPOSITORY:
+            if not await exists(chart_name):
+                return True
+        return False
 
     async def template(
         self,
