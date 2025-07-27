@@ -84,7 +84,11 @@
                                   "repo_name": "podinfo",
                                   "repo_namespace": "flux-system",
                                   "repo_kind": "HelmRepository"
-                              }
+                              },
+                              "images": [
+                                  "ghcr.io/stefanprodan/podinfo:6.3.2",
+                                  "public.ecr.aws/docker/library/redis:7.0.6"
+                              ]
                           }
                       ],
                       "config_maps": [
@@ -158,7 +162,11 @@
                                   "repo_name": "bitnami",
                                   "repo_namespace": "flux-system",
                                   "repo_kind": "HelmRepository"
-                              }
+                              },
+                              "images": [
+                                  "docker.io/bitnami/metallb-controller:0.13.7-debian-11-r29",
+                                  "docker.io/bitnami/metallb-speaker:0.13.7-debian-11-r28"
+                              ]
                           },
                           {
                               "name": "weave-gitops",
@@ -168,7 +176,10 @@
                                   "repo_name": "weave-charts",
                                   "repo_namespace": "flux-system",
                                   "repo_kind": "HelmRepository"
-                              }
+                              },
+                              "images": [
+                                  "ghcr.io/weaveworks/wego-app:v0.38.0"
+                              ]
                           }
                       ],
                       "config_maps": [],
@@ -184,7 +195,10 @@
   '''
   [
       "alpine",
-      "busybox"
+      "busybox",
+      "ghcr.io/stefanprodan/podinfo:6.5.4",
+      "public.ecr.aws/docker/library/redis:7.0.6",
+      "tailscale/k8s-operator:v1.68.1"
   ]
   '''
 # ---
@@ -321,6 +335,9 @@
           repo_name: podinfo
           repo_namespace: flux-system
           repo_kind: HelmRepository
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.3.2
+        - public.ecr.aws/docker/library/redis:7.0.6
       config_maps:
       - name: podinfo-config
         namespace: podinfo
@@ -371,6 +388,9 @@
           repo_name: bitnami
           repo_namespace: flux-system
           repo_kind: HelmRepository
+        images:
+        - docker.io/bitnami/metallb-controller:0.13.7-debian-11-r29
+        - docker.io/bitnami/metallb-speaker:0.13.7-debian-11-r28
       - name: weave-gitops
         namespace: flux-system
         chart:
@@ -378,6 +398,8 @@
           repo_name: weave-charts
           repo_namespace: flux-system
           repo_kind: HelmRepository
+        images:
+        - ghcr.io/weaveworks/wego-app:v0.38.0
       config_maps: []
       secrets: []
   
@@ -488,6 +510,9 @@
           repo_name: podinfo
           repo_namespace: flux-system
           repo_kind: HelmRepository
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.5.4
+        - public.ecr.aws/docker/library/redis:7.0.6
       - name: tailscale-operator
         namespace: network
         chart:
@@ -495,6 +520,8 @@
           repo_name: tailscale
           repo_namespace: flux-system
           repo_kind: HelmRepository
+        images:
+        - tailscale/k8s-operator:v1.68.1
       config_maps:
       - name: podinfo-values
         namespace: podinfo
@@ -541,6 +568,9 @@
           repo_name: podinfo
           repo_namespace: flux-system
           repo_kind: HelmRepository
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.5.4
+        - public.ecr.aws/docker/library/redis:7.0.6
       - name: tailscale-operator
         namespace: network
         chart:
@@ -548,6 +578,8 @@
           repo_name: tailscale
           repo_namespace: flux-system
           repo_kind: HelmRepository
+        images:
+        - tailscale/k8s-operator:v1.68.1
       config_maps:
       - name: podinfo-values
         namespace: podinfo
@@ -620,6 +652,9 @@
   ---
   - alpine
   - busybox
+  - ghcr.io/stefanprodan/podinfo:6.5.4
+  - public.ecr.aws/docker/library/redis:7.0.6
+  - tailscale/k8s-operator:v1.68.1
   
   '''
 # ---
@@ -649,6 +684,8 @@
           repo_name: flux-system
           repo_namespace: flux-system
           repo_kind: GitRepository
+        images:
+        - nginx:1.16.0
       - name: podinfo
         namespace: default
         chart:
@@ -656,6 +693,8 @@
           repo_name: podinfo
           repo_namespace: default
           repo_kind: OCIRepository
+        images:
+        - ghcr.io/stefanprodan/podinfo:6.7.1
       config_maps: []
       secrets: []
     - name: flux-system

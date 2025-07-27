@@ -281,7 +281,7 @@ class HelmVisitor:
                 await helm.update()
             tasks = []
             for release in self.releases:
-                if options.skip_invalid_paths and helm.is_invalid_local_path(release):
+                if options.skip_invalid_paths and await helm.is_invalid_local_path(release):
                     _LOGGER.info(
                         "Skipping HelmRelease %s with invalid path %s",
                         release.name,

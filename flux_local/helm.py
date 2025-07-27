@@ -224,7 +224,7 @@ class Options:
     registry_config: str | None = None
     """Value of the helm --registry-config flag."""
 
-    skip_invalid_paths: bool = True
+    skip_invalid_paths: bool = False
     """Skip HelmReleases with invalid local paths."""
 
     @property
