@@ -7,3 +7,4 @@ resources:
   - podinfo-values.yaml
   - podinfo-tls-values.yaml
   - tailscale.yaml
+  - qbittorrent.yaml

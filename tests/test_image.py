@@ -19,7 +19,14 @@ CWD = Path.cwd()
     [
         (
             CWD / "tests/testdata/cluster8",
-            {"flux-system/apps": {"alpine", "busybox"}},
+            {
+                "flux-system/apps": {
+                    "alpine",
+                    "busybox",
+                    "ghcr.io/buroa/qbrr:latest",
+                    "ghcr.io/home-operations/qbittorrent:latest",
+                }
+            },
         ),
         (
             CWD / "tests/testdata/cluster7",

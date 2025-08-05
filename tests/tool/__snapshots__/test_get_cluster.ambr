@@ -196,6 +196,8 @@
   [
       "alpine",
       "busybox",
+      "ghcr.io/buroa/qbrr:latest",
+      "ghcr.io/home-operations/qbittorrent:latest",
       "ghcr.io/stefanprodan/podinfo:6.5.4",
       "public.ecr.aws/docker/library/redis:7.0.6",
       "tailscale/k8s-operator:v1.68.1"
@@ -530,6 +532,8 @@
       images:
       - alpine
       - busybox
+      - ghcr.io/buroa/qbrr:latest
+      - ghcr.io/home-operations/qbittorrent:latest
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster8/cluster
@@ -587,6 +591,8 @@
       images:
       - alpine
       - busybox
+      - ghcr.io/buroa/qbrr:latest
+      - ghcr.io/home-operations/qbittorrent:latest
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster8/cluster
@@ -652,6 +658,8 @@
   ---
   - alpine
   - busybox
+  - ghcr.io/buroa/qbrr:latest
+  - ghcr.io/home-operations/qbittorrent:latest
   - ghcr.io/stefanprodan/podinfo:6.5.4
   - public.ecr.aws/docker/library/redis:7.0.6
   - tailscale/k8s-operator:v1.68.1
