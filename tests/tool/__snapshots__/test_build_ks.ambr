@@ -432,6 +432,33 @@
       name: tailscale-operator
       targetPath: oauth.clientSecret
       valuesKey: client_secret
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: qbittorrent
+    annotations:
+      config.kubernetes.io/index: '8'
+      internal.config.kubernetes.io/index: '8'
+  spec:
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: qbittorrent
+    template:
+      spec:
+        containers:
+        - image: ghcr.io/home-operations/qbittorrent:latest
+          name: app
+          volumeMounts:
+          - mountPath: /qbrr
+            name: qbrr
+        volumes:
+        - image:
+            reference: ghcr.io/buroa/qbrr:latest
+          name: qbrr
   
   
   '''
@@ -1426,6 +1453,30 @@
       name: tailscale-operator
       targetPath: oauth.clientSecret
       valuesKey: client_secret
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      kustomize.toolkit.fluxcd.io/name: apps
+      kustomize.toolkit.fluxcd.io/namespace: flux-system
+    name: qbittorrent
+  spec:
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: qbittorrent
+    template:
+      spec:
+        containers:
+        - image: ghcr.io/home-operations/qbittorrent:latest
+          name: app
+          volumeMounts:
+          - mountPath: /qbrr
+            name: qbrr
+        volumes:
+        - image:
+            reference: ghcr.io/buroa/qbrr:latest
+          name: qbrr
   ---
   apiVersion: kustomize.toolkit.fluxcd.io/v1
   kind: Kustomization

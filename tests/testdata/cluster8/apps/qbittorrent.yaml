@@ -1,0 +1,21 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qbittorrent
+  template:
+    spec:
+      containers:
+      - image: ghcr.io/home-operations/qbittorrent:latest
+        name: app
+        volumeMounts:
+        - mountPath: /qbrr
+          name: qbrr
+      volumes:
+      - image:
+          reference: ghcr.io/buroa/qbrr:latest
+        name: qbrr

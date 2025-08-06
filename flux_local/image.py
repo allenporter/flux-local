@@ -41,6 +41,8 @@ def _extract_images(kind: str, doc: dict[str, Any]) -> set[str]:
 
     for key, value in doc.items():
         if key == image_key:
+            if isinstance(value, dict) and "reference" in value:
+                value = value.get("reference")  # https://kubernetes.io/blog/2024/08/16/kubernetes-1-31-image-volume-source/
             if not isinstance(value, str):
                 raise ValueError(
                     f"Expected string for image key '{image_key}', got type {type(value).__name__}: {value}"
