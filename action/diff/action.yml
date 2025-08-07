@@ -47,6 +47,9 @@ inputs:
     description: Token used for checkout action
     default: "${{ github.token }}"
     required: false
+  registry-config:
+    description: Path to registry config for OCIRepository, formatted as a docker config JSON
+    default: ""
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
@@ -92,7 +95,7 @@ runs:
       id: flux_diff
       run: |
         if [[ "${{ inputs.resource }}" == "helmrelease" ]]; then
-          extra_flags="--api-versions=${{ inputs.api-versions}}"
+          extra_flags="--api-versions=${{ inputs.api-versions}} --registry-config=${{ inputs.registry-config }}"
         else
           extra_flags=""
         fi

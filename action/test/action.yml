@@ -25,6 +25,9 @@ inputs:
   sources:
     description: GitRepository or OCIRepository to include with optional source mappings like `flux-system` or `cluster=./kubernetes/`
     default: ""
+  registry-config:
+    description: Path to registry config for OCIRepository, formatted as a docker config JSON
+    default: ""
 runs:
   using: "composite"
   steps:
@@ -61,5 +64,6 @@ runs:
           --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
           --sources "${{ inputs.sources }}" \
           --path ${{ inputs.path }} \
-          --verbosity ${{ inputs.debug != 'true' && '0' || '1' }}
+          --verbosity ${{ inputs.debug != 'true' && '0' || '1' }} \
+          --registry-config "${{ inputs.registry-config }}"
       shell: bash
