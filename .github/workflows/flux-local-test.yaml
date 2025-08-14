@@ -23,7 +23,7 @@ jobs:
         - tests/testdata/cluster6
         - tests/testdata/cluster7
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup Flux CLI
       uses: fluxcd/flux2/action@v2.6.4
     - uses: ./action/test

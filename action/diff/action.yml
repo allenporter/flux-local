@@ -81,12 +81,12 @@ runs:
         uv pip install -e ${{ github.action_path }}/../../
       shell: bash
     - name: Checkout PR branch
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: pr
         token: ${{ inputs.token }}
     - name: Checkout live branch
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         ref: ${{ inputs.live-branch }}
         path: live

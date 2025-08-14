@@ -19,7 +19,7 @@ jobs:
         python-version: ["3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup Flux CLI
         uses: fluxcd/flux2/action@v2.6.4
       - name: Install uv

@@ -27,7 +27,7 @@ jobs:
         - kustomization
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Setup Flux CLI
       uses: fluxcd/flux2/action@v2.6.4
     - uses: ./action/diff
