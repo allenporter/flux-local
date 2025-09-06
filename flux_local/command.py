@@ -80,6 +80,8 @@ class Command(Task):
 
     async def run(self, stdin: bytes | None = None) -> bytes:
         """Run the command, returning stdout."""
+        last_exception: Exception | None = None
+
         for attempt in range(self.max_retries + 1):
             try:
                 _LOGGER.debug(
@@ -130,6 +132,7 @@ class Command(Task):
                 return out
 
             except asyncio.TimeoutError as err:
+                last_exception = err
                 if attempt < self.max_retries:
                     _LOGGER.warning(
                         "Command timed out (attempt %d/%d), retrying in %s seconds: %s",
@@ -140,7 +143,11 @@ class Command(Task):
                     )
                     await asyncio.sleep(self.retry_delay)
                     continue
-                raise self.exc(f"Command '{self}' timed out after {self.max_retries + 1} attempts") from err
+
+        # This should never be reached due to the loop structure, but mypy needs it
+        if last_exception:
+            raise self.exc(f"Command '{self}' timed out after {self.max_retries + 1} attempts") from last_exception
+        raise self.exc(f"Command '{self}' failed after {self.max_retries + 1} attempts")
 
 async def _run_piped_with_sem(cmds: Sequence[Task]) -> str:
     """Run a set of commands, piped together, returning stdout of last."""
