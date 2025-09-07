@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 _CONCURRENCY = 20
 _SEM = asyncio.Semaphore(_CONCURRENCY)
-_TIMEOUT = 20.0
+_TIMEOUT = 60.0
 
 
 # No public API
