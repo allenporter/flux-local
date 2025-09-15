@@ -9,7 +9,7 @@ COPY pyproject.toml .
 RUN pip install -e .
 
 COPY --from=ghcr.io/fluxcd/flux-cli:v2.6.4              /usr/local/bin/flux              /usr/local/bin/flux
-COPY --from=docker.io/alpine/helm:3.18.6                /usr/bin/helm                    /usr/local/bin/helm
+COPY --from=docker.io/alpine/helm:3.19.0                /usr/bin/helm                    /usr/local/bin/helm
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.7.1  /app/kustomize                   /usr/local/bin/kustomize
 
 USER 1001
