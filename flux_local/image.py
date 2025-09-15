@@ -25,6 +25,8 @@ KINDS = [
     "Alertmanager",  # monitoring.coreos.com/v1
     "Prometheus",  # monitoring.coreos.com/v1
     "AutoscalingRunnerSet",  # actions.github.com/v1alpha1
+    "EnvoyProxy", # gateway.envoyproxy.io/v1alpha1
+    "Plan", # upgrade.cattle.io/v1
 ]
 
 # Default image key for most object types.
