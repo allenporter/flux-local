@@ -1,6 +1,6 @@
 # Docker environment for local development in devcontainer
 
-FROM ubuntu:noble-20250805
+FROM ubuntu:noble-20250910
 
 RUN apt-get update --fix-missing && \
     apt-get upgrade -y && \
