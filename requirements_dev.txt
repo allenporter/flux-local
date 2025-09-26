@@ -16,7 +16,7 @@ mashumaro==3.16
 nest_asyncio==1.6.0
 pytest-asyncio==1.2.0
 python-slugify>=8.0.1
-PyYAML==6.0.2
+PyYAML==6.0.3
 types-aiofiles==24.1.0.20250822
 types-PyYAML==6.0.12.20250915
 typing-extensions==4.15.0
