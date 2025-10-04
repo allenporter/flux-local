@@ -18,7 +18,7 @@
     {
       "fileMatch": [".+\\.yaml$"],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>[a-z-]+?) depName=(?<depName>[^\\s]+?)(?: (lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: registryUrl=(?<registryUrl>[^\\s]+?))?\\s.+?_version: (?<currentValue>.+?)\\s"
+        "# renovate: datasource=(?<datasource>[a-z-]+?) depName=(?<depName>[^\\s]+?)(?: (lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: registryUrl=(?<registryUrl>[^\\s]+?))?\\s.+?(?:_version|_VERSION)(?:=|: )(?<currentValue>.+?)\\s"
       ],
       "extractVersionTemplate": "^v?(?<version>.*)$",
     }
