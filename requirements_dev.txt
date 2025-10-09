@@ -10,7 +10,7 @@ pytest==8.4.2
 ruff==0.14.0
 
 
-aiofiles==24.1.0
+aiofiles==25.1.0
 GitPython==3.1.45
 mashumaro==3.17
 nest_asyncio==1.6.0
