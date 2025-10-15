@@ -1,6 +1,6 @@
 -e .
 black==25.9.0
-coverage==7.10.7
+coverage==7.11.0
 mypy==1.18.2
 pdoc==15.0.4
 pip==25.2
