@@ -69,7 +69,7 @@ runs:
         cp ${{ github.action_path }}/../../requirements.txt ${tempdir}
         echo "directory=${tempdir}" >> $GITHUB_OUTPUT
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
         cache-dependency-glob: ${{ steps.copy-requirements.outputs.directory }}/requirements.txt
