@@ -34,7 +34,7 @@ KINDS = [
 IMAGE_KEY = "image"
 
 # Override the default image key for some object types.
-KINDS_IMAGE_KEY = {"Cluster": "imageName"}
+KINDS_IMAGE_KEY = {"Cluster": "imageName", "Grafana": "version"}
 
 
 def _extract_images(kind: str, doc: dict[str, Any]) -> set[str]:
