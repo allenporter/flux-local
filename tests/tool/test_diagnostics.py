@@ -12,7 +12,9 @@ from . import run_command
 
 async def test_diagnostics(snapshot: SnapshotAssertion) -> None:
     """Test test get ks commands."""
-    result = await run_command(["diagnostics"])
+    result = await run_command(
+        ["diagnostics", "--ignore-paths", "tests/testdata/cluster_ignore_junk/junk"]
+    )
     assert result == snapshot
 
 

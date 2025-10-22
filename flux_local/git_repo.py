@@ -38,9 +38,11 @@ from collections import deque
 from collections.abc import Callable, Awaitable
 from functools import cache
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any, Generator, Iterable
 
 import git
+import pathspec
+import yaml
 
 from aiofiles.ospath import isdir
 from . import kustomize, values
@@ -308,6 +310,15 @@ def ks_metadata_selector() -> MetadataSelector:
     """Create a new MetadataSelector for Kustomizations."""
     return MetadataSelector(namespace=DEFAULT_NAMESPACE)
 
+def flatten_ignore_paths(values: Iterable[str]) -> list[str]:
+    """Flatten repeated ignore path arguments into a simple list."""
+    return [
+        part
+        for raw in values
+        for part in raw.split(",")
+        if part
+    ]
+
 
 @dataclass
 class Options:
@@ -315,6 +326,11 @@ class Options:
 
     kustomize_flags: list[str] = field(default_factory=list)
     skip_kustomize_path_validation: bool = False
+    ignore_paths: list[str] = field(default_factory=list)
+    ignore_spec: pathspec.PathSpec = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.ignore_spec = pathspec.GitIgnoreSpec.from_lines(self.ignore_paths)
 
 
 @dataclass
@@ -412,12 +428,17 @@ class CachableBuilder:
         self._cache: dict[str, kustomize.Kustomize] = {}
 
     async def build(
-        self, kustomization: Kustomization, path: Path
+        self,
+        kustomization: Kustomization,
+        path: Path,
+        ignore_paths: list[str],
     ) -> kustomize.Kustomize:
-        key = f"{kustomization.namespaced_name} @ {path}"
+        key = f"{kustomization.namespaced_name} @ {path} ! {','.join(ignore_paths)}"
         if cmd := self._cache.get(key):
             return cmd
-        cmd = kustomize.flux_build(kustomization, path)
+        cmd = kustomize.flux_build(
+            kustomization, path, ignore_paths=ignore_paths
+        )
         cmd = await cmd.stash()
         self._cache[key] = cmd
         return cmd
@@ -429,6 +450,49 @@ class CachableBuilder:
             if key.startswith(target_key):
                 _LOGGER.debug("Invalidated cache %s", key)
                 del self._cache[key]
+
+
+def _scan_resources(
+    path: Path, ignore: pathspec.PathSpec
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Find Kustomization and config documents."""
+
+    ks: list[dict[str, Any]] = []
+    cfg: list[dict[str, Any]] = []
+
+    def _on_error(err: OSError) -> None:
+        _LOGGER.debug("Skipping %s while scanning resources: %s", err.filename, err)
+
+    tree_iter = ignore.match_tree_files(
+        path, negate=True, on_error=_on_error
+    )
+
+    for relative in tree_iter:
+        file = path / relative
+
+        if not file.is_file():
+            continue
+
+        try:
+            for doc in yaml.safe_load_all(file.read_text()):
+                if not isinstance(doc, dict):
+                    continue
+
+                kind = doc.get("kind")
+                if kind == CLUSTER_KUSTOMIZE_KIND:
+                    ks.append(doc)
+                elif kind in (CONFIG_MAP_KIND, SECRET_KIND):
+                    cfg.append(doc)
+        except (OSError, UnicodeDecodeError) as err:
+            raise FluxException(
+                f"Unable to read file '{file}': {err}"
+            ) from err
+        except yaml.YAMLError as err:
+            raise FluxException(
+                f"Unable to parse YAML file '{file}': {err}"
+            ) from err
+
+    return (ks, cfg)
 
 
 @dataclass
@@ -467,42 +531,57 @@ async def visit_kustomization(
     kinds = [CLUSTER_KUSTOMIZE_KIND, CONFIG_MAP_KIND, SECRET_KIND]
 
     with trace_context(f"Kustomization '{label}'"):
-        cmd: kustomize.Kustomize
-        if visit_ks is None:
-            cmd = kustomize.filter_resources(kinds, selector.root / path)
-        else:
-            if not await isdir(selector.root / path):
-                if options.skip_kustomize_path_validation:
-                    _LOGGER.debug(
-                        "Skipping Kustomization '%s' since path does not exist: %s",
-                        visit_ks.namespaced_name,
-                        selector.root / path,
-                    )
-                    return VisitResult(kustomizations=[], config_maps=[], secrets=[])
-                raise KustomizePathException(
-                    f"Kustomization '{visit_ks.namespaced_name}' path field '{visit_ks.path or ''}' is not a directory: {selector.root / path}"
-                )
-            cmd = await builder.build(visit_ks, selector.root / path)
-            cmd = cmd.filter_resources(kinds)
-        cmd = await cmd.stash()
-        ks_cmd = cmd.grep(GREP_SOURCE_REF_KIND)
-        cfg_cmd = cmd.filter_resources([CONFIG_MAP_KIND, SECRET_KIND])
+        root = selector.root / path
 
-        try:
-            ks_docs = await ks_cmd.objects()
-            cfg_docs = await cfg_cmd.objects()
-        except KustomizePathException as err:
-            raise FluxException(err) from err
-        except FluxException as err:
+        if visit_ks is None and options.ignore_paths:
+            try:
+                ks_docs, cfg_docs = _scan_resources(root, options.ignore_spec)
+            except FluxException as err:
+                message = (
+                    f"Error building Fluxtomization in '{selector.root}' path '{path}': "
+                    f"{ERROR_DETAIL_BAD_PATH} {err}"
+                )
+                raise FluxException(message) from err
+        else:
             if visit_ks is None:
+                cmd = kustomize.filter_resources(kinds, root)
+            else:
+                if not await isdir(root):
+                    if options.skip_kustomize_path_validation:
+                        _LOGGER.debug(
+                            "Skipping Kustomization '%s' since path does not exist: %s",
+                            visit_ks.namespaced_name,
+                            root,
+                        )
+                        return VisitResult(
+                            kustomizations=[], config_maps=[], secrets=[]
+                        )
+                    raise KustomizePathException(
+                        f"Kustomization '{visit_ks.namespaced_name}' path field "
+                        f"'{visit_ks.path or ''}' is not a directory: {root}"
+                    )
+                cmd = await builder.build(visit_ks, root, options.ignore_paths)
+                cmd = cmd.filter_resources(kinds)
+
+            cmd = await cmd.stash()
+            ks_cmd = cmd.grep(GREP_SOURCE_REF_KIND)
+            cfg_cmd = cmd.filter_resources([CONFIG_MAP_KIND, SECRET_KIND])
+
+            try:
+                ks_docs = await ks_cmd.objects()
+                cfg_docs = await cfg_cmd.objects()
+            except KustomizePathException as err:
+                raise FluxException(err) from err
+            except FluxException as err:
+                if visit_ks is None:
+                    raise FluxException(
+                        f"Error building Fluxtomization in '{selector.root}' "
+                        f"path '{path}': {ERROR_DETAIL_BAD_PATH} {err}"
+                    ) from err
                 raise FluxException(
-                    f"Error building Fluxtomization in '{selector.root}' "
-                    f"path '{path}': {ERROR_DETAIL_BAD_PATH} {err}"
+                    f"Error building Fluxtomization '{visit_ks.namespaced_name}' "
+                    f"path '{path}': {ERROR_DETAIL_BAD_KS} {err}"
                 ) from err
-            raise FluxException(
-                f"Error building Fluxtomization '{visit_ks.namespaced_name}' "
-                f"path '{path}': {ERROR_DETAIL_BAD_KS} {err}"
-            ) from err
 
     return VisitResult(
         kustomizations=list(
@@ -604,6 +683,7 @@ async def build_kustomization(
     selector: ResourceSelector,
     kustomize_flags: list[str],
     builder: CachableBuilder,
+    ignore_paths: list[str],
 ) -> None:
     """Build helm objects for the Kustomization and update state."""
     root: Path = selector.path.root
@@ -621,7 +701,9 @@ async def build_kustomization(
         return
 
     with trace_context(f"Build '{kustomization.namespaced_name}'"):
-        cmd = await builder.build(kustomization, root / kustomization.path)
+        cmd = await builder.build(
+            kustomization, root / kustomization.path, ignore_paths
+        )
         skips = []
         if kustomization_selector.skip_crds:
             skips.append(CRD_KIND)
@@ -802,6 +884,7 @@ async def build_manifest(
                             selector,
                             options.kustomize_flags,
                             builder,
+                            options.ignore_paths,
                         )
                     )
                 if not build_tasks:

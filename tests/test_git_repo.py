@@ -15,16 +15,19 @@ from flux_local.git_repo import (
     ResourceVisitor,
     Source,
     PathSelector,
+    Options,
     is_allowed_source,
     adjust_ks_path,
 )
 from flux_local.kustomize import Kustomize, Stash
-from flux_local.command import Task, run_piped
+from flux_local.command import Command, Task, run_piped
+from flux_local.exceptions import FluxException
 from flux_local.manifest import Kustomization
 from flux_local.context import trace
 
 TESTDATA = Path("tests/testdata/cluster")
 TESTDATA_FULL_PATH = Path.cwd() / TESTDATA
+TESTDATA_IGNORE = Path("tests/testdata/cluster_ignore_junk")
 
 
 async def test_build_manifest(snapshot: SnapshotAssertion) -> None:
@@ -32,6 +35,44 @@ async def test_build_manifest(snapshot: SnapshotAssertion) -> None:
 
     manifest = await build_manifest(TESTDATA)
     assert manifest.compact_dict() == snapshot
+
+
+async def test_discovery_fails_without_ignore_paths() -> None:
+    """Building without ignore paths should fail with invalid YAML present."""
+
+    selector = ResourceSelector(path=PathSelector(path=TESTDATA_IGNORE))
+    with pytest.raises(
+        FluxException,
+        match=(
+            r"(?s)Try specifying another path within the git repo\?.*"
+            r"MalformedYAMLError: yaml: mapping values are not allowed in this context"
+        ),
+    ):
+        await build_manifest(selector=selector)
+
+
+async def test_ignore_paths_avoids_failure_and_passes_to_flux_build() -> None:
+    """Ignore paths should permit discovery and reach flux build arguments."""
+
+    selector = ResourceSelector(path=PathSelector(path=TESTDATA_IGNORE))
+    options = Options(ignore_paths=["junk/"])
+
+    recorded: list[str] = []
+
+    orig_run = Command.run
+
+    async def _record_run(self: Command, stdin: bytes | None = None) -> bytes:
+        recorded.append(self.string)
+        return await orig_run(self, stdin)
+
+    with patch("flux_local.command.Command.run", new=_record_run):
+        manifest = await build_manifest(selector=selector, options=options)
+
+    assert manifest.clusters
+    assert any(cluster.kustomizations for cluster in manifest.clusters)
+
+    assert any("flux build " in cmd and "--ignore-paths" in cmd for cmd in recorded)
+    assert any("--ignore-paths" in cmd and "junk/" in cmd for cmd in recorded)
 
 
 async def test_cluster_selector_disabled(snapshot: SnapshotAssertion) -> None:

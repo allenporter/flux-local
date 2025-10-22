@@ -144,7 +144,9 @@ class KustomizationTest(pytest.Item):
     async def async_runtest(self) -> None:
         """Run the Kustomizations test."""
         cmd = await kustomize.flux_build(
-            self.kustomization, Path(self.kustomization.path)
+            self.kustomization,
+            Path(self.kustomization.path),
+            ignore_paths=self.test_config.options.ignore_paths,
         ).stash()
         await cmd.objects()
 

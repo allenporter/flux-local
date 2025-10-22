@@ -23,7 +23,7 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Any, cast
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from flux_local.store import Store, Status, Artifact
 from flux_local.source_controller.artifact import GitArtifact, OCIArtifact
@@ -63,6 +63,7 @@ class KustomizationControllerConfig:
     """Configuration for the KustomizationController."""
 
     wipe_secrets: bool = True
+    ignore_paths: list[str] = field(default_factory=list)
 
 
 class KustomizationController:
@@ -388,7 +389,9 @@ class KustomizationController:
 
         try:
             path = Path(source_path)
-            kustomize = flux_build(kustomization, path)
+            kustomize = flux_build(
+                kustomization, path, ignore_paths=self._config.ignore_paths
+            )
             objects = await kustomize.objects(
                 target_namespace=kustomization.target_namespace
             )

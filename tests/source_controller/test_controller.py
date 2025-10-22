@@ -49,7 +49,7 @@ def git_repo_dir_fixture(git_repo_tmp_dir: Path) -> Path:
     repo_path.mkdir()
 
     # Initialize git repository
-    repo = git.Repo.init(repo_path)
+    repo = git.Repo.init(repo_path, initial_branch='master')
     repo.config_writer().set_value("user", "name", "myusername").release()
     repo.config_writer().set_value("user", "email", "myemail").release()
 

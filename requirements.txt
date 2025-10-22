@@ -8,3 +8,4 @@ pytest-cov==7.0.0
 PyYAML==6.0.3
 python-slugify==8.0.4
 oras==0.2.38
+pathspec==0.12.1
