@@ -27,6 +27,7 @@ KINDS = [
     "AutoscalingRunnerSet",  # actions.github.com/v1alpha1
     "EnvoyProxy", # gateway.envoyproxy.io/v1alpha1
     "Plan", # upgrade.cattle.io/v1
+    "Grafana", # grafana.integreatly.org/v1beta1
 ]
 
 # Default image key for most object types.
