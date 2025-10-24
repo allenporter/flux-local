@@ -13,6 +13,7 @@ from flux_local.manifest import (
     Kustomization,
     ConfigMap,
     RawObject,
+    Secret,
     parse_raw_obj,
     HelmRepository,
     Manifest,
@@ -235,6 +236,37 @@ spec:
     assert parsed.name == "my-object"
     assert parsed.namespace == "default"
     assert parsed.spec == {"someField": "value"}
+
+
+def test_parse_secret_v1() -> None:
+    """Test parsing a v1 Secret is handled as Secret object."""
+    secret_doc = {
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "metadata": {"name": "my-secret", "namespace": "default"},
+        "data": {"key": "dmFsdWU="},
+    }
+    parsed = parse_raw_obj(secret_doc)
+    assert isinstance(parsed, Secret)
+    assert parsed.name == "my-secret"
+    assert parsed.namespace == "default"
+
+
+def test_parse_secret_crd() -> None:
+    """Test parsing a CRD with kind Secret but non-v1 apiVersion is handled as RawObject."""
+    secret_crd_doc = {
+        "apiVersion": "external-secrets.io/v1beta1",
+        "kind": "Secret",
+        "metadata": {"name": "my-external-secret", "namespace": "default"},
+        "spec": {"secretStoreRef": {"name": "vault-backend", "kind": "SecretStore"}},
+    }
+    parsed = parse_raw_obj(secret_crd_doc)
+    assert isinstance(parsed, RawObject)
+    assert parsed.kind == "Secret"
+    assert parsed.api_version == "external-secrets.io/v1beta1"
+    assert parsed.name == "my-external-secret"
+    assert parsed.namespace == "default"
+    assert parsed.spec == {"secretStoreRef": {"name": "vault-backend", "kind": "SecretStore"}}
 
 
 def test_helmrelease_dependencies() -> None:
