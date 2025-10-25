@@ -1,4 +1,4 @@
-FROM python:3.13-alpine as base
+FROM python:3.14-alpine as base
 
 RUN apk add --no-cache ca-certificates git
 
