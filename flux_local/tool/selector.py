@@ -139,6 +139,15 @@ def add_common_flags(args: ArgumentParser) -> None:
         default="",
         help="If present, additional flags to pass to `kustomize build`",
     )
+    args.add_argument(
+        "--ignore-paths",
+        action="append",
+        default=[],
+        help=(
+            "Comma-separated .gitignore-style patterns to ignore when building. "
+            "Passed through to `flux build --ignore-paths`. May be set multiple times."
+        ),
+    )
 
 
 def add_ks_selector_flags(args: ArgumentParser) -> None:
@@ -157,7 +166,9 @@ def options(  # type: ignore[no-untyped-def]
     kustomize_build_flags: str | None, **kwargs
 ) -> git_repo.Options:
     """Create an Options object based on flags."""
-    options = git_repo.Options()
+    options = git_repo.Options(
+        ignore_paths=git_repo.flatten_ignore_paths(kwargs.get("ignore_paths", []))
+    )
     options.kustomize_flags = shlex.split(kustomize_build_flags or "")
     options.skip_kustomize_path_validation = kwargs.get(
         "skip_invalid_kustomization_paths", False
