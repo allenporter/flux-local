@@ -144,6 +144,9 @@ class BuildKustomizationAction:
         # Disable Helm for ks-only build
         config = OrchestratorConfig(enable_helm=False)
         config.kustomization_controller_config.wipe_secrets = kwargs["wipe_secrets"]
+        config.kustomization_controller_config.ignore_paths = git_repo.flatten_ignore_paths(
+            kwargs.get("ignore_paths", [])
+        )
         config.read_action_config.wipe_secrets = kwargs["wipe_secrets"]
         config.source_controller_config.enable_oci = kwargs["enable_oci"]
         orchestrator = Orchestrator(store, config)
