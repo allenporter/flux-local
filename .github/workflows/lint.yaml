@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/ruff-action@v3
-      - uses: codespell-project/actions-codespell@v2.1
+      - uses: codespell-project/actions-codespell@v2.2
         with:
           check_hidden: false
           exclude_file: ./tests/testdata/cluster9/clusters/dev/flux-system/gotk-components.yaml
