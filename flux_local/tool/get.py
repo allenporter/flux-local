@@ -168,14 +168,12 @@ class GetClusterAction:
         selector.add_cluster_selector_flags(args)
         args.add_argument(
             "--enable-images",
-            type=str,
             default=False,
             action=BooleanOptionalAction,
             help="Output container images when traversing the cluster",
         )
         args.add_argument(
             "--only-images",
-            type=str,
             default=False,
             action=BooleanOptionalAction,
             help="Output only container images when traversing the cluster",

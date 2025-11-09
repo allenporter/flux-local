@@ -81,14 +81,12 @@ class BuildKustomizationAction:
         )
         args.add_argument(
             "--wipe-secrets",
-            type=str,
             default=True,
             action=BooleanOptionalAction,
             help="Wipe secrets from the output",
         )
         args.add_argument(
             "--enable-oci",
-            type=str,
             default=False,
             action=BooleanOptionalAction,
             help="Enable OCI repository sources",

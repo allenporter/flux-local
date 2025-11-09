@@ -44,7 +44,6 @@ class BuildAllAction:
         )
         args.add_argument(
             "--enable-helm",
-            type=bool,
             action=BooleanOptionalAction,
             help="Enable use of HelmRelease inflation",
         )
