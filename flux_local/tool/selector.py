@@ -85,7 +85,6 @@ def add_selector_flags(args: ArgumentParser) -> None:
     args.add_argument(
         "--all-namespaces",
         "-A",
-        type=bool,
         default=False,
         action=BooleanOptionalAction,
         help="List the requested objects across all namespaces.",
@@ -110,14 +109,12 @@ def add_common_flags(args: ArgumentParser) -> None:
     """Add flags that are common to selectors and other command types."""
     args.add_argument(
         "--skip-crds",
-        type=str,
         default=True,
         action=BooleanOptionalAction,
         help="When true do not include CRDs to reduce output size",
     )
     args.add_argument(
         "--skip-secrets",
-        type=str,
         default=True,
         action=BooleanOptionalAction,
         help="When true do not include Secrets to reduce output size and randomness",
@@ -235,7 +232,6 @@ def add_helm_options_flags(args: ArgumentParser) -> None:
     )
     args.add_argument(
         "--skip-invalid-helm-release-paths",
-        type=bool,
         default=True,
         action=BooleanOptionalAction,
         help="When true, skip helm releases with local paths that do not exist",
