@@ -59,9 +59,10 @@ def main() -> None:
         logging.basicConfig(level=args.log_level)
 
     action = args.cls()
+    loop = asyncio.new_event_loop()
     try:
         with empty_registry_config_file():
-            asyncio.get_event_loop().run_until_complete(action.run(**vars(args)))
+            loop.run_until_complete(action.run(**vars(args)))
     except FluxException as err:
         if args.log_level == "DEBUG":
             traceback.print_exc(file=sys.stderr)
