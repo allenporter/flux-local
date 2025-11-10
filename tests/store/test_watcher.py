@@ -104,29 +104,8 @@ def waiter(
 async def cancellable_mock_task_service() -> MagicMock:
     """Provides a mock TaskService that creates truly cancellable asyncio.Tasks."""
     loop = asyncio.get_running_loop()
-
     service = MagicMock(spec=TaskService)
-    created_mock_tasks: list[MagicMock] = []
-    actual_asyncio_tasks: list[asyncio.Task[Any]] = []
-    service.created_mock_tasks = created_mock_tasks  # For inspection
-    service.actual_asyncio_tasks = actual_asyncio_tasks  # For inspection
-
-    def create_task_side_effect(coro: Coroutine[Any, Any, Any]) -> MagicMock:
-        """Side effect for create_task that creates a real, cancellable asyncio.Task."""
-        actual_task: asyncio.Task[Any] = loop.create_task(coro)
-        actual_asyncio_tasks.append(actual_task)
-
-        # Create a mock wrapper around the actual task for easier mocking/inspection
-        mock_task_wrapper = MagicMock(spec=asyncio.Task)
-        mock_task_wrapper.cancel = actual_task.cancel
-        mock_task_wrapper.done = lambda: actual_task.done()
-        mock_task_wrapper.cancelled = lambda: actual_task.cancelled()
-        mock_task_wrapper.actual_task = actual_task  # For direct manipulation if needed
-
-        created_mock_tasks.append(mock_task_wrapper)
-        return mock_task_wrapper
-
-    service.create_task = MagicMock(side_effect=create_task_side_effect)
+    service.create_task = MagicMock(side_effect=loop.create_task)
     return service
 
 
