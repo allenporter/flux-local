@@ -49,8 +49,10 @@ def mock_store() -> AsyncMock:
 
 
 @pytest.fixture
-def mock_task_service() -> MagicMock:
+async def mock_task_service() -> MagicMock:
     """Provides a basic mock TaskService instance that runs tasks."""
+    loop = asyncio.get_running_loop()
+
     service = MagicMock(spec=TaskService)
     created_mock_task_wrappers: list[MagicMock] = []
     actual_tasks: list[asyncio.Task[Any]] = []
@@ -60,7 +62,6 @@ def mock_task_service() -> MagicMock:
 
     def create_task_side_effect(coro: Coroutine[Any, Any, Any]) -> MagicMock:
         """Side effect for create_task that creates, runs an asyncio.Task, and returns a mock wrapper."""
-        loop = asyncio.get_running_loop()
         actual_task: asyncio.Task[Any] = loop.create_task(coro)
         actual_tasks.append(actual_task)
 
@@ -100,8 +101,10 @@ def waiter(
 
 
 @pytest.fixture
-def cancellable_mock_task_service() -> MagicMock:
+async def cancellable_mock_task_service() -> MagicMock:
     """Provides a mock TaskService that creates truly cancellable asyncio.Tasks."""
+    loop = asyncio.get_running_loop()
+
     service = MagicMock(spec=TaskService)
     created_mock_tasks: list[MagicMock] = []
     actual_asyncio_tasks: list[asyncio.Task[Any]] = []
@@ -110,7 +113,6 @@ def cancellable_mock_task_service() -> MagicMock:
 
     def create_task_side_effect(coro: Coroutine[Any, Any, Any]) -> MagicMock:
         """Side effect for create_task that creates a real, cancellable asyncio.Task."""
-        loop = asyncio.get_running_loop()
         actual_task: asyncio.Task[Any] = loop.create_task(coro)
         actual_asyncio_tasks.append(actual_task)
 
