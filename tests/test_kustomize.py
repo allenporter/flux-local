@@ -126,6 +126,7 @@ async def test_flux_build_path_is_not_dir() -> None:
     cmd = kustomize.flux_build(
         manifest.Kustomization(name="example", path="./", namespace="flux-system"),
         Path(TESTDATA_DIR) / "does-not-exist",
+        ignore_paths=[],
     )
     with pytest.raises(exceptions.FluxException, match="not a directory"):
         await cmd.objects()
@@ -142,6 +143,6 @@ async def test_flux_build() -> None:
     )
     assert len(docs) == 2
     ks = manifest.Kustomization.parse_doc(docs[1])
-    cmd = kustomize.flux_build(ks, Path(ks.path))
+    cmd = kustomize.flux_build(ks, Path(ks.path), ignore_paths=[])
     result = await cmd.run()
     assert "GitRepository" in result
