@@ -1,0 +1,24 @@
+diff a/.github/workflows/lint.yaml b/.github/workflows/lint.yaml	(rejected hunks)
+@@ -18,7 +18,6 @@ jobs:
+ 
+     steps:
+       - uses: actions/checkout@v4
+-      - uses: astral-sh/ruff-action@v3
+       - uses: codespell-project/actions-codespell@v2.1
+         with:
+           check_hidden: false
+@@ -39,6 +38,14 @@ jobs:
+         run: |
+           uv pip install -r requirements_dev.txt
+ 
++      - name: Run Ruff Check
++        run: |
++          ruff check --output-format=github .
++
++      - name: Run Ruff Format
++        run: |
++          ruff format .
++
+       - name: Static typing with mypy
+         run: |
+           mypy --install-types --non-interactive --no-warn-unused-ignores .
