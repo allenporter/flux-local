@@ -10,7 +10,7 @@ license-files = ["LICENSE"]
 description = "flux-local is a set of tools and libraries for managing a local flux gitops repository focused on validation steps to help improve quality of commits, PRs, and general local testing."
 readme = "README.md"
 authors = [{ name = "Allen Porter", email = "allen.porter@gmail.com" }]
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 classifiers = []
 dependencies = [
   "GitPython>=3.1.30",
