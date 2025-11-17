@@ -56,6 +56,7 @@ from .manifest import (
     SECRET_KIND,
     REPO_TYPE_OCI,
     HELM_REPO_KIND,
+    HELM_CHART,
     GIT_REPOSITORY,
     OCI_REPOSITORY,
     GitRepository,
@@ -144,7 +145,7 @@ def _chart_name(
         raise HelmException(
             f"HelmRelease {release.name} expected OCIRepository but got HelmRepository {repo.repo_name}"
         )
-    if release.chart.repo_kind == HELM_REPO_KIND:
+    if release.chart.repo_kind in (HELM_REPO_KIND, HELM_CHART):
         if not repo:
             raise HelmException(
                 f"Unable to find HelmRepository for {release.chart.chart_name} for "
@@ -165,6 +166,7 @@ def _chart_name(
             release.chart.name,
         )
         return release.chart.name
+    _LOGGER.debug("XXX Release: %s repo: %s", release, repo)
     raise HelmException(
         f"Unable to find chart source for chart {release.chart.chart_name} "
         f"kind {release.chart.repo_kind} for HelmRelease {release.name}"
