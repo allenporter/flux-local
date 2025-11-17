@@ -166,7 +166,6 @@ def _chart_name(
             release.chart.name,
         )
         return release.chart.name
-    _LOGGER.debug("XXX Release: %s repo: %s", release, repo)
     raise HelmException(
         f"Unable to find chart source for chart {release.chart.chart_name} "
         f"kind {release.chart.repo_kind} for HelmRelease {release.name}"
