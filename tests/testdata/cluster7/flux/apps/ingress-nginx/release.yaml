@@ -1,0 +1,11 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ingress-nginx
+  namespace: flux-system
+spec:
+  chartRef:
+    kind: HelmChart
+    name: ingress-nginx
+  releaseName: ingress-nginx

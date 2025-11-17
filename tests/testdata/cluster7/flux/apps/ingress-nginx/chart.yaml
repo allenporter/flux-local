@@ -1,0 +1,12 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: ingress-nginx
+  namespace: flux-system
+spec:
+  chart: ingress-nginx
+  sourceRef:
+    kind: HelmRepository
+    name: ingress-nginx
+  version: 4.13.3
