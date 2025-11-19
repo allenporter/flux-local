@@ -168,6 +168,16 @@ metadata.labels.helm.sh/chart  (PersistentVolumeClaim/default/hajimari-data)
     + hajimari-2.0.1
 ```
 
+Ignore specific paths
+
+You can exclude non-Kubernetes or otherwise irrelevant files and directories during
+diff with the `--ignore-paths` flag. Patterns are `.gitignore`-style and may be
+comma-separated. A trailing slash matches a directory and all its contents (e.g., `.github/`).
+
+```bash
+$ flux-local diff ks apps --path clusters/prod --ignore-paths ".github/,scripts/"
+```
+
 
 ### flux-local test
 
@@ -214,6 +224,16 @@ You may also validate `HelmRelease` objects can be templated properly with the `
 flag. This will run `kustomize build` then run `helm template` on all the `HelmRelease` objects
 found.
 
+Ignore specific paths
+
+Use `--ignore-paths` to omit directories/files from discovery and build when running tests.
+Patterns are `.gitignore`-style and may be comma-separated. A trailing slash matches a directory
+and all its contents (e.g., `.github/`).
+
+```bash
+$ flux-local test --path clusters/prod --ignore-paths ".github/,local/"
+```
+
 ## GitHub Action
 
 You may use `flux-local` as a github action to verify the health of the cluster on changes
@@ -236,6 +256,19 @@ helm release expansion enabled.
     enable-helm: true
 ```
 
+Ignore paths during builds
+
+You can exclude directories/files from discovery and builds using `.gitignore`-style
+patterns via the `ignore-paths` input (comma-separated, relative to `path`). A trailing
+slash matches a directory and all its contents (e.g., `.github/`).
+
+```yaml
+- uses: allenporter/flux-local/action/test@4.3.1
+  with:
+    path: clusters/prod
+    ignore-paths: ".github/,scripts/,local/"
+```
+
 ### diff action
 
 The `diff` action will show you the final diffs of `Kustomization` or `HelmRelease`
@@ -254,6 +287,7 @@ This is an example that diffs a `HelmRelease`:
     live-branch: main
     path: clusters/prod
     resource: helmrelease
+    ignore-paths: ".github/,scripts/"
 - name: PR Comments
   uses: mshick/add-pr-comment@v2
   if: ${{ steps.diff.outputs.diff != '' }}
@@ -291,6 +325,7 @@ jobs:
           live-branch: main
           path: ${{ matrix.cluster_path }}
           resource: ${{ matrix.resource }}
+          ignore-paths: ".github/,scripts/"
       - name: PR Comments
         uses: mshick/add-pr-comment@v2
         if: ${{ steps.diff.outputs.diff != '' }}
