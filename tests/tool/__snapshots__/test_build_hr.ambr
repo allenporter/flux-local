@@ -1943,3 +1943,1237 @@
   
   '''
 # ---
+# name: test_build_hr_new[build-hr-single-cluster7]
+  '''
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    name: ingress-nginx
+    namespace: flux-system
+  automountServiceAccountToken: true
+  ---
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    name: ingress-nginx-controller
+    namespace: flux-system
+  data: null
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+    name: ingress-nginx
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - configmaps
+    - endpoints
+    - nodes
+    - pods
+    - secrets
+    - namespaces
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - coordination.k8s.io
+    resources:
+    - leases
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ''
+    resources:
+    - nodes
+    verbs:
+    - get
+  - apiGroups:
+    - ''
+    resources:
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingresses
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ''
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+  - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingresses/status
+    verbs:
+    - update
+  - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingressclasses
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - discovery.k8s.io
+    resources:
+    - endpointslices
+    verbs:
+    - list
+    - watch
+    - get
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+    name: ingress-nginx
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: ingress-nginx
+  subjects:
+  - kind: ServiceAccount
+    name: ingress-nginx
+    namespace: flux-system
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    name: ingress-nginx
+    namespace: flux-system
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - namespaces
+    verbs:
+    - get
+  - apiGroups:
+    - ''
+    resources:
+    - configmaps
+    - pods
+    - secrets
+    - endpoints
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ''
+    resources:
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingresses
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingresses/status
+    verbs:
+    - update
+  - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingressclasses
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - coordination.k8s.io
+    resources:
+    - leases
+    resourceNames:
+    - ingress-nginx-leader
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - coordination.k8s.io
+    resources:
+    - leases
+    verbs:
+    - create
+  - apiGroups:
+    - ''
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+  - apiGroups:
+    - discovery.k8s.io
+    resources:
+    - endpointslices
+    verbs:
+    - list
+    - watch
+    - get
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    name: ingress-nginx
+    namespace: flux-system
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: ingress-nginx
+  subjects:
+  - kind: ServiceAccount
+    name: ingress-nginx
+    namespace: flux-system
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    name: ingress-nginx-controller-admission
+    namespace: flux-system
+  spec:
+    type: ClusterIP
+    ports:
+    - name: https-webhook
+      port: 443
+      targetPort: webhook
+      appProtocol: https
+    selector:
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/component: controller
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    name: ingress-nginx-controller
+    namespace: flux-system
+  spec:
+    type: LoadBalancer
+    ipFamilyPolicy: SingleStack
+    ipFamilies:
+    - IPv4
+    ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
+      appProtocol: http
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: https
+      appProtocol: https
+    selector:
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/component: controller
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    name: ingress-nginx-controller
+    namespace: flux-system
+  spec:
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: ingress-nginx
+        app.kubernetes.io/instance: ingress-nginx
+        app.kubernetes.io/component: controller
+    replicas: 1
+    revisionHistoryLimit: 10
+    minReadySeconds: 0
+    template:
+      metadata:
+        labels:
+          helm.sh/chart: ingress-nginx-4.14.0
+          app.kubernetes.io/name: ingress-nginx
+          app.kubernetes.io/instance: ingress-nginx
+          app.kubernetes.io/version: 1.14.0
+          app.kubernetes.io/part-of: ingress-nginx
+          app.kubernetes.io/managed-by: Helm
+          app.kubernetes.io/component: controller
+      spec:
+        dnsPolicy: ClusterFirst
+        containers:
+        - name: controller
+          image: registry.k8s.io/ingress-nginx/controller:v1.14.0@sha256:e4127065d0317bd11dc64c4dd38dcf7fb1c3d72e468110b4086e636dbaac943d
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /wait-shutdown
+          args:
+          - /nginx-ingress-controller
+          - --publish-service=$(POD_NAMESPACE)/ingress-nginx-controller
+          - --election-id=ingress-nginx-leader
+          - --controller-class=k8s.io/ingress-nginx
+          - --ingress-class=nginx
+          - --configmap=$(POD_NAMESPACE)/ingress-nginx-controller
+          - --validating-webhook=:8443
+          - --validating-webhook-certificate=/usr/local/certificates/cert
+          - --validating-webhook-key=/usr/local/certificates/key
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 82
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+              - ALL
+              add:
+              - NET_BIND_SERVICE
+            readOnlyRootFilesystem: false
+          env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: LD_PRELOAD
+            value: /usr/local/lib/libmimalloc.so
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          ports:
+          - name: http
+            containerPort: 80
+            protocol: TCP
+          - name: https
+            containerPort: 443
+            protocol: TCP
+          - name: webhook
+            containerPort: 8443
+            protocol: TCP
+          volumeMounts:
+          - name: webhook-cert
+            mountPath: /usr/local/certificates/
+            readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 90Mi
+        nodeSelector:
+          kubernetes.io/os: linux
+        serviceAccountName: ingress-nginx
+        automountServiceAccountToken: true
+        terminationGracePeriodSeconds: 300
+        volumes:
+        - name: webhook-cert
+          secret:
+            secretName: ingress-nginx-admission
+  ---
+  apiVersion: networking.k8s.io/v1
+  kind: IngressClass
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: controller
+    name: nginx
+  spec:
+    controller: k8s.io/ingress-nginx
+  ---
+  apiVersion: admissionregistration.k8s.io/v1
+  kind: ValidatingWebhookConfiguration
+  metadata:
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: admission-webhook
+    name: ingress-nginx-admission
+  webhooks:
+  - name: validate.nginx.ingress.kubernetes.io
+    matchPolicy: Equivalent
+    rules:
+    - apiGroups:
+      - networking.k8s.io
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - ingresses
+    failurePolicy: Fail
+    sideEffects: None
+    admissionReviewVersions:
+    - v1
+    clientConfig:
+      service:
+        name: ingress-nginx-controller-admission
+        namespace: flux-system
+        port: 443
+        path: /networking/v1/ingresses
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: ingress-nginx-admission
+    namespace: flux-system
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: admission-webhook
+  automountServiceAccountToken: true
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: ingress-nginx-admission
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: admission-webhook
+  rules:
+  - apiGroups:
+    - admissionregistration.k8s.io
+    resources:
+    - validatingwebhookconfigurations
+    verbs:
+    - get
+    - update
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: ingress-nginx-admission
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: admission-webhook
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: ingress-nginx-admission
+  subjects:
+  - kind: ServiceAccount
+    name: ingress-nginx-admission
+    namespace: flux-system
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: ingress-nginx-admission
+    namespace: flux-system
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: admission-webhook
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - secrets
+    verbs:
+    - get
+    - create
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: ingress-nginx-admission
+    namespace: flux-system
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: admission-webhook
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: ingress-nginx-admission
+  subjects:
+  - kind: ServiceAccount
+    name: ingress-nginx-admission
+    namespace: flux-system
+  ---
+  apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: ingress-nginx-admission-create
+    namespace: flux-system
+    annotations:
+      helm.sh/hook: pre-install,pre-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: admission-webhook
+  spec:
+    ttlSecondsAfterFinished: 0
+    template:
+      metadata:
+        name: ingress-nginx-admission-create
+        labels:
+          helm.sh/chart: ingress-nginx-4.14.0
+          app.kubernetes.io/name: ingress-nginx
+          app.kubernetes.io/instance: ingress-nginx
+          app.kubernetes.io/version: 1.14.0
+          app.kubernetes.io/part-of: ingress-nginx
+          app.kubernetes.io/managed-by: Helm
+          app.kubernetes.io/component: admission-webhook
+      spec:
+        containers:
+        - name: create
+          image: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.6.4@sha256:bcfc926ed57831edf102d62c5c0e259572591df4796ef1420b87f9cf6092497f
+          imagePullPolicy: IfNotPresent
+          args:
+          - create
+          - --host=ingress-nginx-controller-admission,ingress-nginx-controller-admission.$(POD_NAMESPACE).svc
+          - --namespace=$(POD_NAMESPACE)
+          - --secret-name=ingress-nginx-admission
+          env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 65532
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+        restartPolicy: OnFailure
+        serviceAccountName: ingress-nginx-admission
+        automountServiceAccountToken: true
+        nodeSelector:
+          kubernetes.io/os: linux
+  ---
+  apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: ingress-nginx-admission-patch
+    namespace: flux-system
+    annotations:
+      helm.sh/hook: post-install,post-upgrade
+      helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    labels:
+      helm.sh/chart: ingress-nginx-4.14.0
+      app.kubernetes.io/name: ingress-nginx
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/version: 1.14.0
+      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/component: admission-webhook
+  spec:
+    ttlSecondsAfterFinished: 0
+    template:
+      metadata:
+        name: ingress-nginx-admission-patch
+        labels:
+          helm.sh/chart: ingress-nginx-4.14.0
+          app.kubernetes.io/name: ingress-nginx
+          app.kubernetes.io/instance: ingress-nginx
+          app.kubernetes.io/version: 1.14.0
+          app.kubernetes.io/part-of: ingress-nginx
+          app.kubernetes.io/managed-by: Helm
+          app.kubernetes.io/component: admission-webhook
+      spec:
+        containers:
+        - name: patch
+          image: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.6.4@sha256:bcfc926ed57831edf102d62c5c0e259572591df4796ef1420b87f9cf6092497f
+          imagePullPolicy: IfNotPresent
+          args:
+          - patch
+          - --webhook-name=ingress-nginx-admission
+          - --namespace=$(POD_NAMESPACE)
+          - --patch-mutating=false
+          - --secret-name=ingress-nginx-admission
+          - --patch-failure-policy=Fail
+          env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 65532
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+        restartPolicy: OnFailure
+        serviceAccountName: ingress-nginx-admission
+        automountServiceAccountToken: true
+        nodeSelector:
+          kubernetes.io/os: linux
+  
+  '''
+# ---
+# name: test_build_hr_new[build-hr-single-cluster8]
+  ''
+# ---
+# name: test_build_hr_new[build-hr-single-cluster9]
+  '''
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.7.1
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: 6.7.1
+      app.kubernetes.io/managed-by: Helm
+  spec:
+    type: ClusterIP
+    ports:
+    - port: 9898
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9999
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    selector:
+      app.kubernetes.io/name: podinfo
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: podinfo
+    labels:
+      helm.sh/chart: podinfo-6.7.1
+      app.kubernetes.io/name: podinfo
+      app.kubernetes.io/version: 6.7.1
+      app.kubernetes.io/managed-by: Helm
+  spec:
+    replicas: 2
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: podinfo
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: podinfo
+        annotations:
+          prometheus.io/scrape: 'true'
+          prometheus.io/port: '9898'
+      spec:
+        terminationGracePeriodSeconds: 30
+        containers:
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.7.1
+          imagePullPolicy: IfNotPresent
+          command:
+          - ./podinfo
+          - --port=9898
+          - --cert-path=/data/cert
+          - --port-metrics=9797
+          - --grpc-port=9999
+          - --grpc-service-name=podinfo
+          - --level=info
+          - --random-delay=false
+          - --random-error=false
+          env:
+          - name: PODINFO_UI_COLOR
+            value: '#34577c'
+          ports:
+          - name: http
+            containerPort: 9898
+            protocol: TCP
+          - name: http-metrics
+            containerPort: 9797
+            protocol: TCP
+          - name: grpc
+            containerPort: 9999
+            protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/healthz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - podcli
+              - check
+              - http
+              - localhost:9898/readyz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          volumeMounts:
+          - name: data
+            mountPath: /data
+          resources:
+            limits: null
+            requests:
+              cpu: 1m
+              memory: 16Mi
+        volumes:
+        - name: data
+          emptyDir: {}
+  
+  '''
+# ---
+# name: test_build_hr_new[build-hr-single]
+  '''
+  ---
+  apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: allow-dashboard-ingress
+    namespace: weave
+  spec:
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: weave-gitops
+        app.kubernetes.io/instance: weave-gitops
+    ingress:
+    - ports:
+      - port: 9001
+        protocol: TCP
+    policyTypes:
+    - Ingress
+  ---
+  apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: allow-dashboard-egress
+  spec:
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: weave-gitops
+        app.kubernetes.io/instance: weave-gitops
+    egress:
+    - {}
+    policyTypes:
+    - Egress
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: weave-gitops
+    namespace: weave
+    labels:
+      helm.sh/chart: weave-gitops-4.0.36
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: v0.38.0
+      app.kubernetes.io/managed-by: Helm
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: weave-gitops
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - users
+    - groups
+    verbs:
+    - impersonate
+  - apiGroups:
+    - ''
+    resources:
+    - secrets
+    verbs:
+    - get
+    - list
+    resourceNames:
+    - cluster-user-auth
+    - oidc-auth
+  - apiGroups:
+    - ''
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - apiextensions.k8s.io
+    resources:
+    - customresourcedefinitions
+    verbs:
+    - list
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: weave-gitops
+    labels:
+      helm.sh/chart: weave-gitops-4.0.36
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: v0.38.0
+      app.kubernetes.io/managed-by: Helm
+  subjects:
+  - kind: ServiceAccount
+    name: weave-gitops
+    namespace: weave
+  roleRef:
+    kind: ClusterRole
+    name: weave-gitops
+    apiGroup: rbac.authorization.k8s.io
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: weave-gitops
+    namespace: weave
+    labels:
+      helm.sh/chart: weave-gitops-4.0.36
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: v0.38.0
+      app.kubernetes.io/managed-by: Helm
+  spec:
+    type: ClusterIP
+    ports:
+    - port: 9001
+      targetPort: http
+      protocol: TCP
+      name: http
+    selector:
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: weave-gitops
+    namespace: weave
+    labels:
+      helm.sh/chart: weave-gitops-4.0.36
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: v0.38.0
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/part-of: weave-gitops
+      weave.works/app: weave-gitops-oss
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: weave-gitops
+        app.kubernetes.io/instance: weave-gitops
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: weave-gitops
+          app.kubernetes.io/instance: weave-gitops
+          app.kubernetes.io/part-of: weave-gitops
+          weave.works/app: weave-gitops-oss
+      spec:
+        serviceAccountName: weave-gitops
+        containers:
+        - name: weave-gitops
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          image: ghcr.io/weaveworks/wego-app:v0.38.0
+          imagePullPolicy: IfNotPresent
+          args:
+          - --log-level
+          - info
+          - --insecure
+          ports:
+          - name: http
+            containerPort: 9001
+            protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          env:
+          - name: WEAVE_GITOPS_FEATURE_TENANCY
+            value: 'true'
+          - name: WEAVE_GITOPS_FEATURE_CLUSTER
+            value: 'false'
+          - name: WEAVE_GITOPS_FEATURE_GITOPS_RUNTIME
+            value: 'false'
+          resources: {}
+  
+  '''
+# ---
+# name: test_build_hr_new[build-hr]
+  '''
+  ---
+  apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: allow-dashboard-ingress
+    namespace: weave
+  spec:
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: weave-gitops
+        app.kubernetes.io/instance: weave-gitops
+    ingress:
+    - ports:
+      - port: 9001
+        protocol: TCP
+    policyTypes:
+    - Ingress
+  ---
+  apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: allow-dashboard-egress
+  spec:
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: weave-gitops
+        app.kubernetes.io/instance: weave-gitops
+    egress:
+    - {}
+    policyTypes:
+    - Egress
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: weave-gitops
+    namespace: weave
+    labels:
+      helm.sh/chart: weave-gitops-4.0.36
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: v0.38.0
+      app.kubernetes.io/managed-by: Helm
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: weave-gitops
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - users
+    - groups
+    verbs:
+    - impersonate
+  - apiGroups:
+    - ''
+    resources:
+    - secrets
+    verbs:
+    - get
+    - list
+    resourceNames:
+    - cluster-user-auth
+    - oidc-auth
+  - apiGroups:
+    - ''
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - apiextensions.k8s.io
+    resources:
+    - customresourcedefinitions
+    verbs:
+    - list
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: weave-gitops
+    labels:
+      helm.sh/chart: weave-gitops-4.0.36
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: v0.38.0
+      app.kubernetes.io/managed-by: Helm
+  subjects:
+  - kind: ServiceAccount
+    name: weave-gitops
+    namespace: weave
+  roleRef:
+    kind: ClusterRole
+    name: weave-gitops
+    apiGroup: rbac.authorization.k8s.io
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: weave-gitops
+    namespace: weave
+    labels:
+      helm.sh/chart: weave-gitops-4.0.36
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: v0.38.0
+      app.kubernetes.io/managed-by: Helm
+  spec:
+    type: ClusterIP
+    ports:
+    - port: 9001
+      targetPort: http
+      protocol: TCP
+      name: http
+    selector:
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: weave-gitops
+    namespace: weave
+    labels:
+      helm.sh/chart: weave-gitops-4.0.36
+      app.kubernetes.io/name: weave-gitops
+      app.kubernetes.io/instance: weave-gitops
+      app.kubernetes.io/version: v0.38.0
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/part-of: weave-gitops
+      weave.works/app: weave-gitops-oss
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: weave-gitops
+        app.kubernetes.io/instance: weave-gitops
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/name: weave-gitops
+          app.kubernetes.io/instance: weave-gitops
+          app.kubernetes.io/part-of: weave-gitops
+          weave.works/app: weave-gitops-oss
+      spec:
+        serviceAccountName: weave-gitops
+        containers:
+        - name: weave-gitops
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          image: ghcr.io/weaveworks/wego-app:v0.38.0
+          imagePullPolicy: IfNotPresent
+          args:
+          - --log-level
+          - info
+          - --insecure
+          ports:
+          - name: http
+            containerPort: 9001
+            protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          env:
+          - name: WEAVE_GITOPS_FEATURE_TENANCY
+            value: 'true'
+          - name: WEAVE_GITOPS_FEATURE_CLUSTER
+            value: 'false'
+          - name: WEAVE_GITOPS_FEATURE_GITOPS_RUNTIME
+            value: 'false'
+          resources: {}
+  
+  '''
+# ---

@@ -1,4 +1,4 @@
-"""Flux-local build for Kustomizations using the new Orchestrator."""
+"""Flux-local build for HelmReleases using the new Orchestrator."""
 
 import logging
 import pathlib
@@ -11,10 +11,10 @@ from typing import Any, cast
 import yaml
 
 from flux_local import git_repo
-from flux_local.kustomize_controller.artifact import KustomizationArtifact
+from flux_local.helm_controller.artifact import HelmReleaseArtifact
 from flux_local.manifest import (
-    KUSTOMIZE_KIND,
-    Kustomization,
+    HELM_RELEASE,
+    HelmRelease,
     NamedResource,
     strip_resource_attributes,
     STRIP_ATTRIBUTES,
@@ -27,18 +27,14 @@ from . import selector
 _LOGGER = logging.getLogger(__name__)
 
 
-def build_ks_selector(path: pathlib.Path, **kwargs: Any) -> git_repo.ResourceSelector:
-    """Build a Kustomization selector from CLI arguments.
-
-    We build this rather than using the selecot logic to avoid some assumptions
-    made about the path in the old selector logic.
-    """
+def build_hr_selector(path: pathlib.Path, **kwargs: Any) -> git_repo.ResourceSelector:
+    """Build a HelmRelease selector from CLI arguments."""
     cli_selector = git_repo.ResourceSelector(path=git_repo.PathSelector(path=path))
-    cli_selector.kustomization.name = kwargs.get("name")
-    cli_selector.kustomization.namespace = kwargs.get("namespace")
-    cli_selector.kustomization.skip_crds = kwargs["skip_crds"]
-    cli_selector.kustomization.skip_secrets = kwargs["skip_secrets"]
-    cli_selector.kustomization.skip_kinds = kwargs.get("skip_kinds")
+    cli_selector.helm_release.name = kwargs.get("helmrelease")
+    cli_selector.helm_release.namespace = kwargs.get("namespace")
+    cli_selector.helm_release.skip_crds = kwargs["skip_crds"]
+    cli_selector.helm_release.skip_secrets = kwargs["skip_secrets"]
+    cli_selector.helm_release.skip_kinds = kwargs.get("skip_kinds")
     return cli_selector
 
 
@@ -54,8 +50,8 @@ def filter_manifest(doc: dict[str, Any], **kwargs: Any) -> bool:
     return True
 
 
-class BuildKustomizationAction:
-    """Flux-local build for Kustomizations using the new Orchestrator."""
+class BuildHelmReleaseAction:
+    """Flux-local build for HelmReleases using the new Orchestrator."""
 
     @classmethod
     def register(
@@ -66,11 +62,11 @@ class BuildKustomizationAction:
         args: ArgumentParser = cast(
             ArgumentParser,
             subparsers.add_parser(
-                "kustomizations-new",
-                aliases=["ks-new"],
-                help="Build Kustomization objects using the new experimental Orchestrator",
+                "helmreleases-new",
+                aliases=["hr-new"],
+                help="Build HelmRelease objects using the new experimental Orchestrator",
                 description=(
-                    "The build command uses the new orchestrator to build Kustomization objects."
+                    "The build command uses the new orchestrator to build HelmRelease objects."
                 ),
             ),
         )
@@ -92,33 +88,33 @@ class BuildKustomizationAction:
             action=BooleanOptionalAction,
             help="Enable OCI repository sources",
         )
-        selector.add_ks_selector_flags(args)
+        selector.add_hr_selector_flags(args)
         args.set_defaults(cls=cls)
         return args
 
     def _process_manifest(
         self, store: InMemoryStore, resource_id: NamedResource, **kwargs: Any
     ) -> list[dict[str, Any]] | None:
-        """Process a single Kustomization and return its manifests if ready."""
+        """Process a single HelmRelease and return its manifests if ready."""
         status = store.get_status(resource_id)
         if not status:
-            _LOGGER.warning("Kustomization %s has no status in the store", resource_id)
+            _LOGGER.warning("HelmRelease %s has no status in the store", resource_id)
             return None
 
         if status.status != Status.READY:
-            _LOGGER.error("Kustomization %s failed: %s", resource_id, status.error)
+            _LOGGER.error("HelmRelease %s failed: %s", resource_id, status.error)
             return None
 
-        artifact = store.get_artifact(resource_id, KustomizationArtifact)
+        artifact = store.get_artifact(resource_id, HelmReleaseArtifact)
         if not artifact or not artifact.manifests:
             _LOGGER.warning(
-                "Kustomization %s is Ready but has no artifact or manifests",
+                "HelmRelease %s is Ready but has no artifact or manifests",
                 resource_id,
             )
             return None
 
         _LOGGER.info(
-            "Found %d manifests for Kustomization %s",
+            "Found %d manifests for HelmRelease %s",
             len(artifact.manifests),
             resource_id,
         )
@@ -135,13 +131,10 @@ class BuildKustomizationAction:
         **kwargs: Any,
     ) -> None:
         """Async Action implementation."""
-        _LOGGER.info(
-            "Building Kustomizations from path %s using new orchestrator", path
-        )
+        _LOGGER.info("Building HelmReleases from path %s using new orchestrator", path)
 
         store = InMemoryStore()
-        # Disable Helm for ks-only build
-        config = OrchestratorConfig(enable_helm=False)
+        config = OrchestratorConfig(enable_helm=True)
         config.kustomization_controller_config.wipe_secrets = kwargs["wipe_secrets"]
         config.read_action_config.wipe_secrets = kwargs["wipe_secrets"]
         config.source_controller_config.enable_oci = kwargs["enable_oci"]
@@ -151,14 +144,14 @@ class BuildKustomizationAction:
             _LOGGER.error("Orchestrator bootstrap failed for path %s", path)
             return
 
-        cli_selector = build_ks_selector(path, **kwargs)
+        cli_selector = build_hr_selector(path, **kwargs)
 
         manifest_found = False
         manifest_match = False
-        is_match = cli_selector.kustomization.predicate
+        is_match = cli_selector.helm_release.predicate
         with open(output_file, "w", encoding="utf-8") as file:
-            for manifest_obj in store.list_objects(kind=KUSTOMIZE_KIND):
-                if not isinstance(manifest_obj, Kustomization):
+            for manifest_obj in store.list_objects(kind=HELM_RELEASE):
+                if not isinstance(manifest_obj, HelmRelease):
                     continue
                 resource_id = NamedResource(
                     kind=manifest_obj.kind,
@@ -167,9 +160,7 @@ class BuildKustomizationAction:
                 )
 
                 if not is_match(manifest_obj):
-                    _LOGGER.debug(
-                        "Kustomization %s did not match selector", resource_id
-                    )
+                    _LOGGER.debug("HelmRelease %s did not match selector", resource_id)
                     continue
 
                 manifest_found = True
@@ -188,11 +179,11 @@ class BuildKustomizationAction:
             if not manifest_match:
                 if not manifest_found:
                     _LOGGER.warning(
-                        "No Kustomizations found or processed from path %s that matched selector",
+                        "No HelmReleases found or processed from path %s that matched selector",
                         path,
                     )
                 else:
                     _LOGGER.warning(
-                        "No Kustomizations that matched the selector were successfully built from path %s",
+                        "No HelmReleases that matched the selector were successfully built from path %s",
                         path,
                     )

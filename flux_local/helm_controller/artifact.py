@@ -8,8 +8,6 @@ for storing and managing Helm-related artifacts.
 from dataclasses import dataclass
 from typing import Any
 
-import yaml
-
 from flux_local.store.artifact import Artifact
 
 
@@ -27,10 +25,5 @@ class HelmReleaseArtifact(Artifact):
     values: dict[str, Any]
     """Resolved values used for rendering the HelmRelease."""
 
-    objects: list[dict[str, Any]]
+    manifests: list[dict[str, Any]]
     """The rendered Kubernetes objects, output of templating the Helm Chart."""
-
-    @property
-    def manifests(self) -> list[str]:
-        """List of rendered Kubernetes manifests as YAML strings."""
-        return [yaml.dump(obj, sort_keys=False) for obj in self.objects]
