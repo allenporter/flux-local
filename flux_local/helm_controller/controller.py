@@ -201,7 +201,7 @@ class HelmReleaseController:
         # Store the result
         artifact = HelmReleaseArtifact(
             chart_name=helm_release.chart.chart_name,
-            objects=objects,
+            manifests=objects,
             values=helm_release.values or {},
         )
         self.store.set_artifact(resource_id, artifact)

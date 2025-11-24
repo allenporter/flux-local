@@ -17,6 +17,9 @@ from . import selector
 from .build_kustomization import (
     BuildKustomizationAction as BuildKustomizationNewAction,
 )
+from .build_helm import (
+    BuildHelmReleaseAction as BuildHelmReleaseNewAction,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +29,8 @@ class BuildAllAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args = cast(
@@ -129,7 +133,8 @@ class BuildKustomizationAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args: ArgumentParser = cast(
@@ -179,7 +184,8 @@ class BuildHelmReleaseAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args: ArgumentParser = cast(
@@ -244,7 +250,8 @@ class BuildAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args: ArgumentParser = subparsers.add_parser(
@@ -261,6 +268,7 @@ class BuildAction:
         BuildKustomizationAction.register(subcmds)
         BuildKustomizationNewAction.register(subcmds)
         BuildHelmReleaseAction.register(subcmds)
+        BuildHelmReleaseNewAction.register(subcmds)
         BuildAllAction.register(subcmds)
         args.set_defaults(cls=cls)
         return args
