@@ -213,6 +213,13 @@ class HelmReleaseController:
         dependencies = set()
         if helm_release.values_from:
             for ref in helm_release.values_from:
+                if ref.optional:
+                    _LOGGER.debug(
+                        "Skipping optional ValuesFrom reference %s for %s",
+                        ref.name,
+                        helm_release.namespaced_name,
+                    )
+                    continue
                 if ref.kind == CONFIG_MAP_KIND:
                     dependencies.add(
                         NamedResource(

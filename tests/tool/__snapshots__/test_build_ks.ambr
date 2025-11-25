@@ -337,10 +337,12 @@
       valuesKey: patch-values.yaml
     - kind: Secret
       name: dot-notated-target-path
+      optional: true
       targetPath: ingress.annotations.azure\.workload\.identity/client-id
       valuesKey: key
     - kind: Secret
       name: escape-special-chars-path
+      optional: true
       targetPath: service.annotations.app\.kubernetes\.io/name\=\[backend]
       valuesKey: key
     - kind: Secret
@@ -426,10 +428,12 @@
     valuesFrom:
     - kind: Secret
       name: tailscale-operator
+      optional: true
       targetPath: oauth.clientId
       valuesKey: client_id
     - kind: Secret
       name: tailscale-operator
+      optional: true
       targetPath: oauth.clientSecret
       valuesKey: client_secret
   ---
@@ -1367,10 +1371,12 @@
       valuesKey: patch-values.yaml
     - kind: Secret
       name: dot-notated-target-path
+      optional: true
       targetPath: ingress.annotations.azure\.workload\.identity/client-id
       valuesKey: key
     - kind: Secret
       name: escape-special-chars-path
+      optional: true
       targetPath: service.annotations.app\.kubernetes\.io/name\=\[backend]
       valuesKey: key
     - kind: Secret
@@ -1447,10 +1453,12 @@
     valuesFrom:
     - kind: Secret
       name: tailscale-operator
+      optional: true
       targetPath: oauth.clientId
       valuesKey: client_id
     - kind: Secret
       name: tailscale-operator
+      optional: true
       targetPath: oauth.clientSecret
       valuesKey: client_secret
   ---
@@ -2592,11 +2600,6 @@
     postBuild:
       substitute:
         cluster_env: production
-        SECRET_DOMAIN: example.com
-        SECRET_DOMAIN2: other.com
-        cluster_label: example-value
-        SECRET_DOMAIN3: ..PLACEHOLDER_SECRET_DOMAIN3..
-        SECRET_DOMAIN4: ..PLACEHOLDER_SECRET_DOMAIN4..
       substituteFrom:
       - kind: ConfigMap
         name: cluster-config
@@ -2993,11 +2996,6 @@
     postBuild:
       substitute:
         cluster_env: production
-        SECRET_DOMAIN: example.com
-        SECRET_DOMAIN2: other.com
-        cluster_label: example-value
-        SECRET_DOMAIN3: ..PLACEHOLDER_SECRET_DOMAIN3..
-        SECRET_DOMAIN4: ..PLACEHOLDER_SECRET_DOMAIN4..
       substituteFrom:
       - kind: ConfigMap
         name: cluster-config

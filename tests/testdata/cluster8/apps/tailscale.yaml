@@ -38,7 +38,9 @@ spec:
       name: tailscale-operator
       valuesKey: client_id
       targetPath: oauth.clientId
+      optional: true
     - kind: Secret
       name: tailscale-operator
       valuesKey: client_secret
       targetPath: oauth.clientSecret
+      optional: true
