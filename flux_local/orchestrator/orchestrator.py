@@ -227,7 +227,7 @@ class Orchestrator:
             )
         )
 
-    async def bootstrap(self, options: BootstrapOptions) -> bool:
+    async def bootstrap(self, options: BootstrapOptions) -> None:
         """Bootstrap the system by loading resources and starting controllers.
 
         This is a convenience method that loads resources and starts the orchestrator.
@@ -253,12 +253,12 @@ class Orchestrator:
                     git_repos.append(resource)
                 elif isinstance(resource, Kustomization):
                     kustomizations.append(resource)
-        except FluxException as e:
-            _LOGGER.error("Failed to load initial resources: %s", e, exc_info=True)
-            return False
-        except Exception as e:
-            _LOGGER.error("Failed to load initial resources: %s", e, exc_info=True)
-            return False
+        except FluxException as err:
+            raise FluxException(f"Failed to load initial resources: {err}") from err
+        except Exception as err:
+            raise FluxException(
+                f"Uncaught exception loading initial resources: {err}"
+            ) from err
 
         # 2. Find the bootstrap GitRepository to associate with the local path
         repo = git_repo.git_repo(options.path)
@@ -294,15 +294,15 @@ class Orchestrator:
         # 3. Start controllers and run
         await self.start()
         try:
-            return await self.run()
+            await self.run()
         finally:
             await self.stop()
 
-    async def run(self) -> bool:
+    async def run(self) -> None:
         """Run the orchestrator until all work is complete.
 
-        Returns:
-            bool: True if all work completed successfully, False if any resources failed.
+        Raises:
+            FluxException: If the orchestrator fails or is cancelled.
         """
         try:
             await self.start()
@@ -310,24 +310,20 @@ class Orchestrator:
             # Wait for completion or error
             while True:
                 if self.has_failed_resources():
-                    _LOGGER.error("Resource failures detected, stopping")
-                    return False
+                    raise FluxException("Resource failures detected")
 
                 if self.is_complete():
                     _LOGGER.info("All work completed successfully")
-                    return True
+                    return
 
                 # Allow tasks to run and avoid busy waiting
                 await get_task_service().block_till_done()
                 await asyncio.sleep(0.001)
-
-        except asyncio.CancelledError:
-            _LOGGER.info("Orchestrator was cancelled")
-            return False
-
-        except Exception as e:
-            _LOGGER.exception("Orchestrator failed: %s", e)
-            return False
-
+        except asyncio.CancelledError as err:
+            raise FluxException("Orchestrator was cancelled") from err
+        except FluxException:
+            raise
+        except Exception as err:
+            raise FluxException(f"Uncaught error in orchestrator: {err}") from err
         finally:
             await self.stop()

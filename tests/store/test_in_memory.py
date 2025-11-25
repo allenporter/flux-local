@@ -442,8 +442,8 @@ async def test_watch_added_add_identical_object_no_new_event(
         pass
 
 
-async def test_watch_added_add_updated_object_fires_event(store: InMemoryStore) -> None:
-    """Test adding an object with the same ID but different content fires watch_added."""
+async def test_watch_added_add_updated_object_ignored(store: InMemoryStore) -> None:
+    """Test adding an object with the same ID does not fire watch_added."""
     kind_to_watch = "KindA"
     obj1 = DummyManifest(kind=kind_to_watch, namespace="ns", name="foo1", value=1)
     rid1 = NamedResource(obj1.kind, obj1.namespace, obj1.name)
@@ -467,9 +467,8 @@ async def test_watch_added_add_updated_object_fires_event(store: InMemoryStore) 
     store.add_object(obj1_updated)
     await asyncio.sleep(0)  # Give time for event to propagate
 
-    # The watch_added listener for OBJECT_ADDED should fire on update as well
-    assert len(received_items) == 2
-    assert received_items[1] == (rid1, obj1_updated)
+    # The update is ignored
+    assert len(received_items) == 1
 
     watcher_task.cancel()
     try:

@@ -61,7 +61,8 @@ class InMemoryStore(Store):
                     "Object %s already exists in store, skipping", resource_id
                 )
                 return
-            _LOGGER.debug("Updating existing object %s in store", resource_id)
+            _LOGGER.info("Ignoring changes to existing object %s in store", resource_id)
+            return
 
         self._objects[resource_id] = obj
         self._fire_event(StoreEvent.OBJECT_ADDED, resource_id, obj)

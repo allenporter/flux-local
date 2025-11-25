@@ -44,10 +44,12 @@ spec:
       name: dot-notated-target-path
       valuesKey: key
       targetPath: ingress.annotations.azure\.workload\.identity/client-id
+      optional: true
     - kind: Secret
       name: escape-special-chars-path
       valuesKey: key
       targetPath: service.annotations.app\.kubernetes\.io/name\=\[backend]
+      optional: true
     - kind: Secret
       name: podinfo-tls-values
       valuesKey: crt
