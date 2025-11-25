@@ -22,6 +22,8 @@ from .format import (
     StructFormatter,
 )
 from . import selector
+from .get_kustomization import GetKustomizationNewAction
+from .get_helm import GetHelmReleaseNewAction
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,7 +36,8 @@ class GetKustomizationAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args = cast(
@@ -101,7 +104,8 @@ class GetHelmReleaseAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args = cast(
@@ -153,7 +157,8 @@ class GetClusterAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args = cast(
@@ -301,7 +306,8 @@ class GetAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args = cast(
@@ -317,7 +323,9 @@ class GetAction:
             required=True,
         )
         GetKustomizationAction.register(subcmds)
+        GetKustomizationNewAction.register(subcmds)
         GetHelmReleaseAction.register(subcmds)
+        GetHelmReleaseNewAction.register(subcmds)
         GetClusterAction.register(subcmds)
         args.set_defaults(cls=cls)
         return args

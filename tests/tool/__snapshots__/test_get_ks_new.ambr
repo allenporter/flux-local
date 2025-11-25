@@ -1,0 +1,21 @@
+# serializer version: 1
+# name: test_get_ks_new[cluster]
+  '''
+  NAME                 PATH                                                   
+  apps                 ./tests/testdata/cluster/apps/prod                     
+  flux-system          ./tests/testdata/cluster/clusters/prod                 
+  infra-controllers    ./tests/testdata/cluster/infrastructure/controllers    
+  infra-configs        ./tests/testdata/cluster/infrastructure/configs        
+  
+  '''
+# ---
+# name: test_get_ks_new[wide]
+  '''
+  NAME                 PATH                                                   HELMREPOS    OCIREPOS    RELEASES    
+  apps                 ./tests/testdata/cluster/apps/prod                     0            0           1           
+  flux-system          ./tests/testdata/cluster/clusters/prod                 0            0           0           
+  infra-controllers    ./tests/testdata/cluster/infrastructure/controllers    0            0           2           
+  infra-configs        ./tests/testdata/cluster/infrastructure/configs        3            0           0           
+  
+  '''
+# ---
