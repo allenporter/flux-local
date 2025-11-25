@@ -1,0 +1,24 @@
+# serializer version: 1
+# name: test_get_hr_new[all-namespaces]
+  '''
+  NAMESPACE      NAME            REVISION    CHART                       SOURCE          
+  podinfo        podinfo         6.3.2       podinfo-podinfo             podinfo         
+  metallb        metallb         4.1.14      metallb-metallb             bitnami         
+  flux-system    weave-gitops    4.0.36      flux-system-weave-gitops    weave-charts    
+  
+  '''
+# ---
+# name: test_get_hr_new[cluster]
+  '''
+  NAME            REVISION    CHART                       SOURCE          
+  weave-gitops    4.0.36      flux-system-weave-gitops    weave-charts    
+  
+  '''
+# ---
+# name: test_get_hr_new[namespace]
+  '''
+  NAME            REVISION    CHART                       SOURCE          
+  weave-gitops    4.0.36      flux-system-weave-gitops    weave-charts    
+  
+  '''
+# ---
