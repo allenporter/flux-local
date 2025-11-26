@@ -22,6 +22,9 @@ inputs:
   kustomize-build-flags:
     description: Additional flags to pass to kustomize build
     default: ""
+  ignore-paths:
+    description: Comma-separated .gitignore-style patterns to ignore during build
+    default: ""
   sources:
     description: GitRepository or OCIRepository to include with optional source mappings like `flux-system` or `cluster=./kubernetes/`
     default: ""
@@ -62,6 +65,7 @@ runs:
           --${{ inputs.enable-helm != 'true' && 'no-' || '' }}enable-helm \
           --api-versions "${{ inputs.api-versions }}" \
           --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
+          --ignore-paths "${{ inputs.ignore-paths }}" \
           --sources "${{ inputs.sources }}" \
           --path ${{ inputs.path }} \
           --verbosity ${{ inputs.debug != 'true' && '0' || '1' }} \
