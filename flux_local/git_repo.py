@@ -364,6 +364,7 @@ def is_allowed_source(sources: list[Source]) -> Callable[[Kustomization], bool]:
 
     return _filter
 
+
 def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
     """Make adjustments to the Kustomizations path."""
     if doc.source_kind == OCI_REPO_KIND or doc.source_kind == GIT_REPO_KIND or doc.source_kind == EXTERNAL_ARTIFACT_KIND:
