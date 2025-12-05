@@ -26,7 +26,7 @@ from typing import Any, cast
 from dataclasses import dataclass
 
 from flux_local.store import Store, Status, Artifact
-from flux_local.source_controller.artifact import GitArtifact, OCIArtifact
+from flux_local.source_controller.artifact import GitArtifact, OCIArtifact, ExternalArtifact
 from flux_local.manifest import (
     NamedResource,
     Kustomization,
@@ -275,7 +275,7 @@ class KustomizationController:
                     self._store.update_status(resource_id, Status.FAILED, error=msg)
                     return
 
-                if isinstance(artifact, (GitArtifact, OCIArtifact)):
+                if isinstance(artifact, (GitArtifact, OCIArtifact, ExternalArtifact)):
                     ks_path_part = kustomization.path.strip("./")
                     # Ensure Path objects are used for joining
                     resolved_path = Path(artifact.local_path)
@@ -293,7 +293,7 @@ class KustomizationController:
                 else:
                     msg = (
                         f"Source artifact {source_ref_id.namespaced_name} for Kustomization {resource_id.namespaced_name} "
-                        f"is not a GitArtifact or OCIArtifact (type: {type(artifact).__name__})"
+                        f"is not a GitArtifact, OCIArtifact, or ExternalArtifact (type: {type(artifact).__name__})"
                     )
                     self._store.update_status(resource_id, Status.FAILED, error=msg)
                     return

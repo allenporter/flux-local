@@ -23,7 +23,7 @@ inputs:
     description: Additional flags to pass to kustomize build
     default: ""
   sources:
-    description: GitRepository or OCIRepository to include with optional source mappings like `flux-system` or `cluster=./kubernetes/`
+    description: GitRepository, OCIRepository or ExternalArtifact to include with optional source mappings like `flux-system` or `cluster=./kubernetes/`
     default: ""
   registry-config:
     description: Path to registry config for OCIRepository, formatted as a docker config JSON
