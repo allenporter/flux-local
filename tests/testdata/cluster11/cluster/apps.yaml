@@ -1,0 +1,33 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: apps
+  namespace: flux-system
+spec:
+  path: ./apps/overlays/
+  sourceRef:
+    kind: ExternalArtifact
+    name: apps
+---
+# Creating artifact in flux-local is not implemented; the manifest below demonstrates how different sources could be combined into a single artifact
+apiVersion: source.extensions.fluxcd.io/v1beta1
+kind: ArtifactGenerator
+metadata:
+  name: my-app
+  namespace: flux-system
+spec:
+  sources:
+    - alias: base
+      kind: GitRepository
+      name: shared-repo
+    - alias: overlays
+      kind: GitRepository
+      name: tenant-repo
+  artifacts:
+    - name: apps
+      copy:
+        - from: "@base/apps/**"
+          to: "@artifact/apps/base"
+        - from: "@overlays/apps/overlays/**"
+          to: "@artifact/apps/overlays/"

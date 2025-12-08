@@ -1,0 +1,33 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: renovate
+  namespace: default
+spec:
+  chart:
+    spec:
+      chart: renovate
+      version: 37.64.3
+      sourceRef:
+        kind: HelmRepository
+        name: renovate
+        namespace: flux-system
+  interval: 5m
+  values:
+    renovate:
+      existingConfigFile: /dev/null
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+    serviceAccount:
+      create: true
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      fsGroupChangePolicy: Always
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
