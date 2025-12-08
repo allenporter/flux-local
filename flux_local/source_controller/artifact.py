@@ -41,15 +41,3 @@ class OCIArtifact(Artifact):
 
     ref: OCIRepositoryRef | None = None
     """Information about the version of the OCI repository."""
-
-
-@dataclass(frozen=True, kw_only=True)
-class ExternalArtifact(Artifact):
-    """External artifact.
-
-    This object is written when the ExternalArtifact is reconciled. The path
-    references a local filesystem path at the specified ref of the artifact.
-    """
-
-    local_path: str
-    """Local filesystem path to the external artifact."""

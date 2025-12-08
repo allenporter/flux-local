@@ -12,5 +12,4 @@ __all__ = [
     "SourceControllerConfig",
     "GitArtifact",
     "OCIArtifact",
-    "ExternalArtifact",
 ]
