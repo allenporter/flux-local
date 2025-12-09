@@ -384,7 +384,7 @@ def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
 
         # No match so if OCI/ExternalArtifact we can't do anything. If Git we assume its the root
         # of the repository.
-        if doc.source_kind == OCI_REPO_KIND or doc.source_kind == EXTERNAL_ARTIFACT_KIND:
+        if doc.source_kind in (OCI_REPO_KIND, EXTERNAL_ARTIFACT_KIND):
             _LOGGER.info(
                 "Unknown cluster source for %s %s: %s",
                 doc.source_kind,
