@@ -19,6 +19,8 @@ from flux_local.manifest import (
     NamedResource,
     BaseManifest,
     HelmRelease,
+    HelmChart,
+    HELM_CHART,
     CONFIG_MAP_KIND,
     SECRET_KIND,
     GitRepository,
@@ -169,6 +171,9 @@ class HelmReleaseController:
 
         # Wait for dependencies to be ready
         await self.wait_for_dependencies(helm_release)
+
+        # Resolve HelmChart resource if chartRef is used
+        await self._resolve_helm_chart(helm_release)
 
         if self._need_update:
             _LOGGER.info("Updating Helm repositories")
@@ -347,6 +352,60 @@ class HelmReleaseController:
         finally:
             # Clean up the listener
             remove_listener()
+
+    async def _resolve_helm_chart(self, helm_release: HelmRelease) -> None:
+        """Resolve HelmChart resource and extract version when chartRef is used."""
+        # Only resolve if chartRef is used (repo_kind is HELM_CHART) and version is not set
+        if (
+            helm_release.chart.repo_kind != HELM_CHART
+            or helm_release.chart.version is not None
+        ):
+            return
+
+        chart_resource = NamedResource(
+            kind=HELM_CHART,
+            name=helm_release.chart.repo_name,
+            namespace=helm_release.chart.repo_namespace,
+        )
+
+        helm_chart = self.store.get_object(chart_resource, HelmChart)
+        if not helm_chart:
+            _LOGGER.warning(
+                "HelmChart %s not found for HelmRelease %s",
+                chart_resource,
+                helm_release.namespaced_name,
+            )
+            return
+
+        # Extract version and update the chart reference
+        if helm_chart.version:
+            _LOGGER.info(
+                "Resolved HelmChart %s version %s for HelmRelease %s",
+                chart_resource,
+                helm_chart.version,
+                helm_release.namespaced_name,
+            )
+            # Update the chart information from the HelmChart resource
+            helm_release.chart.name = helm_chart.chart_name_only  # Chart name from spec.chart
+            helm_release.chart.version = helm_chart.version
+            helm_release.chart.repo_name = helm_chart.repo_name  # Source repository name
+            helm_release.chart.repo_namespace = helm_chart.repo_namespace
+            helm_release.chart.repo_kind = helm_chart.repo_kind
+
+            # Now wait for the source repository to be ready
+            source_repo = NamedResource(
+                kind=helm_release.chart.repo_kind,
+                name=helm_release.chart.repo_name,
+                namespace=helm_release.chart.repo_namespace,
+            )
+            if source_repo.kind == GitRepository.kind:
+                await self.wait_for_resource_ready(source_repo)
+            else:
+                await self.wait_for_resource_exists(source_repo)
+        else:
+            _LOGGER.debug(
+                "HelmChart %s has no version specified", chart_resource
+            )
 
     async def _apply(self, manifests: list[dict[str, Any]]) -> None:
         """Apply the manifests to the cluster."""

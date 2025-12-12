@@ -18,6 +18,7 @@ from flux_local.helm_controller import HelmReleaseController, HelmControllerConf
 from flux_local.manifest import (
     NamedResource,
     HelmRelease,
+    HelmChart,
     ConfigMap,
     Secret,
 )
@@ -517,3 +518,73 @@ async def test_helm_release_fails_with_nonexistent_chart(
     assert status.status == Status.FAILED
     assert status.error is not None
     assert "not found" in status.error
+
+
+async def test_helm_release_resolves_chartref(
+    store: Store,
+    controller: HelmReleaseController,
+    git_repo: GitRepository,
+    git_repo_dir: Path,
+    chart_path: Path,
+) -> None:
+    """Ensure chartRef HelmReleases resolve HelmChart resources."""
+    helm_chart_yaml = f"""
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: test-chart
+  namespace: test-ns
+spec:
+  chart: {chart_path.relative_to(git_repo_dir)}
+  version: 1.0.0
+  sourceRef:
+    kind: GitRepository
+    name: {git_repo.name}
+    namespace: {git_repo.namespace}
+"""
+    helm_chart = HelmChart.parse_resource(yaml.safe_load(helm_chart_yaml))
+    store.add_object(helm_chart)
+
+    git_repo_rid = NamedResource(git_repo.kind, git_repo.namespace, git_repo.name)
+    store.add_object(git_repo)
+    repo_artifact = GitArtifact(
+        url=git_repo.url,
+        local_path=str(git_repo_dir),
+        ref=git_repo.ref,
+    )
+    store.set_artifact(git_repo_rid, repo_artifact)
+    store.update_status(git_repo_rid, Status.READY)
+
+    helm_release_yaml = f"""
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: test-release
+  namespace: test-ns
+spec:
+  chartRef:
+    kind: HelmChart
+    name: {helm_chart.name}
+    namespace: {helm_chart.namespace}
+"""
+    helm_release = HelmRelease.parse_doc(yaml.safe_load(helm_release_yaml))
+    helm_release_rid = NamedResource(
+        helm_release.kind, helm_release.namespace, helm_release.name
+    )
+
+    store.add_object(helm_release)
+
+    task_service = get_task_service()
+    await task_service.block_till_done()
+    assert not task_service.get_num_active_tasks()
+
+    status = store.get_status(helm_release_rid)
+    assert status is not None
+    assert status.status == Status.READY
+
+    resolved_release = store.get_object(helm_release_rid, HelmRelease)
+    assert resolved_release is not None
+    assert resolved_release.chart.version == helm_chart.version
+    assert resolved_release.chart.repo_kind == git_repo.kind
+    assert resolved_release.chart.repo_name == git_repo.name
+    assert resolved_release.chart.name == helm_chart.chart_name_only

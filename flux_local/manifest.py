@@ -38,6 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 # We don't check specific versions for forward compatibility on upgrade.
 FLUXTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
 KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
+HELM_CHART_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
 GIT_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
@@ -164,10 +165,7 @@ class HelmChart(BaseManifest):
     """The kind of the object."""
 
     name: str
-    """The name of the chart within the HelmRepository."""
-
-    version: Optional[str] = field(metadata={"serialize": "omit"})
-    """The version of the chart."""
+    """The name of the chart within the HelmRepository, or the resource name for standalone HelmChart resources."""
 
     repo_name: str
     """The short name of the repository."""
@@ -175,8 +173,17 @@ class HelmChart(BaseManifest):
     repo_namespace: str
     """The namespace of the repository."""
 
+    version: Optional[str] = field(default=None, metadata={"serialize": "omit"})
+    """The version of the chart."""
+
     repo_kind: str = HELM_REPO_KIND
     """The kind of the soruceRef of the repository (e.g. HelmRepository, GitRepository)."""
+
+    chart: str | None = field(default=None, metadata={"serialize": "omit"})
+    """The chart name from spec.chart (only set for standalone HelmChart resources)."""
+
+    namespace: str | None = field(default=None, metadata={"serialize": "omit"})
+    """The namespace of the HelmChart resource (only set for standalone HelmChart resources)."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any], default_namespace: str) -> "HelmChart":
@@ -202,10 +209,11 @@ class HelmChart(BaseManifest):
                 repo_name=name,
                 repo_namespace=chart_ref.get("namespace", default_namespace),
                 repo_kind=kind,
+                chart=None,  # chartRef doesn't have a chart name yet
             )
         if not (chart_spec := chart.get("spec")):
             raise InputException(f"Invalid {cls} missing spec.chart.spec: {doc}")
-        if not (chart := chart_spec.get("chart")):
+        if not (chart_name := chart_spec.get("chart")):
             raise InputException(f"Invalid {cls} missing spec.chart.spec.chart: {doc}")
         version = chart_spec.get("version")
         if not (source_ref := chart_spec.get("sourceRef")):
@@ -215,11 +223,41 @@ class HelmChart(BaseManifest):
         if "name" not in source_ref:
             raise InputException(f"Invalid {cls} missing sourceRef fields: {doc}")
         return cls(
-            name=chart,
+            name=chart_name,
             version=version,
             repo_name=source_ref["name"],
             repo_namespace=source_ref.get("namespace", default_namespace),
             repo_kind=source_ref.get("kind", HELM_REPO_KIND),
+            chart=None,  # For HelmChart from HelmRelease, name is the chart name
+        )
+
+    @classmethod
+    def parse_resource(cls, doc: dict[str, Any]) -> "HelmChart":
+        """Parse a standalone HelmChart resource from YAML."""
+        _check_version(doc, HELM_CHART_DOMAIN)
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not metadata.get("name"):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        resource_namespace = metadata.get("namespace", DEFAULT_NAMESPACE)
+        if not (spec := doc.get("spec")):
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
+        if not (chart := spec.get("chart")):
+            raise InputException(f"Invalid {cls} missing spec.chart: {doc}")
+        version = spec.get("version")
+        if not (source_ref := spec.get("sourceRef")):
+            raise InputException(f"Invalid {cls} missing spec.sourceRef: {doc}")
+        if "name" not in source_ref:
+            raise InputException(f"Invalid {cls} missing sourceRef.name: {doc}")
+        resource_name = metadata.get("name")
+        return cls(
+            name=resource_name,
+            chart=chart,
+            version=version,
+            repo_name=source_ref["name"],
+            repo_namespace=source_ref.get("namespace", resource_namespace),
+            repo_kind=source_ref.get("kind", HELM_REPO_KIND),
+            namespace=resource_namespace,
         )
 
     @property
@@ -230,7 +268,17 @@ class HelmChart(BaseManifest):
     @property
     def chart_name(self) -> str:
         """Identifier for the HelmChart."""
-        return f"{self.repo_full_name}/{self.name}"
+        # Use chart field if available (for standalone HelmChart resources),
+        # otherwise use name (for HelmChart parsed from HelmRelease)
+        chart_name = self.chart if self.chart is not None else self.name
+        return f"{self.repo_full_name}/{chart_name}"
+
+    @property
+    def chart_name_only(self) -> str:
+        """Return just the chart name (not the full identifier)."""
+        # Use chart field if available (for standalone HelmChart resources),
+        # otherwise use name (for HelmChart parsed from HelmRelease)
+        return self.chart if self.chart is not None else self.name
 
 
 @dataclass
@@ -1012,6 +1060,8 @@ def parse_raw_obj(obj: dict[str, Any], *, wipe_secrets: bool = True) -> BaseMani
         return HelmRelease.parse_doc(obj)
     if kind == HELM_REPOSITORY:
         return HelmRepository.parse_doc(obj)
+    if kind == HELM_CHART and api_version.startswith(HELM_CHART_DOMAIN):
+        return HelmChart.parse_resource(obj)
     if kind == GIT_REPOSITORY:
         return GitRepository.parse_doc(obj)
     if kind == OCI_REPOSITORY:
