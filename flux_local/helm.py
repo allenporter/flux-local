@@ -381,7 +381,9 @@ class Helm:
             if release.values:
                 values_path = self._tmp_dir / f"{release.release_name}-values.yaml"
                 async with aiofiles.open(values_path, mode="w") as values_file:
-                    await values_file.write(yaml.dump(release.values, sort_keys=False))
+                    await values_file.write(
+                        yaml.dump(release.values, sort_keys=False, default_style='"')
+                    )
                 args.extend(["--values", str(values_path)])
             cmd = Kustomize([command.Command(args, exc=HelmException)])
             if options.skip_resources:
