@@ -1,6 +1,6 @@
 -e .
 coverage==7.13.0
-mypy==1.19.0
+mypy==1.19.1
 pdoc==16.0.0
 pip==25.3
 pre-commit==4.5.0
