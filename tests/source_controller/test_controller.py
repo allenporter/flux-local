@@ -4,7 +4,7 @@ import asyncio
 import tempfile
 from pathlib import Path
 from collections.abc import AsyncGenerator, Generator
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, Mock
 
 import pytest
 import git
@@ -179,7 +179,7 @@ async def test_oci_repository_reconciliation(
 
     # Add the object to trigger reconciliation
     with patch("flux_local.source_controller.oci.OrasClient") as mock_client:
-        mock_pull = AsyncMock()
+        mock_pull = Mock()
         mock_pull.return_value = []  # Resources
         mock_client.return_value.pull = mock_pull
         store.add_object(oci_repo)
