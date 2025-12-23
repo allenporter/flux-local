@@ -3,7 +3,7 @@
   list([
     ConfigMap(name='test-config', namespace='test-ns', data={'values.yaml': 'replicaCount: 2\n'}, binary_data=None),
     Secret(name='test-secret', namespace='test-ns', data=None, string_data={'values.yaml': '..PLACEHOLDER_values.yaml..'}),
-    HelmRelease(name='test-release', namespace='test-ns', chart=HelmChart(name='helm-charts/nginx', repo_name='test-repo', repo_namespace='test-ns', version='1.0.0', repo_kind='GitRepository', chart=None, namespace=None), target_namespace=None, values=None, values_from=[ValuesReference(kind='ConfigMap', name='test-config', values_key='values.yaml', target_path='.', optional=False), ValuesReference(kind='Secret', name='test-secret', values_key='values.yaml', target_path='.', optional=False)], images=None, labels=None, disable_schema_validation=False, disable_openapi_validation=False),
+    HelmRelease(name='test-release', namespace='test-ns', chart=HelmChart(name='helm-charts/nginx', version='1.0.0', repo_name='test-repo', repo_namespace='test-ns', repo_kind='GitRepository'), target_namespace=None, values=None, values_from=[ValuesReference(kind='ConfigMap', name='test-config', values_key='values.yaml', target_path='.', optional=False), ValuesReference(kind='Secret', name='test-secret', values_key='values.yaml', target_path='.', optional=False)], images=None, labels=None, disable_schema_validation=False, disable_openapi_validation=False),
     ConfigMap(name='test-release-configmap', namespace=None, data={'myvalue': 'Hello World with 7 replicas'}, binary_data=None),
   ])
 # ---

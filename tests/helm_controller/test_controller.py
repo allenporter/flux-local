@@ -18,7 +18,7 @@ from flux_local.helm_controller import HelmReleaseController, HelmControllerConf
 from flux_local.manifest import (
     NamedResource,
     HelmRelease,
-    HelmChart,
+    HelmChartSource,
     ConfigMap,
     Secret,
 )
@@ -542,7 +542,7 @@ spec:
     name: {git_repo.name}
     namespace: {git_repo.namespace}
 """
-    helm_chart = HelmChart.parse_resource(yaml.safe_load(helm_chart_yaml))
+    helm_chart = HelmChartSource.parse_doc(yaml.safe_load(helm_chart_yaml))
     store.add_object(helm_chart)
 
     git_repo_rid = NamedResource(git_repo.kind, git_repo.namespace, git_repo.name)
@@ -587,4 +587,4 @@ spec:
     assert resolved_release.chart.version == helm_chart.version
     assert resolved_release.chart.repo_kind == git_repo.kind
     assert resolved_release.chart.repo_name == git_repo.name
-    assert resolved_release.chart.name == helm_chart.chart_name_only
+    assert resolved_release.chart.name == helm_chart.chart

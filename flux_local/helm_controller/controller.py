@@ -20,6 +20,7 @@ from flux_local.manifest import (
     BaseManifest,
     HelmRelease,
     HelmChart,
+    HelmChartSource,
     HELM_CHART,
     CONFIG_MAP_KIND,
     SECRET_KIND,
@@ -368,16 +369,13 @@ class HelmReleaseController:
             namespace=helm_release.chart.repo_namespace,
         )
 
-        helm_chart = self.store.get_object(chart_resource, HelmChart)
+        helm_chart = self.store.get_object(chart_resource, HelmChartSource)
         if not helm_chart:
-            _LOGGER.warning(
-                "HelmChart %s not found for HelmRelease %s",
-                chart_resource,
-                helm_release.namespaced_name,
+            raise HelmControllerException(
+                f"HelmChartSource {chart_resource} not found for HelmRelease {helm_release.namespaced_name}"
             )
-            return
 
-        # Extract version and update the chart reference
+        # Extract version and update the chart reference using merge_chart
         if helm_chart.version:
             _LOGGER.info(
                 "Resolved HelmChart %s version %s for HelmRelease %s",
@@ -385,12 +383,8 @@ class HelmReleaseController:
                 helm_chart.version,
                 helm_release.namespaced_name,
             )
-            # Update the chart information from the HelmChart resource
-            helm_release.chart.name = helm_chart.chart_name_only  # Chart name from spec.chart
-            helm_release.chart.version = helm_chart.version
-            helm_release.chart.repo_name = helm_chart.repo_name  # Source repository name
-            helm_release.chart.repo_namespace = helm_chart.repo_namespace
-            helm_release.chart.repo_kind = helm_chart.repo_kind
+            # Create a new chart from the HelmChartSource instead of mutating the existing one
+            helm_release.chart = HelmChart.from_helm_chart_source(helm_chart)
 
             # Now wait for the source repository to be ready
             source_repo = NamedResource(
