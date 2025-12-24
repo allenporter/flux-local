@@ -50,6 +50,9 @@ inputs:
   registry-config:
     description: Path to registry config for OCIRepository, formatted as a docker config JSON
     default: ""
+  skip-invalid-kustomization-paths:
+    description: When true, does not validate kustomization paths exist
+    default: false
 outputs:
   diff:
     description: Output of the diff command or empty if there is no diff
@@ -109,6 +112,7 @@ runs:
             --strip-attrs "${{ inputs.strip-attrs }}" \
             --${{ inputs.skip-crds != 'true' && 'no-' || '' }}skip-crds \
             --${{ inputs.skip-secrets != 'true' && 'no-' || '' }}skip-secrets \
+            --${{ inputs.skip-invalid-kustomization-paths != 'true' && 'no-' || '' }}skip-invalid-kustomization-paths \
             --limit-bytes ${{ inputs.limit-bytes }} \
             --all-namespaces \
             --kustomize-build-flags="${{ inputs.kustomize-build-flags }}" \
