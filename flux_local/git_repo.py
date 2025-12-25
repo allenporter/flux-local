@@ -606,7 +606,6 @@ async def build_kustomization(
     selector: ResourceSelector,
     kustomize_flags: list[str],
     builder: CachableBuilder,
-    helm_charts: dict[str, HelmChartSource] | None = None,
 ) -> None:
     """Build helm objects for the Kustomization and update state."""
     root: Path = selector.path.root
@@ -716,11 +715,11 @@ async def build_kustomization(
         kustomization.secrets = [
             Secret.parse_doc(doc) for doc in docs if doc.get("kind") == SECRET_KIND
         ]
-        if helm_charts is not None:
-            for doc in docs:
-                if doc.get("kind") == HELM_CHART:
-                    chart = HelmChartSource.parse_doc(doc)
-                    helm_charts[chart.resource_full_name] = chart
+        kustomization.helm_chart_sources = [
+            HelmChartSource.parse_doc(doc)
+            for doc in docs
+            if doc.get("kind") == HELM_CHART
+        ]
 
 
 def _ready_kustomizations(
@@ -778,8 +777,6 @@ async def build_manifest(
         async def update_kustomization(cluster: Cluster) -> None:
             queue = [*cluster.kustomizations]
             visited: set[str] = set()
-            # Collect HelmCharts at cluster level for resolving chartRef
-            helm_charts: dict[str, HelmChartSource] = {}
             while queue:
                 build_tasks = []
                 (ready, pending) = _ready_kustomizations(queue, visited)
@@ -814,7 +811,6 @@ async def build_manifest(
                             selector,
                             options.kustomize_flags,
                             builder,
-                            helm_charts,
                         )
                     )
                 if not build_tasks:
@@ -824,7 +820,6 @@ async def build_manifest(
                 await asyncio.gather(*build_tasks)
                 visited.update([ks.namespaced_name for ks in ready])
                 queue = pending
-            cluster.helm_charts = helm_charts
 
         # Validate all Kustomizations have valid dependsOn attributes since later
         # we'll be using them to order processing.

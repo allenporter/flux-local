@@ -375,7 +375,7 @@ class HelmReleaseController:
                 f"HelmChartSource {chart_resource} not found for HelmRelease {helm_release.namespaced_name}"
             )
 
-        # Extract version and update the chart reference using merge_chart
+        # Extract version and update the chart reference
         if helm_chart.version:
             _LOGGER.info(
                 "Resolved HelmChart %s version %s for HelmRelease %s",
@@ -385,17 +385,6 @@ class HelmReleaseController:
             )
             # Create a new chart from the HelmChartSource instead of mutating the existing one
             helm_release.chart = HelmChart.from_helm_chart_source(helm_chart)
-
-            # Now wait for the source repository to be ready
-            source_repo = NamedResource(
-                kind=helm_release.chart.repo_kind,
-                name=helm_release.chart.repo_name,
-                namespace=helm_release.chart.repo_namespace,
-            )
-            if source_repo.kind == GitRepository.kind:
-                await self.wait_for_resource_ready(source_repo)
-            else:
-                await self.wait_for_resource_exists(source_repo)
         else:
             _LOGGER.debug(
                 "HelmChart %s has no version specified", chart_resource

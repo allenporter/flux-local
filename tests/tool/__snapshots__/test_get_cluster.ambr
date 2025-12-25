@@ -97,7 +97,8 @@
                               "namespace": "podinfo"
                           }
                       ],
-                      "secrets": []
+                      "secrets": [],
+                      "helm_chart_sources": []
                   },
                   {
                       "name": "flux-system",
@@ -112,7 +113,8 @@
                               "namespace": "flux-system"
                           }
                       ],
-                      "secrets": []
+                      "secrets": [],
+                      "helm_chart_sources": []
                   },
                   {
                       "name": "infra-configs",
@@ -142,6 +144,7 @@
                       "helm_releases": [],
                       "config_maps": [],
                       "secrets": [],
+                      "helm_chart_sources": [],
                       "images": [
                           "ceph/ceph:v16.2.6",
                           "ghcr.io/cloudnative-pg/postgis:17-3.4"
@@ -183,7 +186,8 @@
                           }
                       ],
                       "config_maps": [],
-                      "secrets": []
+                      "secrets": [],
+                      "helm_chart_sources": []
                   }
               ]
           }
@@ -235,7 +239,8 @@
                               "namespace": "podinfo"
                           }
                       ],
-                      "secrets": []
+                      "secrets": [],
+                      "helm_chart_sources": []
                   },
                   {
                       "name": "flux-system",
@@ -250,7 +255,8 @@
                               "namespace": "flux-system"
                           }
                       ],
-                      "secrets": []
+                      "secrets": [],
+                      "helm_chart_sources": []
                   },
                   {
                       "name": "infra-configs",
@@ -279,7 +285,8 @@
                       "oci_repos": [],
                       "helm_releases": [],
                       "config_maps": [],
-                      "secrets": []
+                      "secrets": [],
+                      "helm_chart_sources": []
                   },
                   {
                       "name": "infra-controllers",
@@ -310,7 +317,8 @@
                           }
                       ],
                       "config_maps": [],
-                      "secrets": []
+                      "secrets": [],
+                      "helm_chart_sources": []
                   }
               ]
           }
@@ -344,6 +352,7 @@
       - name: podinfo-config
         namespace: podinfo
       secrets: []
+      helm_chart_sources: []
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster/clusters/prod
@@ -354,6 +363,7 @@
       - name: cluster-config
         namespace: flux-system
       secrets: []
+      helm_chart_sources: []
     - name: infra-configs
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/configs
@@ -374,6 +384,7 @@
       helm_releases: []
       config_maps: []
       secrets: []
+      helm_chart_sources: []
       images:
       - ceph/ceph:v16.2.6
       - ghcr.io/cloudnative-pg/postgis:17-3.4
@@ -404,6 +415,7 @@
         - ghcr.io/weaveworks/wego-app:v0.38.0
       config_maps: []
       secrets: []
+      helm_chart_sources: []
   
   '''
 # ---
@@ -430,6 +442,7 @@
       - name: podinfo-config
         namespace: podinfo
       secrets: []
+      helm_chart_sources: []
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster/clusters/prod
@@ -440,6 +453,7 @@
       - name: cluster-config
         namespace: flux-system
       secrets: []
+      helm_chart_sources: []
     - name: infra-configs
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/configs
@@ -460,6 +474,7 @@
       helm_releases: []
       config_maps: []
       secrets: []
+      helm_chart_sources: []
     - name: infra-controllers
       namespace: flux-system
       path: tests/testdata/cluster/infrastructure/controllers
@@ -482,6 +497,7 @@
           repo_kind: HelmRepository
       config_maps: []
       secrets: []
+      helm_chart_sources: []
   
   '''
 # ---
@@ -529,6 +545,7 @@
         namespace: podinfo
       secrets:
       - name: podinfo-tls-values
+      helm_chart_sources: []
       images:
       - alpine
       - busybox
@@ -542,6 +559,7 @@
       helm_releases: []
       config_maps: []
       secrets: []
+      helm_chart_sources: []
   
   '''
 # ---
@@ -588,6 +606,7 @@
       - name: podinfo-values
         namespace: podinfo
       secrets: []
+      helm_chart_sources: []
       images:
       - alpine
       - busybox
@@ -601,6 +620,7 @@
       helm_releases: []
       config_maps: []
       secrets: []
+      helm_chart_sources: []
   
   '''
 # ---
@@ -642,6 +662,7 @@
       - name: podinfo-values
         namespace: podinfo
       secrets: []
+      helm_chart_sources: []
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster8/cluster
@@ -650,6 +671,7 @@
       helm_releases: []
       config_maps: []
       secrets: []
+      helm_chart_sources: []
   
   '''
 # ---
@@ -705,6 +727,7 @@
         - ghcr.io/stefanprodan/podinfo:6.7.1
       config_maps: []
       secrets: []
+      helm_chart_sources: []
     - name: flux-system
       namespace: flux-system
       path: tests/testdata/cluster9/clusters/dev
@@ -713,6 +736,7 @@
       helm_releases: []
       config_maps: []
       secrets: []
+      helm_chart_sources: []
       images:
       - ghcr.io/fluxcd/helm-controller:v0.37.4
       - ghcr.io/fluxcd/kustomize-controller:v1.2.2

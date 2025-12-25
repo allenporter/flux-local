@@ -16,7 +16,7 @@ from mashumaro.codecs.yaml import yaml_decode, yaml_encode
 from mashumaro import DataClassDictMixin, field_options
 from mashumaro.config import BaseConfig
 
-from .exceptions import InputException
+from .exceptions import InputException, ObjectNotFoundError
 
 __all__ = [
     "read_manifest",
@@ -495,9 +495,14 @@ class HelmRelease(BaseManifest):
         if self.chart.repo_kind != HELM_CHART or self.chart.version is not None:
             return
 
-        if helm_chart := helm_charts.get(self.chart.repo_full_name):
-            if helm_chart.version:
-                self.chart = HelmChart.from_helm_chart_source(helm_chart)
+        helm_chart = helm_charts.get(self.chart.repo_full_name)
+        if helm_chart is None:
+            raise ObjectNotFoundError(
+                f"HelmChartSource {self.chart.repo_full_name} not found for HelmRelease {self.namespaced_name}"
+            )
+
+        if helm_chart.version:
+            self.chart = HelmChart.from_helm_chart_source(helm_chart)
 
 
 @dataclass
@@ -898,6 +903,9 @@ class Kustomization(BaseManifest):
     secrets: list[Secret] = field(default_factory=list)
     """The list of secrets referenced in the kustomization."""
 
+    helm_chart_sources: list["HelmChartSource"] = field(default_factory=list)
+    """The set of HelmChartSource resources in this kustomization."""
+
     source_path: str | None = field(metadata={"serialize": "omit"}, default=None)
     """Optional source path for this Kustomization, relative to the build path."""
 
@@ -1028,11 +1036,6 @@ class Cluster(BaseManifest):
     kustomizations: list[Kustomization] = field(default_factory=list)
     """A list of flux Kustomizations for the cluster."""
 
-    helm_charts: dict[str, "HelmChartSource"] = field(
-        default_factory=dict, metadata={"serialize": "omit"}
-    )
-    """HelmChartSource resources for resolving chartRef (not serialized)."""
-
     @property
     def id_name(self) -> str:
         """Identifier for the Cluster in tests."""
@@ -1064,6 +1067,15 @@ class Cluster(BaseManifest):
             for kustomization in self.kustomizations
             for release in kustomization.helm_releases
         ]
+
+    @property
+    def helm_charts(self) -> dict[str, "HelmChartSource"]:
+        """Return HelmChartSources from all Kustomizations as lookup dict."""
+        return {
+            chart.resource_full_name: chart
+            for ks in self.kustomizations
+            for chart in ks.helm_chart_sources
+        }
 
 
 @dataclass
