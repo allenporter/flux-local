@@ -31,6 +31,7 @@ from . import run_command
         (["--path", "tests/testdata/cluster2", "-o", "wide"]),
         (["--all-namespaces", "--path", "./tests/testdata/cluster/apps/prod"]),
         (["--path", "tests/testdata/cluster9/clusters/dev"]),
+        (["--path", "tests/testdata/cluster11", "--sources", "flux-system,apps=tests/testdata/cluster11/externalartifact"]),
     ],
     ids=[
         "cluster",
@@ -46,6 +47,7 @@ from . import run_command
         "cluster2-wide",
         "ks_path",
         "cluster9",
+        "cluster11",
     ],
 )
 async def test_get_ks(args: list[str], snapshot: SnapshotAssertion) -> None:

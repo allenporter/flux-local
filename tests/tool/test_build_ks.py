@@ -16,6 +16,7 @@ from . import run_command
         (["apps", "--path=tests/testdata/cluster8/"]),
         (["apps-stack", "--path=tests/testdata/cluster9/clusters/dev"]),
         (["--path=tests/testdata/cluster10", "--skip-invalid-kustomization-paths"]),
+        (["--path=tests/testdata/cluster11", "--sources", "flux-system,apps=tests/testdata/cluster11/externalartifact"]),
     ],
     ids=[
         "build-ks",
@@ -24,6 +25,7 @@ from . import run_command
         "build-ks-single-cluster8",
         "build-ks-single-cluster9",
         "build-ks-cluster10-invalid-paths",
+        "build-ks-cluster11-external-artifact",
     ],
 )
 async def test_build_ks(args: list[str], snapshot: SnapshotAssertion) -> None:

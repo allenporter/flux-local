@@ -1,4 +1,12 @@
 # serializer version: 1
+# name: test_get_ks[cluster11]
+  '''
+  NAME           PATH                                                       
+  apps           tests/testdata/cluster11/externalartifact/apps/overlays    
+  flux-system    tests/testdata/cluster11/cluster                           
+  
+  '''
+# ---
 # name: test_get_ks[cluster2-wide]
   '''
   NAME                                       PATH                                                                  HELMREPOS    OCIREPOS    RELEASES    

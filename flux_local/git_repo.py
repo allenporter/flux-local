@@ -80,9 +80,10 @@ CLUSTER_KUSTOMIZE_KIND = "Kustomization"
 HELM_RELEASE_KIND = "HelmRelease"
 GIT_REPO_KIND = "GitRepository"
 OCI_REPO_KIND = "OCIRepository"
+EXTERNAL_ARTIFACT_KIND = "ExternalArtifact"
 DEFAULT_NAMESPACE = "flux-system"
 DEFAULT_NAME = "flux-system"
-GREP_SOURCE_REF_KIND = f"spec.sourceRef.kind={GIT_REPO_KIND}|{OCI_REPO_KIND}"
+GREP_SOURCE_REF_KIND = f"spec.sourceRef.kind={GIT_REPO_KIND}|{OCI_REPO_KIND}|{EXTERNAL_ARTIFACT_KIND}"
 ERROR_DETAIL_BAD_PATH = "Try specifying another path within the git repo?"
 ERROR_DETAIL_BAD_KS = "Is a Kustomization pointing to a path that does not exist?"
 
@@ -368,7 +369,7 @@ def is_allowed_source(sources: list[Source]) -> Callable[[Kustomization], bool]:
 
 def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
     """Make adjustments to the Kustomizations path."""
-    if doc.source_kind == OCI_REPO_KIND or doc.source_kind == GIT_REPO_KIND:
+    if doc.source_kind in (OCI_REPO_KIND, GIT_REPO_KIND, EXTERNAL_ARTIFACT_KIND):
         for source in selector.sources or []:
             if source.name == doc.source_name:
                 _LOGGER.debug(
@@ -383,9 +384,9 @@ def adjust_ks_path(doc: Kustomization, selector: PathSelector) -> Path | None:
                     break
                 return source.root / doc.path
 
-        # No match so if OCI we can't do anything. If Git we assume its the root
+        # No match so if OCI/ExternalArtifact we can't do anything. If Git we assume its the root
         # of the repository.
-        if doc.source_kind == OCI_REPO_KIND:
+        if doc.source_kind in (OCI_REPO_KIND, EXTERNAL_ARTIFACT_KIND):
             _LOGGER.info(
                 "Unknown cluster source for %s %s: %s",
                 doc.source_kind,
