@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import logging
 import pathlib
 import tempfile
+from typing import Any
 import yaml
 
 from flux_local import git_repo, image
@@ -17,6 +18,8 @@ from flux_local.helm import Helm, Options
 from flux_local.kustomize import Kustomize
 from flux_local.manifest import (
     HelmRelease,
+    HelmChartSource,
+    HELM_CHART,
     Kustomization,
     HelmRepository,
     Manifest,
@@ -213,6 +216,7 @@ async def inflate_release(
     visitor: git_repo.ResourceVisitor,
     options: Options,
 ) -> None:
+    """Inflate a single HelmRelease by running helm template."""
     cmd = await helm.template(release, options)
     # We can ignore the Kustomiation path since we're essentially grouping by cluster
     await visitor.func(pathlib.Path(""), release, cmd)
@@ -225,6 +229,7 @@ class HelmVisitor:
         """Initialize KustomizationContentOutput."""
         self.repos: list[HelmRepository | OCIRepository] = []
         self.releases: list[HelmRelease] = []
+        self.helm_charts: dict[str, HelmChartSource] = {}  # resource_full_name -> HelmChartSource
 
     @property
     def active_repos(self) -> list[HelmRepository | OCIRepository]:
@@ -264,6 +269,21 @@ class HelmVisitor:
 
         return git_repo.ResourceVisitor(func=add_release)
 
+    def chart_visitor(self) -> git_repo.DocumentVisitor:
+        """Return a git_repo.DocumentVisitor that collects HelmChartSource resources."""
+
+        def add_helm_chart(name: str, doc: dict[str, Any]) -> None:
+            """Parse and add HelmChartSource resource."""
+            helm_chart = HelmChartSource.parse_doc(doc)
+            # Store by resource_full_name (namespace-name) since chartRef
+            # in HelmRelease references the resource, not the source
+            self.helm_charts[helm_chart.resource_full_name] = helm_chart
+
+        return git_repo.DocumentVisitor(
+            kinds=[HELM_CHART],
+            func=add_helm_chart,
+        )
+
     async def inflate(
         self,
         helm_cache_dir: pathlib.Path,
@@ -274,6 +294,11 @@ class HelmVisitor:
         _LOGGER.debug("Inflating Helm charts in cluster")
         if not self.releases:
             return
+
+        # Resolve chartRef references before inflating
+        for release in self.releases:
+            release.resolve_chart_ref(self.helm_charts)
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
             if active_repos := self.active_repos:

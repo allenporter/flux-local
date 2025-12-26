@@ -11,6 +11,8 @@
                 'namespace': 'podinfo',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
               dict({
                 'chart': dict({
@@ -40,6 +42,8 @@
                 'namespace': 'flux-system',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
@@ -54,6 +58,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
             ]),
@@ -87,6 +93,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
               dict({
@@ -144,6 +152,8 @@
                 'namespace': 'podinfo',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
@@ -163,6 +173,8 @@
                 'namespace': 'flux-system',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
@@ -177,6 +189,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
             ]),
@@ -210,6 +224,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
             ]),
@@ -241,6 +257,8 @@
                 'namespace': 'podinfo',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
               dict({
                 'chart': dict({
@@ -270,6 +288,8 @@
                 'namespace': 'flux-system',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
@@ -284,6 +304,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
             ]),
@@ -317,6 +339,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
               dict({
@@ -387,6 +411,8 @@
                 'namespace': 'podinfo',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
               dict({
                 'chart': dict({
@@ -416,6 +442,8 @@
                 'namespace': 'flux-system',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
@@ -431,6 +459,8 @@
           dict({
             'config_maps': list([
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
@@ -445,6 +475,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
               dict({
@@ -496,6 +528,8 @@
                 'namespace': 'podinfo',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
               dict({
                 'chart': dict({
@@ -525,6 +559,8 @@
                 'namespace': 'flux-system',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
@@ -539,6 +575,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
             ]),
@@ -572,6 +610,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
               dict({
@@ -636,31 +676,31 @@
       "Build 'flux-system/cluster'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-ingress-nginx'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-ingress-nginx-certificates'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Kustomization 'flux-system/cluster'": dict({
@@ -719,13 +759,13 @@
       "Build 'flux-system/namespaces'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/tenants'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Kustomization 'flux-system/namespaces'": dict({
@@ -760,19 +800,19 @@
       "Build 'flux-system/cluster'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Kustomization 'flux-system/cluster'": dict({
@@ -815,7 +855,7 @@
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Kustomization 'flux-system/flux-system'": dict({
@@ -842,13 +882,13 @@
       "Build 'flux-system/apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Kustomization 'flux-system/apps'": dict({
@@ -883,19 +923,19 @@
       "Build 'flux-system/apps'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/charts'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Kustomization 'flux-system/apps'": dict({
@@ -939,25 +979,25 @@
         'cmds': list([
           'flux build tests/testdata/cluster/apps/prod (abs)',
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/flux-system'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/infra-configs'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Build 'flux-system/infra-controllers'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret)$'",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
       "Kustomization 'flux-system/apps'": dict({
@@ -1025,6 +1065,8 @@
                 'namespace': 'podinfo',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
               dict({
                 'chart': dict({
@@ -1054,6 +1096,8 @@
                 'namespace': 'flux-system',
               }),
             ]),
+            'helm_chart_sources': list([
+            ]),
             'helm_releases': list([
             ]),
             'helm_repos': list([
@@ -1068,6 +1112,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
             ]),
@@ -1101,6 +1147,8 @@
           }),
           dict({
             'config_maps': list([
+            ]),
+            'helm_chart_sources': list([
             ]),
             'helm_releases': list([
               dict({

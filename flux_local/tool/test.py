@@ -77,6 +77,9 @@ class HelmReleaseTest(pytest.Item):
 
     async def async_runtest(self) -> None:
         """Run the Kustomizations test."""
+        # Resolve chartRef if used
+        self.helm_release.resolve_chart_ref(self.cluster.helm_charts)
+
         # Note: This could be sped up by sharing a cache dir across clusters for the
         # multi-cluster git repos.
         with (

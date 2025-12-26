@@ -232,6 +232,7 @@ class DiffHelmReleaseAction:
         query.helm_repo.visitor = helm_visitor.repo_visitor()
         query.oci_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
+        query.doc_visitor = helm_visitor.chart_visitor()
         options = selector.build_helm_options(**kwargs)
         await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
@@ -245,6 +246,7 @@ class DiffHelmReleaseAction:
             query.helm_repo.visitor = orig_helm_visitor.repo_visitor()
             query.oci_repo.visitor = orig_helm_visitor.repo_visitor()
             query.helm_release.visitor = orig_helm_visitor.release_visitor()
+            query.doc_visitor = orig_helm_visitor.chart_visitor()
             await git_repo.build_manifest(
                 selector=query, options=selector.options(**kwargs)
             )
