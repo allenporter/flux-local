@@ -8,4 +8,5 @@ spec:
   chartRef:
     kind: HelmChart
     name: ingress-nginx
+    namespace: chart-ns
   releaseName: ingress-nginx

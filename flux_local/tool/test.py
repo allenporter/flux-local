@@ -13,8 +13,6 @@ import tempfile
 from pathlib import Path
 import sys
 from typing import cast, Generator, Any
-
-import nest_asyncio
 import pytest
 
 from flux_local import git_repo, kustomize
@@ -75,11 +73,13 @@ class HelmReleaseTest(pytest.Item):
 
     def runtest(self) -> None:
         """Dispatch the async work and run the test."""
-        nest_asyncio.apply()
         asyncio.run(self.async_runtest())
 
     async def async_runtest(self) -> None:
         """Run the Kustomizations test."""
+        # Resolve chartRef if used
+        self.helm_release.resolve_chart_ref(self.cluster.helm_charts)
+
         # Note: This could be sped up by sharing a cache dir across clusters for the
         # multi-cluster git repos.
         with (
@@ -138,7 +138,6 @@ class KustomizationTest(pytest.Item):
 
     def runtest(self) -> None:
         """Dispatch the async work and run the test."""
-        nest_asyncio.apply()
         asyncio.run(self.async_runtest())
 
     async def async_runtest(self) -> None:
@@ -278,7 +277,6 @@ class ManifestPlugin:
         self.init_error: Exception | None = None
 
     def pytest_sessionstart(self, session: pytest.Session) -> None:
-        nest_asyncio.apply()
         asyncio.run(self.async_pytest_sessionstart(session))
 
     async def async_pytest_sessionstart(self, session: pytest.Session) -> None:
@@ -409,7 +407,6 @@ class TestAction:
         options = selector.options(**kwargs)
         helm_options = selector.build_helm_options(**kwargs)
 
-        nest_asyncio.apply()
         pytest_args = [
             "--verbosity",
             str(verbosity),
@@ -417,9 +414,10 @@ class TestAction:
             "--disable-warnings",
         ]
         _LOGGER.debug("pytest.main: %s", pytest_args)
-        retcode = pytest.main(
+        retcode = await asyncio.to_thread(
+            pytest.main,
             pytest_args,
-            plugins=[
+            [
                 ManifestPlugin(
                     query,
                     TestConfig(

@@ -52,6 +52,8 @@ from .manifest import (
     Cluster,
     HelmRelease,
     HelmRepository,
+    HelmChartSource,
+    HELM_CHART,
     Kustomization,
     Manifest,
     ConfigMap,
@@ -658,6 +660,8 @@ async def build_kustomization(
             kinds.append(HELM_RELEASE_KIND)
             # Needed for expanding value references
             kinds.append(SECRET_KIND)
+            # Needed for resolving chartRef in HelmReleases
+            kinds.append(HELM_CHART)
         if selector.doc_visitor:
             kinds.extend(selector.doc_visitor.kinds)
         if not kinds:
@@ -711,6 +715,11 @@ async def build_kustomization(
         ]
         kustomization.secrets = [
             Secret.parse_doc(doc) for doc in docs if doc.get("kind") == SECRET_KIND
+        ]
+        kustomization.helm_chart_sources = [
+            HelmChartSource.parse_doc(doc)
+            for doc in docs
+            if doc.get("kind") == HELM_CHART
         ]
 
 

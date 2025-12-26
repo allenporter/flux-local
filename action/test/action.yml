@@ -28,6 +28,9 @@ inputs:
   registry-config:
     description: Path to registry config for OCIRepository, formatted as a docker config JSON
     default: ""
+  skip-invalid-kustomization-paths:
+    description: When true, does not validate kustomization paths exist
+    default: false
 runs:
   using: "composite"
   steps:
@@ -65,5 +68,6 @@ runs:
           --sources "${{ inputs.sources }}" \
           --path ${{ inputs.path }} \
           --verbosity ${{ inputs.debug != 'true' && '0' || '1' }} \
-          --registry-config "${{ inputs.registry-config }}"
+          --registry-config "${{ inputs.registry-config }}" \
+          --${{ inputs.skip-invalid-kustomization-paths != 'true' && 'no-' || '' }}skip-invalid-kustomization-paths
       shell: bash

@@ -19,6 +19,9 @@ from flux_local.manifest import (
     NamedResource,
     BaseManifest,
     HelmRelease,
+    HelmChart,
+    HelmChartSource,
+    HELM_CHART,
     CONFIG_MAP_KIND,
     SECRET_KIND,
     GitRepository,
@@ -169,6 +172,9 @@ class HelmReleaseController:
 
         # Wait for dependencies to be ready
         await self.wait_for_dependencies(helm_release)
+
+        # Resolve HelmChart resource if chartRef is used
+        await self._resolve_helm_chart(helm_release)
 
         if self._need_update:
             _LOGGER.info("Updating Helm repositories")
@@ -347,6 +353,42 @@ class HelmReleaseController:
         finally:
             # Clean up the listener
             remove_listener()
+
+    async def _resolve_helm_chart(self, helm_release: HelmRelease) -> None:
+        """Resolve HelmChart resource and extract version when chartRef is used."""
+        # Only resolve if chartRef is used (repo_kind is HELM_CHART) and version is not set
+        if (
+            helm_release.chart.repo_kind != HELM_CHART
+            or helm_release.chart.version is not None
+        ):
+            return
+
+        chart_resource = NamedResource(
+            kind=HELM_CHART,
+            name=helm_release.chart.repo_name,
+            namespace=helm_release.chart.repo_namespace,
+        )
+
+        helm_chart = self.store.get_object(chart_resource, HelmChartSource)
+        if not helm_chart:
+            raise HelmControllerException(
+                f"HelmChartSource {chart_resource} not found for HelmRelease {helm_release.namespaced_name}"
+            )
+
+        # Extract version and update the chart reference
+        if helm_chart.version:
+            _LOGGER.info(
+                "Resolved HelmChart %s version %s for HelmRelease %s",
+                chart_resource,
+                helm_chart.version,
+                helm_release.namespaced_name,
+            )
+            # Create a new chart from the HelmChartSource instead of mutating the existing one
+            helm_release.chart = HelmChart.from_helm_chart_source(helm_chart)
+        else:
+            _LOGGER.debug(
+                "HelmChart %s has no version specified", chart_resource
+            )
 
     async def _apply(self, manifests: list[dict[str, Any]]) -> None:
         """Apply the manifests to the cluster."""

@@ -16,7 +16,7 @@ from mashumaro.codecs.yaml import yaml_decode, yaml_encode
 from mashumaro import DataClassDictMixin, field_options
 from mashumaro.config import BaseConfig
 
-from .exceptions import InputException
+from .exceptions import InputException, ObjectNotFoundError
 
 __all__ = [
     "read_manifest",
@@ -38,6 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 # We don't check specific versions for forward compatibility on upgrade.
 FLUXTOMIZE_DOMAIN = "kustomize.toolkit.fluxcd.io"
 KUSTOMIZE_DOMAIN = "kustomize.config.k8s.io"
+HELM_CHART_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_REPO_DOMAIN = "source.toolkit.fluxcd.io"
 HELM_RELEASE_DOMAIN = "helm.toolkit.fluxcd.io"
 GIT_REPOSITORY_DOMAIN = "source.toolkit.fluxcd.io"
@@ -158,7 +159,12 @@ class RawObject(BaseManifest):
 
 @dataclass
 class HelmChart(BaseManifest):
-    """A representation of an instantiation of a chart for a HelmRelease."""
+    """A representation of an embedded chart template within a HelmRelease.
+
+    This represents the HelmChartTemplate from spec.chart in a HelmRelease,
+    not the standalone HelmChart Kubernetes resource. For the standalone
+    resource, see HelmChartSource.
+    """
 
     kind: ClassVar[str] = HELM_CHART
     """The kind of the object."""
@@ -176,7 +182,7 @@ class HelmChart(BaseManifest):
     """The namespace of the repository."""
 
     repo_kind: str = HELM_REPO_KIND
-    """The kind of the soruceRef of the repository (e.g. HelmRepository, GitRepository)."""
+    """The kind of the sourceRef of the repository (e.g. HelmRepository, GitRepository)."""
 
     @classmethod
     def parse_doc(cls, doc: dict[str, Any], default_namespace: str) -> "HelmChart":
@@ -205,7 +211,7 @@ class HelmChart(BaseManifest):
             )
         if not (chart_spec := chart.get("spec")):
             raise InputException(f"Invalid {cls} missing spec.chart.spec: {doc}")
-        if not (chart := chart_spec.get("chart")):
+        if not (chart_name := chart_spec.get("chart")):
             raise InputException(f"Invalid {cls} missing spec.chart.spec.chart: {doc}")
         version = chart_spec.get("version")
         if not (source_ref := chart_spec.get("sourceRef")):
@@ -215,7 +221,7 @@ class HelmChart(BaseManifest):
         if "name" not in source_ref:
             raise InputException(f"Invalid {cls} missing sourceRef fields: {doc}")
         return cls(
-            name=chart,
+            name=chart_name,
             version=version,
             repo_name=source_ref["name"],
             repo_namespace=source_ref.get("namespace", default_namespace),
@@ -231,6 +237,84 @@ class HelmChart(BaseManifest):
     def chart_name(self) -> str:
         """Identifier for the HelmChart."""
         return f"{self.repo_full_name}/{self.name}"
+
+    @classmethod
+    def from_helm_chart_source(cls, source: "HelmChartSource") -> "HelmChart":
+        """Create a HelmChart from a resolved HelmChartSource resource."""
+        return cls(
+            name=source.chart,
+            version=source.version,
+            repo_name=source.repo_name,
+            repo_namespace=source.repo_namespace,
+            repo_kind=source.repo_kind,
+        )
+
+
+@dataclass
+class HelmChartSource(BaseManifest):
+    """A standalone HelmChart Kubernetes resource (source.toolkit.fluxcd.io/v1/HelmChart).
+
+    This represents the actual HelmChart CRD, distinct from HelmChart which represents
+    the embedded chart template within a HelmRelease.
+    """
+
+    kind: ClassVar[str] = HELM_CHART
+    """The kind of the object."""
+
+    name: str
+    """The name of the HelmChart resource."""
+
+    namespace: str
+    """The namespace of the HelmChart resource."""
+
+    chart: str
+    """The chart name from spec.chart."""
+
+    version: str | None
+    """The version of the chart."""
+
+    repo_name: str
+    """The name of the source repository."""
+
+    repo_namespace: str
+    """The namespace of the source repository."""
+
+    repo_kind: str = HELM_REPO_KIND
+    """The kind of the sourceRef."""
+
+    @classmethod
+    def parse_doc(cls, doc: dict[str, Any]) -> "HelmChartSource":
+        """Parse a standalone HelmChart resource from YAML."""
+        _check_version(doc, HELM_CHART_DOMAIN)
+        if not (metadata := doc.get("metadata")):
+            raise InputException(f"Invalid {cls} missing metadata: {doc}")
+        if not metadata.get("name"):
+            raise InputException(f"Invalid {cls} missing metadata.name: {doc}")
+        resource_namespace = metadata.get("namespace", DEFAULT_NAMESPACE)
+        if not (spec := doc.get("spec")):
+            raise InputException(f"Invalid {cls} missing spec: {doc}")
+        if not (chart := spec.get("chart")):
+            raise InputException(f"Invalid {cls} missing spec.chart: {doc}")
+        version = spec.get("version")
+        if not (source_ref := spec.get("sourceRef")):
+            raise InputException(f"Invalid {cls} missing spec.sourceRef: {doc}")
+        if "name" not in source_ref:
+            raise InputException(f"Invalid {cls} missing sourceRef.name: {doc}")
+        resource_name = metadata.get("name")
+        return cls(
+            name=resource_name,
+            namespace=resource_namespace,
+            chart=chart,
+            version=version,
+            repo_name=source_ref["name"],
+            repo_namespace=source_ref.get("namespace", resource_namespace),
+            repo_kind=source_ref.get("kind", HELM_REPO_KIND),
+        )
+
+    @property
+    def resource_full_name(self) -> str:
+        """Identifier for the HelmChart resource (namespace-name)."""
+        return f"{self.namespace}-{self.name}"
 
 
 @dataclass
@@ -398,6 +482,27 @@ class HelmRelease(BaseManifest):
                 NamedResource(kind=ref.kind, name=ref.name, namespace=self.namespace)
             )
         return deps
+
+    def resolve_chart_ref(self, helm_charts: dict[str, "HelmChartSource"]) -> None:
+        """Resolve chartRef reference if used.
+
+        If this release uses chartRef (repo_kind == HELM_CHART) and has no version,
+        looks up the HelmChartSource and updates the chart information.
+
+        Args:
+            helm_charts: A dict of HelmChartSource keyed by resource_full_name
+        """
+        if self.chart.repo_kind != HELM_CHART or self.chart.version is not None:
+            return
+
+        helm_chart = helm_charts.get(self.chart.repo_full_name)
+        if helm_chart is None:
+            raise ObjectNotFoundError(
+                f"HelmChartSource {self.chart.repo_full_name} not found for HelmRelease {self.namespaced_name}"
+            )
+
+        if helm_chart.version:
+            self.chart = HelmChart.from_helm_chart_source(helm_chart)
 
 
 @dataclass
@@ -798,6 +903,9 @@ class Kustomization(BaseManifest):
     secrets: list[Secret] = field(default_factory=list)
     """The list of secrets referenced in the kustomization."""
 
+    helm_chart_sources: list["HelmChartSource"] = field(default_factory=list)
+    """The set of HelmChartSource resources in this kustomization."""
+
     source_path: str | None = field(metadata={"serialize": "omit"}, default=None)
     """Optional source path for this Kustomization, relative to the build path."""
 
@@ -960,6 +1068,15 @@ class Cluster(BaseManifest):
             for release in kustomization.helm_releases
         ]
 
+    @property
+    def helm_charts(self) -> dict[str, "HelmChartSource"]:
+        """Return HelmChartSources from all Kustomizations as lookup dict."""
+        return {
+            chart.resource_full_name: chart
+            for ks in self.kustomizations
+            for chart in ks.helm_chart_sources
+        }
+
 
 @dataclass
 class Manifest(BaseManifest):
@@ -1012,6 +1129,8 @@ def parse_raw_obj(obj: dict[str, Any], *, wipe_secrets: bool = True) -> BaseMani
         return HelmRelease.parse_doc(obj)
     if kind == HELM_REPOSITORY:
         return HelmRepository.parse_doc(obj)
+    if kind == HELM_CHART and api_version.startswith(HELM_CHART_DOMAIN):
+        return HelmChartSource.parse_doc(obj)
     if kind == GIT_REPOSITORY:
         return GitRepository.parse_doc(obj)
     if kind == OCI_REPOSITORY:

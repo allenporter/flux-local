@@ -224,6 +224,7 @@ class BuildHelmReleaseAction:
         query.helm_repo.visitor = helm_visitor.repo_visitor()
         query.oci_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
+        query.doc_visitor = helm_visitor.chart_visitor()
         helm_options = selector.build_helm_options(**kwargs)
         await git_repo.build_manifest(
             selector=query, options=selector.options(**kwargs)
