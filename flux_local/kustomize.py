@@ -182,10 +182,13 @@ async def _resource_lock(key: str) -> AsyncIterator[None]:
 class FluxBuild(Task):
     """A task that issues a flux build command."""
 
-    def __init__(self, ks: Kustomization, path: Path) -> None:
+    def __init__(
+        self, ks: Kustomization, path: Path, ignore_paths: list[str]
+    ) -> None:
         """Initialize Build."""
         self._ks = ks
         self._path = path
+        self._ignore_paths = ignore_paths
 
     async def run(self, stdin: bytes | None = None) -> bytes:
         """Run the task."""
@@ -207,6 +210,9 @@ class FluxBuild(Task):
             "--path",
             str(self._path),
         ]
+        # Pass through any ignore paths in .gitignore format (comma-separated)
+        if self._ignore_paths:
+            args.extend(["--ignore-paths", ",".join(self._ignore_paths)])
         if self._ks.namespace:
             args.extend(
                 [
@@ -230,9 +236,11 @@ class FluxBuild(Task):
         return f"flux build {format_path(self._path)}"
 
 
-def flux_build(ks: Kustomization, path: Path) -> Kustomize:
+def flux_build(
+    ks: Kustomization, path: Path, ignore_paths: list[str]
+) -> Kustomize:
     """Build cluster artifacts from the specified path."""
-    return Kustomize(cmds=[FluxBuild(ks, path)])
+    return Kustomize(cmds=[FluxBuild(ks, path, ignore_paths=ignore_paths)])
 
 
 def grep(expr: str, path: Path, invert: bool = False) -> Kustomize:
