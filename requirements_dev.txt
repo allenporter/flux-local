@@ -19,6 +19,6 @@ types-aiofiles==25.1.0.20251011
 types-PyYAML==6.0.12.20250915
 typing-extensions==4.15.0
 types-python-slugify==8.0.2.20240310
-yamllint==1.37.1
+yamllint==1.38.0
 syrupy==5.0.0
 oras==0.2.38
