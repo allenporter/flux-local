@@ -17,7 +17,7 @@ import pytest
 
 from flux_local import git_repo, kustomize
 from flux_local.exceptions import FluxException
-from flux_local.helm import Helm, Options
+from flux_local.helm import Helm, Options, helm_cache
 from flux_local.manifest import (
     Manifest,
     Cluster,
@@ -83,7 +83,7 @@ class HelmReleaseTest(pytest.Item):
         # Note: This could be sped up by sharing a cache dir across clusters for the
         # multi-cluster git repos.
         with (
-            tempfile.TemporaryDirectory() as helm_cache_dir,
+            helm_cache() as helm_cache_dir,
             tempfile.TemporaryDirectory() as tmp_dir,
         ):
             helm = Helm(pathlib.Path(tmp_dir), pathlib.Path(helm_cache_dir))
@@ -269,12 +269,14 @@ class ManifestPlugin:
         selector: git_repo.ResourceSelector,
         test_config: TestConfig,
         test_filter: list[str],
+        builder: git_repo.CachableBuilder | None = None,
     ) -> None:
         self.selector = selector
         self.manifest: Manifest | None = None
         self.test_config = test_config
         self.test_filter = test_filter
         self.init_error: Exception | None = None
+        self.builder = builder
 
     def pytest_sessionstart(self, session: pytest.Session) -> None:
         asyncio.run(self.async_pytest_sessionstart(session))
@@ -286,6 +288,7 @@ class ManifestPlugin:
             manifest = await git_repo.build_manifest(
                 selector=self.selector,
                 options=self.test_config.options,
+                builder=self.builder,
             )
         except FluxException as err:
             _LOGGER.error("Failed to build manifest: %s", err)
@@ -336,7 +339,8 @@ class TestAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args = cast(
@@ -389,6 +393,7 @@ class TestAction:
         enable_helm: bool,
         test_path: str | None,
         verbosity: int,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -425,6 +430,7 @@ class TestAction:
                         helm_options=helm_options,
                     ),
                     test_filter=[str(test_path)] if test_path else [],
+                    builder=builder,
                 )
             ],
         )

@@ -37,6 +37,8 @@ from contextlib import contextmanager
 import contextvars
 import datetime
 from dataclasses import dataclass
+import hashlib
+import json
 import logging
 from pathlib import Path
 import tempfile
@@ -47,6 +49,7 @@ from aiofiles.ospath import exists
 import yaml
 
 from . import command
+from .context import trace_context, HELM_CACHE_DIR
 from .kustomize import Kustomize
 from .manifest import (
     HelmRelease,
@@ -67,6 +70,7 @@ from .exceptions import HelmException
 __all__ = [
     "Helm",
     "Options",
+    "helm_cache",
 ]
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,6 +79,7 @@ _LOGGER = logging.getLogger(__name__)
 HELM_BIN = "helm"
 
 _config_context = contextvars.ContextVar[str | None]("config_context", default=None)
+_UPDATED_CACHE: set[tuple[Path, str]] = set()
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -91,6 +96,16 @@ class LocalGitRepository:
     def repo_name(self) -> str:
         """Return the name of the repository."""
         return self.repo.repo_name
+
+
+@contextmanager
+def helm_cache() -> Generator[Path, None, None]:
+    """Context manager for a helm cache directory."""
+    if cache_dir := HELM_CACHE_DIR.get():
+        yield cache_dir
+        return
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        yield Path(tmp_dir)
 
 
 @contextmanager
@@ -269,10 +284,11 @@ class Helm:
     def __init__(self, tmp_dir: Path, cache_dir: Path) -> None:
         """Initialize Helm."""
         self._tmp_dir = tmp_dir
+        self._cache_dir = cache_dir
         self._repo_config_file = self._tmp_dir / "repository-config.yaml"
         self._flags = [
             "--repository-cache",
-            str(cache_dir),
+            str(self._cache_dir),
             "--repository-config",
             str(self._repo_config_file),
         ]
@@ -302,22 +318,45 @@ class Helm:
 
         Typically the repository must be updated before doing any chart templating.
         """
-        _LOGGER.debug("Updating %d repositories", len(self._repos))
-        helm_repos = [
-            repo
-            for repo in self._repos
-            if isinstance(repo, HelmRepository) and repo.repo_type != REPO_TYPE_OCI
-        ]
-        if not helm_repos:
-            return
-        content = yaml.dump(RepositoryConfig(helm_repos).config, sort_keys=False)
-        async with aiofiles.open(str(self._repo_config_file), mode="w") as config_file:
-            await config_file.write(content)
-        with empty_registry_config_file():
-            args = [HELM_BIN, "repo", "update"]
-            args.extend(Options().base_args)
-            args.extend(self._flags)
-            await command.run(command.Command(args, exc=HelmException))
+        with trace_context("helm update"):
+            _LOGGER.debug("Updating %d repositories", len(self._repos))
+            helm_repos = [
+                repo
+                for repo in self._repos
+                if isinstance(repo, HelmRepository) and repo.repo_type != REPO_TYPE_OCI
+            ]
+            if not helm_repos:
+                return
+
+            # Note: We still write the full config including the timestamp for helm to use.
+            # This must be done even if we skip the repo update binary call, because
+            # we may be in a new temporary directory and helm needs this file to exist.
+            content = yaml.dump(RepositoryConfig(helm_repos).config, sort_keys=False)
+            async with aiofiles.open(
+                str(self._repo_config_file), mode="w"
+            ) as config_file:
+                await config_file.write(content)
+
+            repos = sorted(
+                [
+                    {"name": f"{repo.namespace}-{repo.name}", "url": repo.url}
+                    for repo in helm_repos
+                ],
+                key=lambda x: x["name"],
+            )
+            repo_hash = hashlib.sha256(json.dumps(repos).encode()).hexdigest()
+            if (self._cache_dir, repo_hash) in _UPDATED_CACHE:
+                _LOGGER.debug(
+                    "Skipping helm update as it was already run for this cache"
+                )
+                return
+
+            with empty_registry_config_file():
+                args = [HELM_BIN, "repo", "update"]
+                args.extend(Options().base_args)
+                args.extend(self._flags)
+                await command.run(command.Command(args, exc=HelmException))
+            _UPDATED_CACHE.add((self._cache_dir, repo_hash))
 
     async def is_invalid_local_path(
         self,

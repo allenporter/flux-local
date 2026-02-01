@@ -80,6 +80,7 @@ class BuildHelmReleaseAction:
         self,
         path: pathlib.Path,
         output_file: str,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs: Any,
     ) -> None:
         """Async Action implementation."""

@@ -15,6 +15,7 @@ from flux_local.manifest import (
     HelmRelease,
     NamedResource,
 )
+from flux_local import git_repo
 
 from .format import PrintFormatter
 from . import selector, get_common
@@ -49,6 +50,7 @@ class GetHelmReleaseNewAction:
     async def run(
         self,
         path: pathlib.Path | None,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs: Any,
     ) -> None:
         """Async Action implementation."""

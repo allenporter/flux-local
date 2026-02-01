@@ -43,6 +43,7 @@ from typing import Any, AsyncGenerator
 import yaml
 
 from . import manifest
+from .context import trace_context
 from .command import Command, run_piped, Task, format_path
 from .exceptions import (
     InputException,
@@ -105,7 +106,15 @@ class Kustomize:
 
     async def run(self) -> str:
         """Run the kustomize command and return the output as a string."""
-        return await run_piped(self._cmds)
+        name = "kustomize.run"
+        if self._cmds:
+            cmd0 = self._cmds[0]
+            if isinstance(cmd0, Command) and cmd0.cmd and "helm" in cmd0.cmd[0]:
+                name = "helm template"
+            elif isinstance(cmd0, FluxBuild):
+                name = "flux build"
+        with trace_context(name):
+            return await run_piped(self._cmds)
 
     async def _docs(
         self, target_namespace: str | None = None

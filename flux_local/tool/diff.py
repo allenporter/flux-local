@@ -8,12 +8,12 @@ from contextlib import contextmanager
 import logging
 import pathlib
 import shlex
-import tempfile
 from typing import cast, Generator, Any
 
 
 from flux_local import git_repo
 from flux_local.visitor import HelmVisitor, ObjectOutput
+from flux_local.helm import helm_cache
 from flux_local.resource_diff import (
     get_helm_release_diff_keys,
     perform_yaml_diff,
@@ -138,6 +138,7 @@ class DiffKustomizationAction:
         strip_attrs: list[str] | None,
         limit_bytes: int,
         output_file: str,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -147,7 +148,7 @@ class DiffKustomizationAction:
         content = ObjectOutput(strip_attrs)
         query.kustomization.visitor = content.visitor()
         await git_repo.build_manifest(
-            selector=query, options=selector.options(**kwargs)
+            selector=query, options=selector.options(**kwargs), builder=builder
         )
 
         orig_content = ObjectOutput(strip_attrs)
@@ -155,7 +156,7 @@ class DiffKustomizationAction:
             query.path = path_selector
             query.kustomization.visitor = orig_content.visitor()
             await git_repo.build_manifest(
-                selector=query, options=selector.options(**kwargs)
+                selector=query, options=selector.options(**kwargs), builder=builder
             )
 
         if not orig_content.content and not content.content:
@@ -225,6 +226,7 @@ class DiffHelmReleaseAction:
         strip_attrs: list[str] | None,
         limit_bytes: int,
         output_file: str,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -238,7 +240,7 @@ class DiffHelmReleaseAction:
         query.doc_visitor = helm_visitor.chart_visitor()
         options = selector.build_helm_options(**kwargs)
         await git_repo.build_manifest(
-            selector=query, options=selector.options(**kwargs)
+            selector=query, options=selector.options(**kwargs), builder=builder
         )
 
         orig_content = ObjectOutput(strip_attrs)
@@ -251,7 +253,7 @@ class DiffHelmReleaseAction:
             query.helm_release.visitor = orig_helm_visitor.release_visitor()
             query.doc_visitor = orig_helm_visitor.chart_visitor()
             await git_repo.build_manifest(
-                selector=query, options=selector.options(**kwargs)
+                selector=query, options=selector.options(**kwargs), builder=builder
             )
 
         if not helm_visitor.releases and not orig_helm_visitor.releases:
@@ -284,7 +286,7 @@ class DiffHelmReleaseAction:
 
         helm_content = ObjectOutput(strip_attrs)
         orig_helm_content = ObjectOutput(strip_attrs)
-        with tempfile.TemporaryDirectory() as helm_cache_dir:
+        with helm_cache() as helm_cache_dir:
             await asyncio.gather(
                 helm_visitor.inflate(
                     pathlib.Path(helm_cache_dir), helm_content.visitor(), options
@@ -349,6 +351,7 @@ class DiffAction:
 
     async def run(  # type: ignore[no-untyped-def]
         self,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
