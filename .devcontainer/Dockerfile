@@ -1,16 +1,14 @@
 # Docker environment for local development in devcontainer
 
-FROM ubuntu:noble-20260113
+FROM mcr.microsoft.com/devcontainers/python:3.14-bookworm
 
 RUN apt-get update --fix-missing && \
     apt-get upgrade -y && \
     apt-get install -y --fix-missing \
         curl \
         unzip \
-        software-properties-common \
         vim \
-        git \
-        python3-pip
+        git
 
 COPY --from=registry.k8s.io/kubectl:v1.35.0             /bin/kubectl                     /usr/local/bin/kubectl
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.8.0  /app/kustomize                   /usr/local/bin/kustomize
