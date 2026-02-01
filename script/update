@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# script/update: Update the project environment
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "==> Updating codebase..."
+git pull
+
+echo "==> Running bootstrap..."
+./script/bootstrap
+
+echo "==> Project updated successfully!"
