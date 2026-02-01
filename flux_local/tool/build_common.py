@@ -19,6 +19,8 @@ from flux_local.exceptions import FluxException
 from flux_local.orchestrator import BootstrapOptions, Orchestrator, OrchestratorConfig
 from flux_local.store import InMemoryStore, Status
 
+from .format import open_file
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -113,7 +115,7 @@ class BuildRunner:
         manifest_found = False
         manifest_match = False
 
-        with open(output_file, "w", encoding="utf-8") as file:
+        with open_file(output_file, "w") as file:
             for manifest_obj in store.list_objects(kind=self.resource_kind):
                 if not isinstance(manifest_obj, self.resource_type):
                     continue

@@ -24,6 +24,7 @@ from flux_local.resource_diff import (
 )
 
 from . import selector
+from .format import open_file
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,7 +104,8 @@ class DiffKustomizationAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args: ArgumentParser = cast(
@@ -161,7 +163,7 @@ class DiffKustomizationAction:
             return
 
         _LOGGER.debug("Diffing content")
-        with open(output_file, "w") as file:
+        with open_file(output_file, "w") as file:
             if output == "yaml":
                 result = perform_yaml_diff(orig_content, content, unified, limit_bytes)
                 for line in result:
@@ -188,7 +190,8 @@ class DiffHelmReleaseAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args: ArgumentParser = cast(
@@ -252,7 +255,7 @@ class DiffHelmReleaseAction:
             )
 
         if not helm_visitor.releases and not orig_helm_visitor.releases:
-            with open(output_file, "w") as file:
+            with open_file(output_file, "w") as file:
                 print(selector.not_found("HelmRelease", query.helm_release), file=file)
             return
 
@@ -291,7 +294,7 @@ class DiffHelmReleaseAction:
                 ),
             )
 
-        with open(output_file, "w") as file:
+        with open_file(output_file, "w") as file:
             if output == "yaml":
                 for line in perform_yaml_diff(
                     orig_helm_content, helm_content, unified, limit_bytes
@@ -322,7 +325,8 @@ class DiffAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args: ArgumentParser = subparsers.add_parser(

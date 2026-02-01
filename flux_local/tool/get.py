@@ -20,6 +20,7 @@ from .format import (
     YamlListFormatter,
     JsonFormatter,
     StructFormatter,
+    open_file,
 )
 from . import selector
 from .get_kustomization import GetKustomizationNewAction
@@ -279,7 +280,7 @@ class GetClusterAction:
                 if output == "yaml":  # Yaml is printing multiple docs
                     output_content = [output_content]
                 formatter = YamlFormatter() if output == "yaml" else JsonFormatter()
-            with open(output_file, "w") as file:
+            with open_file(output_file, "w") as file:
                 formatter.print(output_content, file=file)
             return
 
@@ -290,7 +291,7 @@ class GetClusterAction:
             value["kustomizations"] = len(cluster.kustomizations)
             results.append(value)
 
-        with open(output_file, "w") as file:
+        with open_file(output_file, "w") as file:
             if not results:
                 print(
                     selector.not_found("flux cluster Kustmization", query.cluster),

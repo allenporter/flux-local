@@ -14,6 +14,7 @@ from flux_local import git_repo
 from flux_local.visitor import ContentOutput, HelmVisitor
 
 from . import selector
+from .format import open_file
 from .build_kustomization import (
     BuildKustomizationAction as BuildKustomizationNewAction,
 )
@@ -114,7 +115,7 @@ class BuildAllAction:
                     helm_options,
                 )
 
-        with open(output_file, "w") as file:
+        with open_file(output_file, "w") as file:
             keys = list(content.content)
             keys.sort()
             for key in keys:
@@ -171,7 +172,7 @@ class BuildKustomizationAction:
             selector=query, options=selector.options(**kwargs)
         )
 
-        with open(output_file, "w") as file:
+        with open_file(output_file, "w") as file:
             keys = list(content.content)
             keys.sort()
             for key in keys:
@@ -238,7 +239,7 @@ class BuildHelmReleaseAction:
                 helm_options,
             )
 
-            with open(output_file, "w") as file:
+            with open_file(output_file, "w") as file:
                 keys = list(helm_content.content)
                 keys.sort()
                 for key in keys:

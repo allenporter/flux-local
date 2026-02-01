@@ -7,6 +7,19 @@ import sys
 from typing import TextIO
 import yaml
 import json
+import contextlib
+
+
+@contextlib.contextmanager
+def open_file(filename: str, mode: str) -> Generator[TextIO, None, None]:
+    """Open a file, handling /dev/stdout and /dev/stderr as sys.stdout and sys.stderr."""
+    if filename == "/dev/stdout":
+        yield sys.stdout
+    elif filename == "/dev/stderr":
+        yield sys.stderr
+    else:
+        with open(filename, mode) as f:
+            yield f  # type: ignore[misc]
 
 
 PADDING = 4
@@ -19,7 +32,7 @@ def column_format_string(rows: list[list[str]]) -> str:
     for row in rows:
         for i, value in enumerate(row):
             widths[i] = max(widths[i], len(str(value)))
-    return "".join([f"{{:{w+PADDING}}}" for w in widths])
+    return "".join([f"{{:{w + PADDING}}}" for w in widths])
 
 
 def format_columns(
@@ -52,8 +65,10 @@ class PrintFormatter:
         for result in format_columns(cols, rows):
             yield result
 
-    def print(self, data: list[dict[str, Any]], file: TextIO = sys.stdout) -> None:
+    def print(self, data: list[dict[str, Any]], file: TextIO | None = None) -> None:
         """Output the data objects."""
+        if file is None:
+            file = sys.stdout
         for result in self.format(data):
             print(result, file=file)
 
@@ -66,7 +81,7 @@ class StructFormatter(ABC):
         """Format the data objects."""
 
     @abstractmethod
-    def print(self, data: Any, file: TextIO = sys.stdout) -> None:
+    def print(self, data: Any, file: TextIO | None = None) -> None:
         """Print the data objects."""
 
 
@@ -80,8 +95,10 @@ class YamlFormatter(StructFormatter):
         ):
             yield line
 
-    def print(self, data: Any, file: TextIO = sys.stdout) -> None:
+    def print(self, data: Any, file: TextIO | None = None) -> None:
         """Format the data objects."""
+        if file is None:
+            file = sys.stdout
         print(
             yaml.dump_all(data, sort_keys=False, explicit_start=True), end="", file=file
         )
@@ -96,8 +113,10 @@ class YamlListFormatter(StructFormatter):
         for line in content.split("\n"):
             yield line
 
-    def print(self, data: Any, file: TextIO = sys.stdout) -> None:
+    def print(self, data: Any, file: TextIO | None = None) -> None:
         """Format the data objects."""
+        if file is None:
+            file = sys.stdout
         print(yaml.dump(data, sort_keys=False, explicit_start=True), end="", file=file)
 
 
@@ -109,6 +128,8 @@ class JsonFormatter(StructFormatter):
         for line in json.dumps(data, indent=4, sort_keys=False).split("\n"):
             yield line
 
-    def print(self, data: Any, file: TextIO = sys.stdout) -> None:
+    def print(self, data: Any, file: TextIO | None = None) -> None:
         """Format the data objects."""
+        if file is None:
+            file = sys.stdout
         json.dump(data, sort_keys=False, indent=4, fp=file)
