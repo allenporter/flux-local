@@ -58,6 +58,7 @@ class GetKustomizationNewAction:
         self,
         path: pathlib.Path | None,
         output: str | None,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs: Any,
     ) -> None:
         """Async Action implementation."""

@@ -5,6 +5,7 @@ import pathlib
 from typing import Any, Callable
 import yaml
 
+from flux_local import git_repo
 from flux_local.manifest import (
     BaseManifest,
     NamedResource,
@@ -95,6 +96,7 @@ class BuildRunner:
         self,
         path: pathlib.Path,
         output_file: str,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs: Any,
     ) -> None:
         """Async Action implementation."""

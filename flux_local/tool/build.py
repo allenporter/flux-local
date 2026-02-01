@@ -5,13 +5,13 @@ from argparse import (
     _SubParsersAction as SubParsersAction,
     BooleanOptionalAction,
 )
-import tempfile
 import pathlib
 import logging
 from typing import cast
 
 from flux_local import git_repo
 from flux_local.visitor import ContentOutput, HelmVisitor
+from flux_local.helm import helm_cache
 
 from . import selector
 from .format import open_file
@@ -72,6 +72,7 @@ class BuildAllAction:
         skip_secrets: bool,
         skip_kinds: list[str],
         output_file: str,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -97,7 +98,7 @@ class BuildAllAction:
         query.oci_repo.visitor = helm_visitor.repo_visitor()
         query.helm_release.visitor = helm_visitor.release_visitor()
         await git_repo.build_manifest(
-            selector=query, options=selector.options(**kwargs)
+            selector=query, options=selector.options(**kwargs), builder=builder
         )
 
         # We use a separate output object so that the contents of the HelmRelease
@@ -108,7 +109,7 @@ class BuildAllAction:
         # Kustomziation information at the moment.
         helm_content = ContentOutput()
         if enable_helm:
-            with tempfile.TemporaryDirectory() as helm_cache_dir:
+            with helm_cache() as helm_cache_dir:
                 await helm_visitor.inflate(
                     pathlib.Path(helm_cache_dir),
                     helm_content.visitor(),
@@ -160,6 +161,7 @@ class BuildKustomizationAction:
     async def run(  # type: ignore[no-untyped-def]
         self,
         output_file: str,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -169,7 +171,7 @@ class BuildKustomizationAction:
         content = ContentOutput()
         query.kustomization.visitor = content.visitor()
         await git_repo.build_manifest(
-            selector=query, options=selector.options(**kwargs)
+            selector=query, options=selector.options(**kwargs), builder=builder
         )
 
         with open_file(output_file, "w") as file:
@@ -215,6 +217,7 @@ class BuildHelmReleaseAction:
     async def run(  # type: ignore[no-untyped-def]
         self,
         output_file: str,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -228,11 +231,11 @@ class BuildHelmReleaseAction:
         query.doc_visitor = helm_visitor.chart_visitor()
         helm_options = selector.build_helm_options(**kwargs)
         await git_repo.build_manifest(
-            selector=query, options=selector.options(**kwargs)
+            selector=query, options=selector.options(**kwargs), builder=builder
         )
 
         helm_content = ContentOutput()
-        with tempfile.TemporaryDirectory() as helm_cache_dir:
+        with helm_cache() as helm_cache_dir:
             await helm_visitor.inflate(
                 pathlib.Path(helm_cache_dir),
                 helm_content.visitor(),
@@ -277,6 +280,7 @@ class BuildAction:
 
     async def run(  # type: ignore[no-untyped-def]
         self,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""

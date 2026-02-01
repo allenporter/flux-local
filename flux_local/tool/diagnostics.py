@@ -7,6 +7,7 @@ import os
 import pathlib
 import yaml
 
+from flux_local import git_repo
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +21,8 @@ class DiagnosticsAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the subparser commands."""
         args = cast(
@@ -43,6 +45,7 @@ class DiagnosticsAction:
 
     async def run(  # type: ignore[no-untyped-def]
         self,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""

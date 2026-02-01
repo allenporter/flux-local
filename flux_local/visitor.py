@@ -14,6 +14,7 @@ from typing import Any
 import yaml
 
 from flux_local import git_repo, image
+from flux_local.context import trace_context
 from flux_local.helm import Helm, Options
 from flux_local.kustomize import Kustomize
 from flux_local.manifest import (
@@ -229,7 +230,9 @@ class HelmVisitor:
         """Initialize KustomizationContentOutput."""
         self.repos: list[HelmRepository | OCIRepository] = []
         self.releases: list[HelmRelease] = []
-        self.helm_charts: dict[str, HelmChartSource] = {}  # resource_full_name -> HelmChartSource
+        self.helm_charts: dict[
+            str, HelmChartSource
+        ] = {}  # resource_full_name -> HelmChartSource
 
     @property
     def active_repos(self) -> list[HelmRepository | OCIRepository]:
@@ -291,35 +294,38 @@ class HelmVisitor:
         options: Options,
     ) -> None:
         """Expand and notify about HelmReleases discovered."""
-        _LOGGER.debug("Inflating Helm charts in cluster")
-        if not self.releases:
-            return
+        with trace_context("HelmVisitor.inflate"):
+            _LOGGER.debug("Inflating Helm charts in cluster")
+            if not self.releases:
+                return
 
-        # Resolve chartRef references before inflating
-        for release in self.releases:
-            release.resolve_chart_ref(self.helm_charts)
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
-            if active_repos := self.active_repos:
-                helm.add_repos(active_repos)
-                await helm.update()
-            tasks = []
+            # Resolve chartRef references before inflating
             for release in self.releases:
-                if options.skip_invalid_paths and await helm.is_invalid_local_path(release):
-                    _LOGGER.info(
-                        "Skipping HelmRelease %s with invalid path %s",
-                        release.name,
-                        release.chart.repo_full_name,
+                release.resolve_chart_ref(self.helm_charts)
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                helm = Helm(pathlib.Path(tmp_dir), helm_cache_dir)
+                if active_repos := self.active_repos:
+                    helm.add_repos(active_repos)
+                    await helm.update()
+                tasks = []
+                for release in self.releases:
+                    if options.skip_invalid_paths and await helm.is_invalid_local_path(
+                        release
+                    ):
+                        _LOGGER.info(
+                            "Skipping HelmRelease %s with invalid path %s",
+                            release.name,
+                            release.chart.repo_full_name,
+                        )
+                        continue
+                    tasks.append(
+                        inflate_release(
+                            helm,
+                            release,
+                            visitor,
+                            options,
+                        )
                     )
-                    continue
-                tasks.append(
-                    inflate_release(
-                        helm,
-                        release,
-                        visitor,
-                        options,
-                    )
-                )
-            _LOGGER.debug("Waiting for inflate tasks to complete")
-            await asyncio.gather(*tasks)
+                _LOGGER.debug("Waiting for inflate tasks to complete")
+                await asyncio.gather(*tasks)

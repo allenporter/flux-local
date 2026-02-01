@@ -9,9 +9,9 @@ from argparse import (
 from typing import cast, Any
 import sys
 import pathlib
-import tempfile
 
 from flux_local import git_repo, image, helm
+from flux_local.helm import helm_cache
 from flux_local.visitor import HelmVisitor, ImageOutput
 
 from .format import (
@@ -64,6 +64,7 @@ class GetKustomizationAction:
     async def run(  # type: ignore[no-untyped-def]
         self,
         output: str | None,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -72,7 +73,7 @@ class GetKustomizationAction:
             query.helm_release.enabled = False
             query.helm_repo.enabled = False
         manifest = await git_repo.build_manifest(
-            selector=query, options=selector.options(**kwargs)
+            selector=query, options=selector.options(**kwargs), builder=builder
         )
 
         results: list[dict[str, str]] = []
@@ -124,12 +125,13 @@ class GetHelmReleaseAction:
 
     async def run(  # type: ignore[no-untyped-def]
         self,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
         query = selector.build_hr_selector(**kwargs)
         manifest = await git_repo.build_manifest(
-            selector=query, options=selector.options(**kwargs)
+            selector=query, options=selector.options(**kwargs), builder=builder
         )
 
         cols = ["name", "revision", "chart", "source"]
@@ -206,6 +208,7 @@ class GetClusterAction:
         output_file: str,
         enable_images: bool,
         only_images: bool,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""
@@ -239,13 +242,13 @@ class GetClusterAction:
             query.helm_release.visitor = helm_visitor.release_visitor()
 
         manifest = await git_repo.build_manifest(
-            selector=query, options=selector.options(**kwargs)
+            selector=query, options=selector.options(**kwargs), builder=builder
         )
         if output == "yaml" or output == "json":
             if image_visitor:
                 image_visitor.update_manifest(manifest)
             if helm_content:
-                with tempfile.TemporaryDirectory() as helm_cache_dir:
+                with helm_cache() as helm_cache_dir:
                     await helm_visitor.inflate(
                         pathlib.Path(helm_cache_dir),
                         helm_content.visitor(),
@@ -333,6 +336,7 @@ class GetAction:
 
     async def run(  # type: ignore[no-untyped-def]
         self,
+        builder: git_repo.CachableBuilder | None = None,
         **kwargs,  # pylint: disable=unused-argument
     ) -> None:
         """Async Action implementation."""

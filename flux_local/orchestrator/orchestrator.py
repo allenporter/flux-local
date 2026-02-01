@@ -13,6 +13,7 @@ from typing import Any
 import yaml
 
 from flux_local.exceptions import FluxException
+from flux_local.context import HELM_CACHE_DIR
 from flux_local.store import Store, Status
 from flux_local.source_controller import (
     SourceController,
@@ -58,9 +59,11 @@ class OrchestratorConfig:
 
     Attributes:
         enable_helm: Whether to enable Helm support.
+        helm_cache_dir: Optional path to a persistent helm cache directory.
     """
 
     enable_helm: bool = True
+    helm_cache_dir: Path | None = None
     helm_controller_config: HelmControllerConfig = field(
         default_factory=HelmControllerConfig
     )
@@ -122,7 +125,9 @@ class Orchestrator:
 
         if self.config.enable_helm:
             helm_tmp_dir = Path(tempfile.mkdtemp(prefix="flux-helm-tmp-"))
-            helm_cache_dir = Path(tempfile.mkdtemp(prefix="flux-helm-cache-"))
+            helm_cache_dir = self.config.helm_cache_dir or HELM_CACHE_DIR.get()
+            if helm_cache_dir is None:
+                helm_cache_dir = Path(tempfile.mkdtemp(prefix="flux-helm-cache-"))
             self.controllers["helm"] = HelmReleaseController(
                 self.store,
                 Helm(tmp_dir=helm_tmp_dir, cache_dir=helm_cache_dir),

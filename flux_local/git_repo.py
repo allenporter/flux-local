@@ -83,7 +83,9 @@ OCI_REPO_KIND = "OCIRepository"
 EXTERNAL_ARTIFACT_KIND = "ExternalArtifact"
 DEFAULT_NAMESPACE = "flux-system"
 DEFAULT_NAME = "flux-system"
-GREP_SOURCE_REF_KIND = f"spec.sourceRef.kind={GIT_REPO_KIND}|{OCI_REPO_KIND}|{EXTERNAL_ARTIFACT_KIND}"
+GREP_SOURCE_REF_KIND = (
+    f"spec.sourceRef.kind={GIT_REPO_KIND}|{OCI_REPO_KIND}|{EXTERNAL_ARTIFACT_KIND}"
+)
 ERROR_DETAIL_BAD_PATH = "Try specifying another path within the git repo?"
 ERROR_DETAIL_BAD_KS = "Is a Kustomization pointing to a path that does not exist?"
 
@@ -746,6 +748,7 @@ async def build_manifest(
     path: Path | None = None,
     selector: ResourceSelector = ResourceSelector(),
     options: Options = Options(),
+    builder: CachableBuilder | None = None,
 ) -> Manifest:
     """Build a Manifest object from the local cluster.
 
@@ -762,7 +765,8 @@ async def build_manifest(
     if not selector.cluster.enabled:
         return Manifest(clusters=[])
 
-    builder = CachableBuilder()
+    if builder is None:
+        builder = CachableBuilder()
 
     with trace_context(f"Cluster '{str(selector.path.path)}'"):
         results = await kustomization_traversal(selector.path, builder, options)
