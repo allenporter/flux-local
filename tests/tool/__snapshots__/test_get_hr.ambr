@@ -8,9 +8,9 @@
 # ---
 # name: test_get_hr[cluster2]
   '''
-  NAMESPACE     NAME                    REVISION    CHART                              SOURCE                  
-  networking    ingress-nginx           4.5.2       networking-ingress-nginx           ingress-nginx           
-  monitoring    kubernetes-dashboard    6.0.0       monitoring-kubernetes-dashboard    kubernetes-dashboard    
+  NAMESPACE     NAME             REVISION    CHART                       SOURCE           
+  monitoring    headlamp         0.39.0      monitoring-headlamp         headlamp         
+  networking    ingress-nginx    4.5.2       networking-ingress-nginx    ingress-nginx    
   
   '''
 # ---
@@ -29,8 +29,8 @@
 # ---
 # name: test_get_hr[cluster4]
   '''
-  NAMESPACE     NAME                    REVISION    CHART                              SOURCE                  
-  monitoring    kubernetes-dashboard    6.0.0       monitoring-kubernetes-dashboard    kubernetes-dashboard    
+  NAMESPACE     NAME        REVISION    CHART                  SOURCE      
+  monitoring    headlamp    0.39.0      monitoring-headlamp    headlamp    
   
   '''
 # ---

@@ -685,6 +685,12 @@
           "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
+      "Build 'flux-system/cluster-apps-headlamp'": dict({
+        'cmds': list([
+          "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
+          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
+        ]),
+      }),
       "Build 'flux-system/cluster-apps-ingress-nginx'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
@@ -692,12 +698,6 @@
         ]),
       }),
       "Build 'flux-system/cluster-apps-ingress-nginx-certificates'": dict({
-        'cmds': list([
-          "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
-          "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
-        ]),
-      }),
-      "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
@@ -719,6 +719,14 @@
           "kustomize cfg grep 'kind=^(ConfigMap|Secret)$'",
         ]),
       }),
+      "Kustomization 'flux-system/cluster-apps-headlamp'": dict({
+        'cmds': list([
+          'flux build tests/testdata/cluster2/apps/monitoring/headlamp/app (abs)',
+          "kustomize cfg grep 'kind=^(Kustomization|ConfigMap|Secret)$'",
+          "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository|ExternalArtifact'",
+          "kustomize cfg grep 'kind=^(ConfigMap|Secret)$'",
+        ]),
+      }),
       "Kustomization 'flux-system/cluster-apps-ingress-nginx'": dict({
         'cmds': list([
           'flux build tests/testdata/cluster2/apps/networking/ingress-nginx/app (abs)',
@@ -730,14 +738,6 @@
       "Kustomization 'flux-system/cluster-apps-ingress-nginx-certificates'": dict({
         'cmds': list([
           'flux build tests/testdata/cluster2/apps/networking/ingress-nginx/certificates (abs)',
-          "kustomize cfg grep 'kind=^(Kustomization|ConfigMap|Secret)$'",
-          "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository|ExternalArtifact'",
-          "kustomize cfg grep 'kind=^(ConfigMap|Secret)$'",
-        ]),
-      }),
-      "Kustomization 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
-        'cmds': list([
-          'flux build tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app (abs)',
           "kustomize cfg grep 'kind=^(Kustomization|ConfigMap|Secret)$'",
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository|ExternalArtifact'",
           "kustomize cfg grep 'kind=^(ConfigMap|Secret)$'",
@@ -809,7 +809,7 @@
           "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
         ]),
       }),
-      "Build 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
+      "Build 'flux-system/cluster-apps-headlamp'": dict({
         'cmds': list([
           "kustomize cfg grep 'kind=^(CustomResourceDefinition|Secret)$' --invert-match",
           "kustomize cfg grep 'kind=^(ConfigMap|HelmRepository|OCIRepository|HelmRelease|Secret|HelmChart)$'",
@@ -831,9 +831,9 @@
           "kustomize cfg grep 'kind=^(ConfigMap|Secret)$'",
         ]),
       }),
-      "Kustomization 'flux-system/cluster-apps-kubernetes-dashboard'": dict({
+      "Kustomization 'flux-system/cluster-apps-headlamp'": dict({
         'cmds': list([
-          'flux build tests/testdata/cluster4/apps/monitoring/kubernetes-dashboard (abs)',
+          'flux build tests/testdata/cluster4/apps/monitoring/headlamp (abs)',
           "kustomize cfg grep 'kind=^(Kustomization|ConfigMap|Secret)$'",
           "kustomize cfg grep 'spec.sourceRef.kind=GitRepository|OCIRepository|ExternalArtifact'",
           "kustomize cfg grep 'kind=^(ConfigMap|Secret)$'",
