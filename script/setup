@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# script/setup: Setup the project and help with venv activation
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+# Run bootstrap to ensure dependencies and hooks are installed
+./script/bootstrap
+
+echo "==> Project is set up!"
+
+# Check if the script is being sourced or executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  # Executed: provide instructions
+  echo "==> To activate the virtual environment in your current shell, run:"
+  if [ -d ".venv" ]; then
+    echo "    source .venv/bin/activate"
+  else
+    echo "    # Dependencies were installed, but no .venv directory was found at root."
+  fi
+else
+  # Sourced: activate the environment
+  if [ -d ".venv" ]; then
+    source .venv/bin/activate
+    echo "==> Virtual environment activated."
+  else
+    echo "==> Warning: .venv directory not found, cannot activate."
+  fi
+fi

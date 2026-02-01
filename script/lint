@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# script/lint: Run linters
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "==> Running linters..."
+
+if command -v uv >/dev/null 2>&1; then
+  uv run pre-commit run --all-files
+else
+  pre-commit run --all-files
+fi

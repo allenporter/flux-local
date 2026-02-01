@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# script/test: Run tests
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "==> Running tests..."
+
+if command -v uv >/dev/null 2>&1; then
+  uv run pytest "$@"
+else
+  pytest "$@"
+fi
