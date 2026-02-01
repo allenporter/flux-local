@@ -6,4 +6,4 @@ metadata:
   namespace: flux-system
 spec:
   interval: 2h
-  url: https://kubernetes.github.io/dashboard/
+  url: https://kubernetes-sigs.github.io/headlamp/
