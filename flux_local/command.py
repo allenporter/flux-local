@@ -79,8 +79,8 @@ class Command(Task):
             **os.environ,
             **(self.env if self.env else {}),
         }
-        proc = await asyncio.create_subprocess_shell(
-            self.string,
+        proc = await asyncio.create_subprocess_exec(
+            *self.cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
