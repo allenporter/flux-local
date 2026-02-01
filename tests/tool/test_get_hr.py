@@ -44,7 +44,7 @@ from . import run_command
                 "--path",
                 "tests/testdata/cluster",
                 "-l",
-                "app.kubernetes.io/name=kubernetes-dashboard",
+                "app.kubernetes.io/name=headlamp",
             ]
         ),
     ],

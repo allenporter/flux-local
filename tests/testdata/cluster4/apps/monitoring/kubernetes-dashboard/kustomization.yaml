@@ -6,5 +6,5 @@ resources:
   - ./helmrelease.yaml
 labels:
   - pairs:
-      app.kubernetes.io/name: kubernetes-dashboard
-      app.kubernetes.io/instance: kubernetes-dashboard
+      app.kubernetes.io/name: headlamp
+      app.kubernetes.io/instance: headlamp
