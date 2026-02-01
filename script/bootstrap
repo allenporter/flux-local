@@ -13,6 +13,8 @@ if command -v uv >/dev/null 2>&1; then
   uv pip install -r requirements_dev.txt
 elif command -v python3 >/dev/null 2>&1; then
   echo "==> Using pip for installation..."
+  python3 -m venv .venv
+  source .venv/bin/activate
   python3 -m pip install --upgrade pip
   python3 -m pip install -e ".[all]"
   python3 -m pip install -r requirements_dev.txt
