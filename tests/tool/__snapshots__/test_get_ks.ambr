@@ -12,9 +12,9 @@
   NAME                                       PATH                                                                  HELMREPOS    OCIREPOS    RELEASES    
   cluster                                    tests/testdata/cluster2/flux                                          3            1           0           
   cluster-apps                               tests/testdata/cluster2/apps                                          0            0           0           
+  cluster-apps-headlamp                      tests/testdata/cluster2/apps/monitoring/headlamp/app                  0            0           1           
   cluster-apps-ingress-nginx                 tests/testdata/cluster2/apps/networking/ingress-nginx/app             0            0           1           
   cluster-apps-ingress-nginx-certificates    tests/testdata/cluster2/apps/networking/ingress-nginx/certificates    0            0           0           
-  cluster-apps-kubernetes-dashboard          tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app      0            0           1           
   
   '''
 # ---
@@ -23,9 +23,9 @@
   NAME                                       PATH                                                                  
   cluster                                    tests/testdata/cluster2/flux                                          
   cluster-apps                               tests/testdata/cluster2/apps                                          
+  cluster-apps-headlamp                      tests/testdata/cluster2/apps/monitoring/headlamp/app                  
   cluster-apps-ingress-nginx                 tests/testdata/cluster2/apps/networking/ingress-nginx/app             
   cluster-apps-ingress-nginx-certificates    tests/testdata/cluster2/apps/networking/ingress-nginx/certificates    
-  cluster-apps-kubernetes-dashboard          tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app      
   
   '''
 # ---
@@ -39,10 +39,10 @@
 # ---
 # name: test_get_ks[cluster4]
   '''
-  NAME                                 PATH                                                            
-  cluster                              tests/testdata/cluster4/flux                                    
-  cluster-apps                         tests/testdata/cluster4/apps                                    
-  cluster-apps-kubernetes-dashboard    tests/testdata/cluster4/apps/monitoring/kubernetes-dashboard    
+  NAME                     PATH                                                
+  cluster                  tests/testdata/cluster4/flux                        
+  cluster-apps             tests/testdata/cluster4/apps                        
+  cluster-apps-headlamp    tests/testdata/cluster4/apps/monitoring/headlamp    
   
   '''
 # ---

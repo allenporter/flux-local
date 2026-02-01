@@ -20,7 +20,7 @@
     labels:
       kustomize.toolkit.fluxcd.io/name: cluster-apps
       kustomize.toolkit.fluxcd.io/namespace: flux-system
-    name: cluster-apps-kubernetes-dashboard
+    name: cluster-apps-headlamp
     namespace: flux-system
     annotations:
       config.kubernetes.io/index: '1'
@@ -29,10 +29,10 @@
     healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2beta1
       kind: HelmRelease
-      name: kubernetes-dashboard
+      name: headlamp
       namespace: monitoring
     interval: 30m
-    path: ./tests/testdata/cluster2/apps/monitoring/kubernetes-dashboard/app
+    path: ./tests/testdata/cluster2/apps/monitoring/headlamp/app
     prune: true
     retryInterval: 1m
     sourceRef:
@@ -108,9 +108,9 @@
   kind: HelmRelease
   metadata:
     labels:
-      kustomize.toolkit.fluxcd.io/name: cluster-apps-kubernetes-dashboard
+      kustomize.toolkit.fluxcd.io/name: cluster-apps-headlamp
       kustomize.toolkit.fluxcd.io/namespace: flux-system
-    name: kubernetes-dashboard
+    name: headlamp
     namespace: monitoring
     annotations:
       config.kubernetes.io/index: '0'
@@ -118,12 +118,12 @@
   spec:
     chart:
       spec:
-        chart: kubernetes-dashboard
+        chart: headlamp
         sourceRef:
           kind: HelmRepository
-          name: kubernetes-dashboard
+          name: headlamp
           namespace: flux-system
-        version: 6.0.0
+        version: 0.39.0
     install:
       createNamespace: true
       remediation:
@@ -137,8 +137,6 @@
       remediation:
         retries: 3
     values:
-      env:
-        TZ: America/New_York
       extraArgs:
       - --enable-skip-login
       - --disable-settings-authorizer
@@ -147,15 +145,16 @@
       ingress:
         annotations:
           hajimari.io/icon: mdi:kubernetes
-          nginx.ingress.kubernetes.io/whitelist-source-range: |
+          nginx.ingress.headlamp.io/whitelist-source-range: |
             10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
         className: nginx
         enabled: true
         hosts:
-        - kubernetes.devbu.io
+        - host: headlamp.devbu.io
+          type: ImplementationSpecific
         tls:
         - hosts:
-          - kubernetes.devbu.io
+          - headlamp.devbu.io
       metricsScraper:
         enabled: true
       serviceMonitor:
@@ -396,14 +395,14 @@
     labels:
       kustomize.toolkit.fluxcd.io/name: cluster
       kustomize.toolkit.fluxcd.io/namespace: flux-system
-    name: kubernetes-dashboard
+    name: headlamp
     namespace: flux-system
     annotations:
       config.kubernetes.io/index: '6'
       internal.config.kubernetes.io/index: '6'
   spec:
     interval: 2h
-    url: https://kubernetes.github.io/dashboard/
+    url: https://kubernetes-sigs.github.io/headlamp/
   ---
   apiVersion: source.toolkit.fluxcd.io/v1beta2
   kind: HelmRepository

@@ -4,7 +4,7 @@ kind: Kustomization
 metadata:
   namespace: monitoring
   labels:
-    app.kubernetes.io/name: kubernetes-dashboard
-    app.kubernetes.io/instance: kubernetes-dashboard
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/instance: headlamp
 resources:
   - ./helmrelease.yaml
