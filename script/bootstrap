@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# script/bootstrap: Initial environment setup
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "==> Bootstrapping..."
+
+if command -v uv >/dev/null 2>&1; then
+  echo "==> Using uv for synchronization..."
+  uv sync --all-extras
+  uv pip install -r requirements_dev.txt
+elif command -v python3 >/dev/null 2>&1; then
+  echo "==> Using pip for installation..."
+  python3 -m pip install --upgrade pip
+  python3 -m pip install -e ".[all]"
+  python3 -m pip install -r requirements_dev.txt
+else
+  echo "Aborting: python3 not found."
+  exit 1
+fi
+
+echo "==> Installing pre-commit hooks..."
+if command -v uv >/dev/null 2>&1; then
+  uv run pre-commit install
+else
+  pre-commit install
+fi
+
+echo "==> System is ready to go!"
