@@ -40,6 +40,15 @@ class DiagnosticsAction:
             default=None,
             nargs="?",
         )
+        args.add_argument(
+            "--ignore-paths",
+            action="append",
+            default=[],
+            help=(
+                "Comma-separated .gitignore-style patterns to ignore while scanning. "
+                "May be supplied multiple times."
+            ),
+        )
         args.set_defaults(cls=cls)
         return args
 
@@ -53,7 +62,7 @@ class DiagnosticsAction:
 
         # Parse directories to ignore from `.krmignore`
         krmignore = pathlib.Path(path) / ".krmignore"
-        ignoredirs = list(IGNORE_DIRS)
+        ignoredirs = list(IGNORE_DIRS) + kwargs.get("ignore_paths", [])
         if krmignore.exists():
             with krmignore.open() as fd:
                 ignoredirs.extend(
