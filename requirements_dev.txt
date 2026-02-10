@@ -11,7 +11,7 @@ ruff==0.15.0
 
 aiofiles==25.1.0
 GitPython==3.1.46
-mashumaro==3.19
+mashumaro==3.20
 pytest-asyncio==1.3.0
 python-slugify>=8.0.1
 PyYAML==6.0.3
