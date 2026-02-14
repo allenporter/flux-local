@@ -262,7 +262,8 @@
       internal.config.kubernetes.io/index: '0'
   spec:
     interval: 30m
-    url: https://docs.renovatebot.com/helm-charts
+    type: oci
+    url: oci://ghcr.io/renovatebot/charts/renovate
   ---
   apiVersion: helm.toolkit.fluxcd.io/v2beta1
   kind: HelmRelease

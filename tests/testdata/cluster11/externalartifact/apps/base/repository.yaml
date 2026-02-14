@@ -6,4 +6,5 @@ metadata:
   namespace: flux-system
 spec:
   interval: 30m
-  url: https://docs.renovatebot.com/helm-charts
+  type: oci
+  url: oci://ghcr.io/renovatebot/charts/renovate
