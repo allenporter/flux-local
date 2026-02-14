@@ -21,4 +21,4 @@ typing-extensions==4.15.0
 types-python-slugify==8.0.2.20240310
 yamllint==1.38.0
 syrupy==5.1.0
-oras==0.2.38
+oras==0.2.39
