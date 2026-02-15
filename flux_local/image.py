@@ -25,9 +25,9 @@ KINDS = [
     "Alertmanager",  # monitoring.coreos.com/v1
     "Prometheus",  # monitoring.coreos.com/v1
     "AutoscalingRunnerSet",  # actions.github.com/v1alpha1
-    "EnvoyProxy", # gateway.envoyproxy.io/v1alpha1
-    "Plan", # upgrade.cattle.io/v1
-    "Grafana", # grafana.integreatly.org/v1beta1
+    "EnvoyProxy",  # gateway.envoyproxy.io/v1alpha1
+    "Plan",  # upgrade.cattle.io/v1
+    "Grafana",  # grafana.integreatly.org/v1beta1
 ]
 
 # Default image key for most object types.
@@ -45,7 +45,9 @@ def _extract_images(kind: str, doc: dict[str, Any]) -> set[str]:
     for key, value in doc.items():
         if key == image_key:
             if isinstance(value, dict) and "reference" in value:
-                value = value.get("reference")  # https://kubernetes.io/blog/2024/08/16/kubernetes-1-31-image-volume-source/
+                value = value.get(
+                    "reference"
+                )  # https://kubernetes.io/blog/2024/08/16/kubernetes-1-31-image-volume-source/
             if not isinstance(value, str):
                 raise ValueError(
                     f"Expected string for image key '{image_key}', got type {type(value).__name__}: {value}"

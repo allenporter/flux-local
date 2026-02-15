@@ -12,10 +12,12 @@ from . import run_command
     [
         (["--path", "tests/testdata/cluster"]),
         (["--path", "tests/testdata/cluster", "-o", "wide"]),
+        (["--path", "tests/testdata/cluster3"]),
     ],
     ids=[
         "cluster",
-        "wide",
+        "cluster-wide",
+        "cluster3",
     ],
 )
 async def test_get_ks_new(args: list[str], snapshot: SnapshotAssertion) -> None:

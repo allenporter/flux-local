@@ -81,7 +81,6 @@ async def test_helm_release_spec_diff() -> None:
 
     content, helm_visitor = await visit_helm_content(TESTDATA_PATH)
     with mirror_worktree(TESTDATA_PATH) as new_cluster_path:
-
         # Generate a diff by changing a value in the HelmRelease
         podinfo_path = new_cluster_path / "apps/podinfo.yaml"
         podinfo_doc = list(
@@ -111,7 +110,6 @@ async def test_helm_repository_causes_diff() -> None:
 
     content, helm_visitor = await visit_helm_content(TESTDATA_PATH)
     with mirror_worktree(TESTDATA_PATH) as new_cluster_path:
-
         # Generate a diff by changing a value in the HelmRelease
         podinfo_path = new_cluster_path / "apps/podinfo.yaml"
         podinfo_doc = list(
@@ -144,7 +142,6 @@ async def test_oci_repository_diff() -> None:
 
     content, helm_visitor = await visit_helm_content(CLUSTER7_PATH)
     with mirror_worktree(CLUSTER7_PATH) as new_cluster_path:
-
         # Generate a diff by changing a value in the HelmRelease
         charts_path = new_cluster_path / "flux/charts/app-template.yaml"
         charts_doc = list(
@@ -249,7 +246,6 @@ async def test_perform_yaml_diff(snapshot: SnapshotAssertion) -> None:
 
     content, helm_visitor = await visit_helm_content(TESTDATA_PATH)
     with mirror_worktree(TESTDATA_PATH) as new_cluster_path:
-
         # Generate a diff by changing a value in the HelmRelease
         podinfo_path = new_cluster_path / "apps/podinfo.yaml"
         podinfo_doc = list(
@@ -272,7 +268,6 @@ async def test_perform_json_diff(snapshot: SnapshotAssertion) -> None:
 
     content, helm_visitor = await visit_helm_content(TESTDATA_PATH)
     with mirror_worktree(TESTDATA_PATH) as new_cluster_path:
-
         # Generate a diff by changing a value in the HelmRelease
         podinfo_path = new_cluster_path / "apps/podinfo.yaml"
         podinfo_doc = list(

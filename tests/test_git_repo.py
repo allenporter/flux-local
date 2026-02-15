@@ -355,7 +355,5 @@ async def test_helmrelease_label_selector() -> None:
         "podinfo/podinfo",
     ]
 
-    query.helm_release.label_selector = {
-        "app.kubernetes.io/name": "headlamp"
-    }
+    query.helm_release.label_selector = {"app.kubernetes.io/name": "headlamp"}
     assert await get_hr() == []

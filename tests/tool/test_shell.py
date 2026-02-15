@@ -84,9 +84,9 @@ async def test_shell_commands(
     for text in expected:
         if text in output_str or text in error_str:
             continue
-        assert (
-            False
-        ), f"Expected '{text}' in output or error.\nOutput: {output_str}\nError: {error_str}"
+        assert False, (
+            f"Expected '{text}' in output or error.\nOutput: {output_str}\nError: {error_str}"
+        )
 
 
 def test_complete_get(shell_and_output: tuple[Any, StringIO]) -> None:
@@ -188,15 +188,15 @@ async def test_get_resources(
         output_data = json.loads(output_str)
 
         # Verify the output contains the expected kustomization
-        assert (
-            len(output_data) == 1
-        ), f"Expected 1 kustomization, got {len(output_data)}"
-        assert (
-            output_data[0]["name"] == "test-ks"
-        ), f"Expected name 'test-ks', got {output_data[0].get('name')}"
-        assert (
-            output_data[0]["namespace"] == "test-ns"
-        ), f"Expected namespace 'test-ns', got {output_data[0].get('namespace')}"
-        assert (
-            output_data[0]["path"] == "./test"
-        ), f"Expected path './test', got {output_data[0].get('path')}"
+        assert len(output_data) == 1, (
+            f"Expected 1 kustomization, got {len(output_data)}"
+        )
+        assert output_data[0]["name"] == "test-ks", (
+            f"Expected name 'test-ks', got {output_data[0].get('name')}"
+        )
+        assert output_data[0]["namespace"] == "test-ns", (
+            f"Expected namespace 'test-ns', got {output_data[0].get('namespace')}"
+        )
+        assert output_data[0]["path"] == "./test", (
+            f"Expected path './test', got {output_data[0].get('path')}"
+        )

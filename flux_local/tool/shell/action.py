@@ -21,7 +21,8 @@ class ShellAction:
 
     @classmethod
     def register(
-        cls, subparsers: SubParsersAction  # type: ignore[type-arg]
+        cls,
+        subparsers: SubParsersAction,  # type: ignore[type-arg]
     ) -> ArgumentParser:
         """Register the shell subcommand."""
         parser = cast(
@@ -54,7 +55,9 @@ class ShellAction:
 
         try:
             # Bootstrap the system with the specified path
-            task = asyncio.create_task(orchestrator.bootstrap(bootstrap_options))
+            task = asyncio.create_task(
+                orchestrator.bootstrap(bootstrap_options), name="bootstrap"
+            )
             _LOGGER.debug("Orchestrator started, bootstrapping with path: %s", path)
 
             # Create the shell with the bootstrapped store

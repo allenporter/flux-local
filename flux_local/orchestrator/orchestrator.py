@@ -110,6 +110,7 @@ class Orchestrator:
         self.store = store
         self.config = config or OrchestratorConfig()
         self.controllers: dict[str, Any] = {}
+        self._tasks: list[asyncio.Task[None]] = []
 
     def _create_controllers(self) -> None:
         """Create and initialize all controllers."""
@@ -141,8 +142,12 @@ class Orchestrator:
         if self.controllers:
             return
 
-        _LOGGER.info("Starting orchestrator")
         self._create_controllers()
+        self._tasks.append(
+            get_task_service().create_background_task(
+                self._log_active_tasks(), "log-active-tasks"
+            )
+        )
 
     async def stop(self) -> None:
         """Stop the orchestrator and all controllers."""
@@ -152,9 +157,15 @@ class Orchestrator:
         _LOGGER.info("Stopping orchestrator")
 
         # Stop controllers in reverse order
+        close_tasks = []
         for name, controller in reversed(self.controllers.items()):
             _LOGGER.debug("Stopping controller: %s", name)
-            await controller.close()
+            close_tasks.append(controller.close())
+        await asyncio.gather(*close_tasks, return_exceptions=True)
+
+        for task in self._tasks:
+            task.cancel()
+        await asyncio.gather(*self._tasks, return_exceptions=True)
 
         # Wait for all tasks to complete
         await get_task_service().block_till_done()
@@ -332,3 +343,14 @@ class Orchestrator:
             raise FluxException(f"Uncaught error in orchestrator: {err}") from err
         finally:
             await self.stop()
+
+    async def _log_active_tasks(self) -> None:
+        """Log active tasks periodically."""
+        task_service = get_task_service()
+        while True:
+            await asyncio.sleep(5)
+            active_tasks = task_service.get_active_tasks()
+            if active_tasks:
+                _LOGGER.debug("Active tasks (%d):", len(active_tasks))
+                for task in active_tasks:
+                    _LOGGER.debug("  %s", task.get_name())
