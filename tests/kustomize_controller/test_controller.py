@@ -219,9 +219,9 @@ async def test_kustomization_reconciliation(
     status = store.get_status(rid)
 
     assert artifact is not None, "Expected artifact to be set"
-    assert artifact.path == str(
-        app_dir
-    ), f"Expected path {app_dir}, got {artifact.path}"
+    assert artifact.path == str(app_dir), (
+        f"Expected path {app_dir}, got {artifact.path}"
+    )
     assert status is not None, "Expected status to be set"
     assert status.status == Status.READY, f"Expected status READY, got {status.status}"
 

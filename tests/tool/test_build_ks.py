@@ -16,7 +16,13 @@ from . import run_command
         (["apps", "--path=tests/testdata/cluster8/"]),
         (["apps-stack", "--path=tests/testdata/cluster9/clusters/dev"]),
         (["--path=tests/testdata/cluster10", "--skip-invalid-kustomization-paths"]),
-        (["--path=tests/testdata/cluster11", "--sources", "flux-system,apps=tests/testdata/cluster11/externalartifact"]),
+        (
+            [
+                "--path=tests/testdata/cluster11",
+                "--sources",
+                "flux-system,apps=tests/testdata/cluster11/externalartifact",
+            ]
+        ),
     ],
     ids=[
         "build-ks",

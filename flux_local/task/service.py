@@ -67,6 +67,10 @@ class TaskService(ABC):
     def get_num_active_tasks(self) -> int:
         """Get the number of active non-background tasks."""
 
+    @abstractmethod
+    def get_active_tasks(self) -> list[asyncio.Task[Any]]:
+        """Get the active non-background tasks."""
+
 
 class TaskServiceImpl(TaskService):
     """Service for tracking and waiting for asynchronous tasks.
@@ -107,6 +111,7 @@ class TaskServiceImpl(TaskService):
             The created task
         """
         task = asyncio.create_task(coro, name=name)
+        _LOGGER.debug("Created background task: %s", name)
         self._background_tasks.add(task)
         task.add_done_callback(partial(self._task_done, self._background_tasks))
         return task
@@ -170,3 +175,7 @@ class TaskServiceImpl(TaskService):
     def get_num_active_tasks(self) -> int:
         """Get the number of active tasks."""
         return len(self._active_tasks)
+
+    def get_active_tasks(self) -> list[asyncio.Task[Any]]:
+        """Get the active tasks."""
+        return list(self._active_tasks)

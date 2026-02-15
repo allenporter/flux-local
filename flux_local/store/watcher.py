@@ -258,7 +258,8 @@ class DependencyWaiter:
         for dep_id in list(self._dependencies.keys()):
             if self._dependencies[dep_id] is None:
                 self._dependencies[dep_id] = self._task_service.create_task(
-                    self._watch_single_dependency(dep_id)
+                    self._watch_single_dependency(dep_id),
+                    f"dependency-watcher-{dep_id}",
                 )
 
         active_watches = len(self._dependencies)
@@ -292,7 +293,9 @@ class DependencyWaiter:
                         "DependencyWaiter.watch for %s cancelled. Cleaning up.",
                         self._parent_resource_id,
                     )
-                    await self.cancel_pending_watches()  # Ensure all sub-tasks are cancelled
+                    await (
+                        self.cancel_pending_watches()
+                    )  # Ensure all sub-tasks are cancelled
                     # Yield any remaining events that might have been queued before cancellation
                     while not self._event_queue.empty():
                         try:

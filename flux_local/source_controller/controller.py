@@ -90,7 +90,8 @@ class SourceController:
             if resource_id.kind in self.SUPPORTED_KINDS:
                 self._tasks.append(
                     self._task_service.create_task(
-                        self.on_source_added(resource_id, obj)
+                        self.on_source_added(resource_id, obj),
+                        f"source-controller-{resource_id}",
                     )
                 )
 
@@ -131,6 +132,9 @@ class SourceController:
             return
         if isinstance(obj, OCIRepository) and not self._config.enable_oci:
             _LOGGER.info("OCI support is disabled, skipping %s", resource_id)
+            self._store.update_status(
+                resource_id, Status.READY, "OCI support is disabled"
+            )
             return
         if isinstance(obj, GitRepository) and self._store.get_artifact(
             resource_id, GitArtifact

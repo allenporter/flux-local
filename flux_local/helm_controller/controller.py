@@ -91,7 +91,8 @@ class HelmReleaseController:
         if resource_id.kind == "HelmRelease":
             self._tasks.append(
                 self._task_service.create_task(
-                    self.on_helm_release_added(resource_id, obj)
+                    self.on_helm_release_added(resource_id, obj),
+                    f"helm-controller-{resource_id}",
                 )
             )
 
@@ -386,9 +387,7 @@ class HelmReleaseController:
             # Create a new chart from the HelmChartSource instead of mutating the existing one
             helm_release.chart = HelmChart.from_helm_chart_source(helm_chart)
         else:
-            _LOGGER.debug(
-                "HelmChart %s has no version specified", chart_resource
-            )
+            _LOGGER.debug("HelmChart %s has no version specified", chart_resource)
 
     async def _apply(self, manifests: list[dict[str, Any]]) -> None:
         """Apply the manifests to the cluster."""

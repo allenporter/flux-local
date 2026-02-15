@@ -118,7 +118,10 @@ class KustomizationController:
                 )
                 continue
             self._tasks.append(
-                self._task_service.create_task(self.reconcile(resource_id, obj))
+                self._task_service.create_task(
+                    self.reconcile(resource_id, obj),
+                    f"kustomize-controller-{resource_id}",
+                )
             )
         _LOGGER.info("Stopped watching for Kustomization objects")
 

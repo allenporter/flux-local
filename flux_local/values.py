@@ -199,7 +199,6 @@ def _update_helmrelease_values(
     """Expand value references in the HelmRelease."""
 
     if ref.target_path:
-
         raw_parts = re.split(r"(?<!\\)\.", ref.target_path)
         parts = [re.sub(r"\\(.)", r"\1", raw_part) for raw_part in raw_parts]
 

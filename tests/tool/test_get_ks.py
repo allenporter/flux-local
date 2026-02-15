@@ -31,7 +31,14 @@ from . import run_command
         (["--path", "tests/testdata/cluster2", "-o", "wide"]),
         (["--all-namespaces", "--path", "./tests/testdata/cluster/apps/prod"]),
         (["--path", "tests/testdata/cluster9/clusters/dev"]),
-        (["--path", "tests/testdata/cluster11", "--sources", "flux-system,apps=tests/testdata/cluster11/externalartifact"]),
+        (
+            [
+                "--path",
+                "tests/testdata/cluster11",
+                "--sources",
+                "flux-system,apps=tests/testdata/cluster11/externalartifact",
+            ]
+        ),
     ],
     ids=[
         "cluster",
