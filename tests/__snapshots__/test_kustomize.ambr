@@ -14,7 +14,7 @@
   data:
     CLUSTER: dev
     DOMAIN: example.org
-
+  
   '''
 # ---
 # name: test_grep[path1]
@@ -32,7 +32,7 @@
   data:
     CLUSTER: dev
     DOMAIN: example.org
-
+  
   '''
 # ---
 # name: test_objects[path0]

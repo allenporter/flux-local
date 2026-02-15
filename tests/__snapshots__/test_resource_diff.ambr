@@ -37,6 +37,6 @@
         \ HelmRepository: flux-system/podinfo\n\n@@ -8,7 +8,7 @@\n\n   name: podinfo\n\
         \   namespace: flux-system\n spec:\n   interval: 5m\n   type: oci\n-  url: oci://ghcr.io/stefanprodan/charts\n\
         +  url: oci://ghcr.io/stefanprodan/charts2\n "
-
+  
   '''
 # ---
