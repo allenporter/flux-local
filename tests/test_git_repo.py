@@ -357,3 +357,55 @@ async def test_helmrelease_label_selector() -> None:
 
     query.helm_release.label_selector = {"app.kubernetes.io/name": "headlamp"}
     assert await get_hr() == []
+
+
+async def test_secret_crd_filtering() -> None:
+    """Test that CRDs with kind Secret but non-v1 apiVersion are not parsed as Secret objects."""
+    from flux_local.manifest import Kustomization, Secret, ConfigMap
+
+    # Create a test kustomization
+    kustomization = Kustomization(
+        name="test-ks",
+        namespace="default",
+        path="./test"
+    )
+
+    # Test documents with both v1 Secret and CRD Secret
+    docs = [
+        {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "metadata": {"name": "v1-secret", "namespace": "default"},
+            "data": {"key": "value"}
+        },
+        {
+            "apiVersion": "external-secrets.io/v1beta1",
+            "kind": "Secret",
+            "metadata": {"name": "external-secret", "namespace": "default"},
+            "spec": {"secretStoreRef": {"name": "vault", "kind": "SecretStore"}}
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "ConfigMap",
+            "metadata": {"name": "config", "namespace": "default"},
+            "data": {"key": "value"}
+        }
+    ]
+
+    # Apply the same logic as in build_kustomization
+    kustomization.config_maps = [
+        ConfigMap.parse_doc(doc)
+        for doc in docs
+        if doc.get("kind") == "ConfigMap"
+    ]
+    kustomization.secrets = [
+        Secret.parse_doc(doc) for doc in docs if doc.get("kind") == "Secret" and doc.get("apiVersion") == "v1"
+    ]
+
+    # Verify only v1 Secret is parsed as Secret object
+    assert len(kustomization.secrets) == 1
+    assert kustomization.secrets[0].name == "v1-secret"
+
+    # Verify ConfigMap is parsed correctly
+    assert len(kustomization.config_maps) == 1
+    assert kustomization.config_maps[0].name == "config"

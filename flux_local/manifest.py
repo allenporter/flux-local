@@ -1137,7 +1137,7 @@ def parse_raw_obj(obj: dict[str, Any], *, wipe_secrets: bool = True) -> BaseMani
         return OCIRepository.parse_doc(obj)
     if kind == CONFIG_MAP_KIND:
         return ConfigMap.parse_doc(obj)
-    if kind == SECRET_KIND:
+    if kind == SECRET_KIND and api_version == "v1":
         return Secret.parse_doc(obj, wipe_secrets=wipe_secrets)
     return RawObject.parse_doc(obj)
 
