@@ -8,8 +8,8 @@ COPY pyproject.toml .
 
 RUN pip install -e .
 
-COPY --from=ghcr.io/fluxcd/flux-cli:v2.7.5  /usr/local/bin/flux  /usr/local/bin/flux
-COPY --from=docker.io/alpine/helm:4.1.1    /usr/bin/helm        /usr/local/bin/helm
+COPY --from=ghcr.io/fluxcd/flux-cli:v2.8.0  /usr/local/bin/flux  /usr/local/bin/flux
+COPY --from=docker.io/alpine/helm:4.1.1     /usr/bin/helm        /usr/local/bin/helm
 
 # renovate: datasource=github-releases depName=kubernetes-sigs/kustomize
 ARG KUSTOMIZE_VERSION=v5.7.1
