@@ -240,6 +240,18 @@ class Options:
     registry_config: str | None = None
     """Value of the helm --registry-config flag."""
 
+    is_upgrade: bool = False
+    """Set .Release.IsUpgrade instead of .Release.IsInstall."""
+
+    no_hooks: bool = False
+    """Exclude hook-annotated templates from the output."""
+
+    show_only: list[str] | None = None
+    """Render only specific template files."""
+
+    enable_dns: bool = False
+    """Enable DNS lookups during rendering."""
+
     skip_invalid_paths: bool = False
     """Skip HelmReleases with invalid local paths."""
 
@@ -257,12 +269,23 @@ class Options:
         args = self.base_args
         if self.skip_crds:
             args.append("--skip-crds")
+        else:
+            args.append("--include-crds")
         if self.skip_tests:
             args.append("--skip-tests")
         if self.kube_version:
             args.extend(["--kube-version", self.kube_version])
         if self.api_versions:
             args.extend(["--api-versions", self.api_versions])
+        if self.is_upgrade:
+            args.append("--is-upgrade")
+        if self.no_hooks:
+            args.append("--no-hooks")
+        if self.show_only:
+            for template in self.show_only:
+                args.extend(["--show-only", template])
+        if self.enable_dns:
+            args.append("--enable-dns")
         return args
 
     @property
