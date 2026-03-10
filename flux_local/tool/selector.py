@@ -236,6 +236,30 @@ def add_helm_options_flags(args: ArgumentParser) -> None:
         action=BooleanOptionalAction,
         help="When true, skip helm releases with local paths that do not exist",
     )
+    args.add_argument(
+        "--is-upgrade",
+        default=False,
+        action=BooleanOptionalAction,
+        help="Set .Release.IsUpgrade instead of .Release.IsInstall during helm template",
+    )
+    args.add_argument(
+        "--no-hooks",
+        default=False,
+        action="store_true",
+        help="Exclude hook-annotated templates from the output",
+    )
+    args.add_argument(
+        "--show-only",
+        "-s",
+        action="append",
+        help="Only show manifests rendered from the given templates",
+    )
+    args.add_argument(
+        "--enable-dns",
+        default=False,
+        action=BooleanOptionalAction,
+        help="Enable DNS lookups during helm template rendering",
+    )
 
 
 def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def]
@@ -251,6 +275,10 @@ def build_helm_options(**kwargs) -> helm.Options:  # type: ignore[no-untyped-def
         kube_version=kwargs.get("kube_version"),
         api_versions=kwargs.get("api_versions"),
         registry_config=kwargs.get("registry_config"),
+        is_upgrade=kwargs.get("is_upgrade", False),
+        no_hooks=kwargs.get("no_hooks", False),
+        show_only=kwargs.get("show_only"),
+        enable_dns=kwargs.get("enable_dns", False),
         skip_invalid_paths=kwargs.get("skip_invalid_helm_release_paths", False),
     )
 
