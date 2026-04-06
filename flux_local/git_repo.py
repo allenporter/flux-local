@@ -849,6 +849,16 @@ async def build_manifest(
 
         # Visit Helm resources
         for cluster in clusters:
+            # First resolve any chartRef references
+            all_charts: dict[str, HelmChartSource] = {}
+            for kustomization in cluster.kustomizations:
+                for helm_chart in kustomization.helm_chart_sources:
+                    all_charts[helm_chart.resource_full_name] = helm_chart
+
+            for kustomization in cluster.kustomizations:
+                for helm_release in kustomization.helm_releases:
+                    helm_release.resolve_chart_ref(all_charts)
+
             if selector.helm_repo.visitor:
                 for kustomization in cluster.kustomizations:
                     for helm_repo in kustomization.helm_repos:

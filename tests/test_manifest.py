@@ -45,6 +45,61 @@ def test_parse_helm_release() -> None:
     assert release.values
 
 
+def test_resolve_chart_ref_logic() -> None:
+    """Test resolution of chartRef to HelmChart."""
+    from flux_local.manifest import HelmChartSource
+
+    helm_chart_doc = {
+        "apiVersion": "source.toolkit.fluxcd.io/v1",
+        "kind": "HelmChart",
+        "metadata": {
+            "name": "test-chart",
+            "namespace": "test-ns",
+        },
+        "spec": {
+            "chart": "podinfo",
+            "version": "1.2.3",
+            "sourceRef": {
+                "kind": "GitRepository",
+                "name": "test-repo",
+                "namespace": "test-ns",
+            },
+        },
+    }
+    helm_chart_source = HelmChartSource.parse_doc(helm_chart_doc)
+
+    helm_release_doc = {
+        "apiVersion": "helm.toolkit.fluxcd.io/v2beta1",
+        "kind": "HelmRelease",
+        "metadata": {
+            "name": "test-release",
+            "namespace": "test-ns",
+        },
+        "spec": {
+            "chartRef": {
+                "kind": "HelmChart",
+                "name": "test-chart",
+                "namespace": "test-ns",
+            }
+        },
+    }
+    helm_release = HelmRelease.parse_doc(helm_release_doc)
+
+    # Initial state: repo_kind is HelmChart, version is None
+    assert helm_release.chart.repo_kind == "HelmChart"
+    assert helm_release.chart.version is None
+
+    # Resolve
+    helm_charts = {helm_chart_source.resource_full_name: helm_chart_source}
+    helm_release.resolve_chart_ref(helm_charts)
+
+    # Expected state after resolution
+    assert helm_release.chart.version == "1.2.3"
+    assert helm_release.chart.repo_kind == "GitRepository"
+    assert helm_release.chart.repo_name == "test-repo"
+    assert helm_release.chart.name == "podinfo"
+
+
 def test_compact_helm_release() -> None:
     """Test parsing a helm release doc."""
 
