@@ -45,6 +45,34 @@ async def test_cluster_selector_disabled(snapshot: SnapshotAssertion) -> None:
     assert manifest.compact_dict() == snapshot
 
 
+async def test_chart_ref_resolution_in_build_manifest() -> None:
+    """Test resolution of chartRef during manifest build."""
+    # Use cluster7 which has chartRef in its releases
+    # src/flux-local/tests/testdata/cluster7
+
+    selector = ResourceSelector()
+    selector.path.path = Path("tests/testdata/cluster7")
+
+    manifest = await build_manifest(selector=selector)
+
+    assert len(manifest.clusters) > 0
+    cluster = manifest.clusters[0]
+
+    releases = [r for ks in cluster.kustomizations for r in ks.helm_releases]
+    assert len(releases) > 0
+
+    for release in releases:
+        if release.chart.repo_kind == "HelmChart":
+            # If resolution worked, version should be set (it's 1.0.0 in the test data)
+            # and repo_kind should have been updated to the sourceRef kind (GitRepository)
+            assert release.chart.version is not None, (
+                f"Release {release.namespaced_name} chart version not resolved"
+            )
+            assert release.chart.repo_kind != "HelmChart", (
+                f"Release {release.namespaced_name} repo_kind not updated"
+            )
+
+
 async def test_kustomization_selector_disabled(snapshot: SnapshotAssertion) -> None:
     """Tests for building the manifest."""
 
