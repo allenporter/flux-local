@@ -42,6 +42,36 @@ from . import run_command
                 "--skip-invalid-kustomization-paths",
             ]
         ),
+        (
+            [
+                "flag-fixture",
+                "-n",
+                "default",
+                "--path=tests/testdata/cluster12/cluster",
+                "--is-upgrade",
+            ]
+        ),
+        (
+            [
+                "flag-fixture",
+                "-n",
+                "default",
+                "--path=tests/testdata/cluster12/cluster",
+                "--show-only",
+                "templates/configmap.yaml",
+                "--show-only",
+                "templates/service.yaml",
+            ]
+        ),
+        (
+            [
+                "flag-fixture",
+                "-n",
+                "default",
+                "--path=tests/testdata/cluster12/cluster",
+                "--no-skip-crds",
+            ]
+        ),
     ],
     ids=[
         "build-hr",
@@ -52,6 +82,9 @@ from . import run_command
         "build-hr-single-cluster8",
         "build-hr-single-cluster9",
         "build-hr-cluster10-invalid-paths",
+        "build-hr-flag-fixture-upgrade",
+        "build-hr-flag-fixture-show-only-multiple",
+        "build-hr-flag-fixture-include-crds",
     ],
 )
 async def test_build_hr(args: list[str], snapshot: SnapshotAssertion) -> None:
