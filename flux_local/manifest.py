@@ -1172,6 +1172,7 @@ def strip_resource_attributes(
     if (
         (spec := resource.get("spec"))
         and (templ := spec.get("template"))
+        and isinstance(templ, dict)
         and (meta := templ.get("metadata"))
     ):
         _strip_attrs(meta, strip_attributes)
