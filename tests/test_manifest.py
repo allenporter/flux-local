@@ -536,6 +536,27 @@ items: null
     )
 
 
+def test_strip_resource_attributes_string_template() -> None:
+    """Test strip_resource_attributes does not crash when spec.template is a string."""
+    resource = yaml.load(
+        """apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: my-database
+  namespace: default
+  labels:
+    app.kubernetes.io/version: 1.0.0
+spec:
+  name: mydb
+  template: template0
+""",
+        Loader=yaml.Loader,
+    )
+
+    strip_resource_attributes(resource, STRIP_ATTRIBUTES)
+    assert resource["spec"]["template"] == "template0"
+
+
 def test_strip_list_item_without_metdata() -> None:
     """Test corner cases of handling metadata."""
     resource = yaml.load(
