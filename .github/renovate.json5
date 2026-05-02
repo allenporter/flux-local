@@ -3,6 +3,7 @@
   "extends": [
     "config:recommended",
     "regexManagers:dockerfileVersions",
+    "helpers:pinGitHubActionDigestsToSemver",
   ],
   "timezone": "America/Los_Angeles",
   "assignees": ["allenporter"],
