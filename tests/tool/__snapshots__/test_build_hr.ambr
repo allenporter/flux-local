@@ -260,6 +260,161 @@
   
   '''
 # ---
+# name: test_build_hr[build-hr-flag-fixture-include-crds]
+  '''
+  ---
+  # Source: flag-fixture/crds/flagtests.example.com.yaml
+  apiVersion: apiextensions.k8s.io/v1
+  kind: CustomResourceDefinition
+  metadata:
+    name: flagtests.example.com
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  spec:
+    group: example.com
+    names:
+      kind: FlagTest
+      listKind: FlagTestList
+      plural: flagtests
+      singular: flagtest
+    scope: Namespaced
+    versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+  ---
+  # Source: flag-fixture/templates/serviceaccount.yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: flag-fixture-runner
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  ---
+  # Source: flag-fixture/templates/configmap.yaml
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: flag-fixture-mode
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  data:
+    lifecycle: install
+    chart: flag-fixture
+  ---
+  # Source: flag-fixture/templates/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: flag-fixture
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '3'
+      internal.config.kubernetes.io/index: '3'
+  spec:
+    type: ClusterIP
+    selector:
+      app.kubernetes.io/name: flag-fixture
+    ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  
+  
+  '''
+# ---
+# name: test_build_hr[build-hr-flag-fixture-show-only-multiple]
+  '''
+  ---
+  # Source: flag-fixture/templates/configmap.yaml
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: flag-fixture-mode
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  data:
+    lifecycle: install
+    chart: flag-fixture
+  ---
+  # Source: flag-fixture/templates/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: flag-fixture
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  spec:
+    type: ClusterIP
+    selector:
+      app.kubernetes.io/name: flag-fixture
+    ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  
+  
+  '''
+# ---
+# name: test_build_hr[build-hr-flag-fixture-upgrade]
+  '''
+  ---
+  # Source: flag-fixture/templates/serviceaccount.yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: flag-fixture-runner
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '0'
+      internal.config.kubernetes.io/index: '0'
+  ---
+  # Source: flag-fixture/templates/configmap.yaml
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: flag-fixture-mode
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '1'
+      internal.config.kubernetes.io/index: '1'
+  data:
+    lifecycle: upgrade
+    chart: flag-fixture
+  ---
+  # Source: flag-fixture/templates/service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: flag-fixture
+    namespace: default
+    annotations:
+      config.kubernetes.io/index: '2'
+      internal.config.kubernetes.io/index: '2'
+  spec:
+    type: ClusterIP
+    selector:
+      app.kubernetes.io/name: flag-fixture
+    ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  
+  
+  '''
+# ---
 # name: test_build_hr[build-hr-single-cluster6]
   '''
   ---

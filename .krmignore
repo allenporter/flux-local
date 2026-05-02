@@ -1,3 +1,4 @@
 .git
 local-charts
 tests/testdata/cluster9/local-charts
+tests/testdata/cluster12/local-charts
