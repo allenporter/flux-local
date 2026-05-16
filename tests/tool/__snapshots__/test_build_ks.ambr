@@ -673,6 +673,7 @@
       mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
       operation: copy
     ref:
+      digest: sha256:4d5bd3562f0b150bd6cdfdbfb149e7e4ac36e555e25baa1da9f511f4d9fb7391
       tag: 6.7.1
     secretRef:
       name: podinfo-pull-secret
@@ -1738,6 +1739,7 @@
       mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
       operation: copy
     ref:
+      digest: sha256:4d5bd3562f0b150bd6cdfdbfb149e7e4ac36e555e25baa1da9f511f4d9fb7391
       tag: 6.7.1
     secretRef:
       name: podinfo-pull-secret

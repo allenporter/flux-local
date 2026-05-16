@@ -3,7 +3,7 @@
 from typing import AsyncGenerator
 
 import pytest
-from flux_local.manifest import GitRepository, OCIRepository
+from flux_local.manifest import GitRepository, OCIRepository, OCIRepositoryRef
 from flux_local.store.in_memory import InMemoryStore
 from flux_local.kustomize_controller.controller import (
     KustomizationController,
@@ -48,4 +48,4 @@ class DummyOCIRepository(OCIRepository):
         self.namespace = namespace
         self.name = name
         self.url = f"oci://example.com/{namespace}/{name}"
-        self.digest = f"sha256:{name}"
+        self.ref = OCIRepositoryRef(f"sha256:{name}")

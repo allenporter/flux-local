@@ -156,6 +156,8 @@ def _chart_name(
                 f"HelmRelease {release.name}"
             )
         if isinstance(repo, OCIRepository):
+            if (digest := repo.digest) is not None:
+                return repo.url + "@" + digest
             return repo.url
         raise HelmException(
             f"HelmRelease {release.name} expected OCIRepository but got HelmRepository {repo.repo_name}"
@@ -433,7 +435,7 @@ class Helm:
                         release.chart.version,
                     ]
                 )
-            elif isinstance(repo, OCIRepository) and (oci_version := repo.version()):
+            elif isinstance(repo, OCIRepository) and (repo.digest is None) and (oci_version := repo.version()):
                 args.extend(
                     [
                         "--version",
