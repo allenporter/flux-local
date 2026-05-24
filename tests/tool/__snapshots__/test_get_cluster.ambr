@@ -703,6 +703,7 @@
         namespace: default
         url: oci://ghcr.io/stefanprodan/charts/podinfo
         ref:
+          digest: sha256:4d5bd3562f0b150bd6cdfdbfb149e7e4ac36e555e25baa1da9f511f4d9fb7391
           tag: 6.7.1
         secret_ref:
           name: podinfo-pull-secret

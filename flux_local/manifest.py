@@ -735,6 +735,13 @@ class OCIRepository(BaseManifest):
             secret_ref=secret_ref,
         )
 
+    @property
+    def digest(self) -> str | None:
+        """Return the digest of the OCI repository."""
+        if self.ref:
+            return self.ref.digest
+        return None
+
     def version(self) -> str | None:
         """Get the version of the OCI repository."""
         if self.ref is not None:
