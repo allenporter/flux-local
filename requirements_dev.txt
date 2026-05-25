@@ -15,7 +15,7 @@ mashumaro==3.20
 pytest-asyncio==1.3.0
 python-slugify>=8.0.1
 PyYAML==6.0.3
-types-aiofiles==25.1.0.20251011
+types-aiofiles==25.1.0.20260518
 types-PyYAML==6.0.12.20250915
 typing-extensions==4.15.0
 types-python-slugify==8.0.2.20240310
