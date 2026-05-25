@@ -18,18 +18,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: codespell-project/actions-codespell@v2.2
+      - uses: codespell-project/actions-codespell@8f01853be192eb0f849a5c7d721450e7a467c579 # v2.2
         with:
           check_hidden: false
           exclude_file: ./tests/testdata/cluster9/clusters/dev/flux-system/gotk-components.yaml
       - name: Run yamllint
-        uses: ibiqlik/action-yamllint@v3
+        uses: ibiqlik/action-yamllint@2576378a8e339169678f9939646ee3ee325e845c # v3
         with:
           file_or_dir: "./"
           config_file: "./.yaml-lint.yaml"
           strict: true
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           enable-cache: true
           cache-dependency-glob: "requirements_dev.txt"
