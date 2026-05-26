@@ -46,6 +46,6 @@ jobs:
         run: |
           ruff format .
 
-      - name: Static typing with mypy
+      - name: Static typing with ty
         run: |
-          mypy --install-types --non-interactive --no-warn-unused-ignores .
+          ty check . --ignore unresolved-import
