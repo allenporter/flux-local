@@ -3,7 +3,7 @@ GitPython==3.1.50
 mashumaro==3.22
 pytest==8.4.2
 pytest-asyncio==1.4.0
-pytest-cov==7.0.0
+pytest-cov==7.1.0
 PyYAML==6.0.3
 python-slugify==8.0.4
 oras==0.2.42
