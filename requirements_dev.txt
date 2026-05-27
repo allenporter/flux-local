@@ -3,7 +3,7 @@ coverage==7.14.1
 mypy==1.19.1
 pdoc==16.0.0
 pip==26.1.1
-pre-commit==4.5.1
+pre-commit==4.6.0
 pytest-cov==7.0.0
 pytest==8.4.2
 ruff==0.15.14
