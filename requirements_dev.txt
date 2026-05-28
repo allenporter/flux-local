@@ -6,7 +6,7 @@ pip==26.1.1
 pre-commit==4.6.0
 pytest-cov==7.1.0
 pytest==8.4.2
-ruff==0.15.14
+ruff==0.15.15
 
 
 aiofiles==25.1.0
