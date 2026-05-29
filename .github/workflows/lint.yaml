@@ -23,7 +23,7 @@ jobs:
           check_hidden: false
           exclude_file: ./tests/testdata/cluster9/clusters/dev/flux-system/gotk-components.yaml
       - name: Run yamllint
-        uses: ibiqlik/action-yamllint@2576378a8e339169678f9939646ee3ee325e845c # v3
+        uses: ibiqlik/action-yamllint@2576378a8e339169678f9939646ee3ee325e845c # v3.1.1
         with:
           file_or_dir: "./"
           config_file: "./.yaml-lint.yaml"
