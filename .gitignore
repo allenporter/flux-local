@@ -148,4 +148,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+# ty
+.ty_cache/
+
 .DS_Store

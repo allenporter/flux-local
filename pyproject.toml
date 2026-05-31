@@ -63,3 +63,6 @@ ignore_missing_imports = true
 disallow_any_generics = true
 no_implicit_reexport = true
 warn_no_return = true
+
+[tool.ty.src]
+exclude = ["tests", "examples"]
