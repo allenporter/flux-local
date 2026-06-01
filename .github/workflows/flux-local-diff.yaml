@@ -39,7 +39,7 @@ jobs:
         sources: cluster=tests/testdata/cluster3,flux-system,home-ops-kubernetes
         api-versions: batch/v1/CronJob
     - name: PR Comments
-      uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
+      uses: mshick/add-pr-comment@8e4927817251f1ff60c001f04568532b38e0b4a0 # v3.11.0
       if: ${{ steps.diff.outputs.diff != '' }}
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
