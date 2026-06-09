@@ -20,5 +20,5 @@ types-PyYAML==6.0.12.20260518
 typing-extensions==4.15.0
 types-python-slugify==8.0.2.20240310
 yamllint==1.38.0
-syrupy==5.3.1
+syrupy==5.3.2
 oras==0.2.42
