@@ -525,7 +525,7 @@ async def visit_kustomization(
             if doc.get("kind") == CONFIG_MAP_KIND
         ],
         secrets=[
-            Secret.parse_doc(doc) for doc in cfg_docs if doc.get("kind") == SECRET_KIND
+            Secret.parse_doc(doc) for doc in cfg_docs if doc.get("kind") == SECRET_KIND and doc.get("apiVersion") == "v1"
         ],
     )
 
@@ -716,7 +716,7 @@ async def build_kustomization(
             if doc.get("kind") == CONFIG_MAP_KIND
         ]
         kustomization.secrets = [
-            Secret.parse_doc(doc) for doc in docs if doc.get("kind") == SECRET_KIND
+            Secret.parse_doc(doc) for doc in docs if doc.get("kind") == SECRET_KIND and doc.get("apiVersion") == "v1"
         ]
         kustomization.helm_chart_sources = [
             HelmChartSource.parse_doc(doc)
