@@ -12,7 +12,11 @@ import pathlib
 import shlex
 from typing import Any
 
+import yaml
+
 from flux_local import git_repo, helm
+from flux_local.exceptions import InputException
+from flux_local.manifest import ConfigMap, parse_raw_obj
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -136,6 +140,46 @@ def add_common_flags(args: ArgumentParser) -> None:
         default="",
         help="If present, additional flags to pass to `kustomize build`",
     )
+    args.add_argument(
+        "--extra-configmap-file",
+        action="append",
+        type=pathlib.Path,
+        default=[],
+        help=(
+            "YAML file containing one or more ConfigMap manifests to make "
+            "available during substituteFrom and valuesFrom resolution. "
+            "Can be specified multiple times."
+        ),
+    )
+
+
+def _load_extra_config_maps(paths: list[pathlib.Path] | None) -> list[ConfigMap]:
+    """Load ConfigMaps from YAML files passed on the command line."""
+    config_maps: list[ConfigMap] = []
+    for path in paths or []:
+        try:
+            content = path.read_text(encoding="utf-8")
+        except OSError as err:
+            raise InputException(
+                f"Unable to read extra ConfigMap file {path}: {err}"
+            ) from err
+
+        try:
+            docs = yaml.safe_load_all(content)
+            for doc in docs:
+                if not doc:
+                    continue
+                obj = parse_raw_obj(doc, wipe_secrets=False)
+                if not isinstance(obj, ConfigMap):
+                    raise InputException(
+                        f"Extra ConfigMap file {path} contains unsupported kind {obj.kind}"
+                    )
+                config_maps.append(obj)
+        except yaml.YAMLError as err:
+            raise InputException(
+                f"Unable to parse extra ConfigMap file {path}: {err}"
+            ) from err
+    return config_maps
 
 
 def add_ks_selector_flags(args: ArgumentParser) -> None:
@@ -154,12 +198,13 @@ def options(  # type: ignore[no-untyped-def]
     kustomize_build_flags: str | None, **kwargs
 ) -> git_repo.Options:
     """Create an Options object based on flags."""
-    options = git_repo.Options()
-    options.kustomize_flags = shlex.split(kustomize_build_flags or "")
-    options.skip_kustomize_path_validation = kwargs.get(
-        "skip_invalid_kustomization_paths", False
+    return git_repo.Options(
+        kustomize_flags=shlex.split(kustomize_build_flags or ""),
+        skip_kustomize_path_validation=kwargs.get(
+            "skip_invalid_kustomization_paths", False
+        ),
+        extra_config_maps=_load_extra_config_maps(kwargs.get("extra_configmap_file")),
     )
-    return options
 
 
 def build_ks_selector(  # type: ignore[no-untyped-def]

@@ -1569,7 +1569,6 @@
           - name: data
             mountPath: /data
           resources:
-            limits: null
             requests:
               cpu: 1m
               memory: 16Mi
@@ -2891,7 +2890,6 @@
           - name: data
             mountPath: /data
           resources:
-            limits: null
             requests:
               cpu: 1m
               memory: 16Mi
@@ -4629,7 +4627,6 @@
           - name: data
             mountPath: /data
           resources:
-            limits: null
             requests:
               cpu: 1m
               memory: 16Mi
