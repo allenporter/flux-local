@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, AsyncGenerator
 from enum import Enum
-from typing import TypeVar, TYPE_CHECKING
+from typing import TypeVar, TYPE_CHECKING, cast
 
 from flux_local.manifest import BaseManifest, NamedResource
 
@@ -128,7 +128,7 @@ class Store(ABC):
             when a new object of the specified kind is added.
         """
         if TYPE_CHECKING:
-            yield None, None  # type: ignore[misc]
+            yield cast(tuple[NamedResource, BaseManifest], (None, None))
 
     @abstractmethod
     async def watch_exists(self, resource_id: NamedResource) -> BaseManifest:

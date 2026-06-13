@@ -7,7 +7,7 @@ repos:
         exclude: \.ambr
       - id: end-of-file-fixer
       - id: check-yaml
-        exclude: '^tests/testdata/cluster8/apps/.*\.yaml|tests/testdata/cluster/apps/prod/.*\.yaml|tests/testdata/.*/gotk-sync\.yaml$'
+        exclude: '^tests/testdata/cluster8/apps/.*\.yaml|tests/testdata/cluster/apps/prod/.*\.yaml|tests/testdata/.*/gotk-sync\.yaml|.*/templates/.*$'
         args:
           - --allow-multiple-documents
       - id: check-added-large-files
@@ -32,11 +32,12 @@ repos:
         entry: ty check . --ignore unresolved-import
         language: python
         pass_filenames: false
-        additional_dependencies: ["ty==0.0.18"]
+        additional_dependencies: ["ty==0.0.49"]
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2
     hooks:
       - id: codespell
+        exclude: 'gotk-components\.yaml$'
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.38.0
     hooks:

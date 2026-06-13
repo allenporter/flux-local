@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 from flux_local.manifest import NamedResource
 from flux_local.exceptions import ResourceFailedError
@@ -117,7 +118,7 @@ class DependencyWaiter:
         self._task_service = task_service
         self._parent_resource_id = parent_resource_id
         self._timeout_seconds = timeout_seconds
-        self._dependencies: dict[NamedResource, asyncio.Task[StatusInfo]] = {}
+        self._dependencies: dict[NamedResource, asyncio.Task[Any] | None] = {}
         self._resolutions: dict[NamedResource, DependencyResolutionEvent] = {}
         self._watch_task: asyncio.Task[None] | None = None
         self._event_queue: asyncio.Queue[DependencyResolutionEvent] = asyncio.Queue()
@@ -138,7 +139,7 @@ class DependencyWaiter:
         )
         # The task will be created when `watch` is called.
         # Store a placeholder or simply the ID for now.
-        self._dependencies[resource_id] = None  # type: ignore[assignment]
+        self._dependencies[resource_id] = None
 
     async def _watch_single_dependency(self, resource_id: NamedResource) -> None:
         """Internal task to watch a single dependency and put its resolution on the queue."""
@@ -420,7 +421,7 @@ class DependencyWaiter:
                 self._parent_resource_id.namespaced_name,
                 "Exists" if task else "None",
             )
-            if not task.done():
+            if task is not None and not task.done():
                 _LOGGER.debug(
                     "Actively cancelling task for dependency: %s for %s",
                     dep_id,

@@ -205,7 +205,9 @@ def merge_named_resources(
     b_dict = {f"{r.kind}-{r.namespaced_name}": r for r in b}
     for name in _unique_keys(a_dict, b_dict):
         # Emit either the left or right since they should be identical
-        value: NamedResource = a_dict.get(name) or b_dict.get(name)  # type: ignore[assignment]
+        val = a_dict.get(name) or b_dict.get(name)
+        assert val is not None
+        value: NamedResource = val
         yield value
 
 
@@ -223,7 +225,9 @@ def build_helm_dependency_map(
     ):
         resources_a = helmrelease_a.resource_dependencies if helmrelease_a else []
         resources_b = helmrelease_b.resource_dependencies if helmrelease_b else []
-        hr: HelmRelease = helmrelease_a or helmrelease_b  # type: ignore[assignment]
+        val = helmrelease_a or helmrelease_b
+        assert val is not None
+        hr: HelmRelease = val
         hr_named_resource = NamedResource(
             kind="HelmRelease",
             namespace=hr.namespace,
