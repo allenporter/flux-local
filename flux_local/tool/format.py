@@ -1,7 +1,7 @@
 """Library for formatting output."""
 
 from abc import ABC, abstractmethod
-from typing import Generator, Any
+from typing import Generator, Any, cast
 
 import sys
 from typing import TextIO
@@ -19,7 +19,7 @@ def open_file(filename: str, mode: str) -> Generator[TextIO, None, None]:
         yield sys.stderr
     else:
         with open(filename, mode) as f:
-            yield f  # type: ignore[misc]
+            yield cast(TextIO, f)
 
 
 PADDING = 4

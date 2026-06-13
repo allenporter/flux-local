@@ -435,7 +435,11 @@ class Helm:
                         release.chart.version,
                     ]
                 )
-            elif isinstance(repo, OCIRepository) and (repo.digest is None) and (oci_version := repo.version()):
+            elif (
+                isinstance(repo, OCIRepository)
+                and (repo.digest is None)
+                and (oci_version := repo.version())
+            ):
                 args.extend(
                     [
                         "--version",
