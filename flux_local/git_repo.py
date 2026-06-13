@@ -320,6 +320,7 @@ class Options:
 
     kustomize_flags: list[str] = field(default_factory=list)
     skip_kustomize_path_validation: bool = False
+    extra_config_maps: list[ConfigMap] = field(default_factory=list)
 
 
 @dataclass
@@ -541,7 +542,7 @@ async def kustomization_traversal(
 
     path_queue: deque[tuple[Path, Kustomization | None]] = deque()
     path_queue.append((selector.relative_path, None))
-    cluster_config = values.cluster_config([], [])
+    cluster_config = values.cluster_config([], options.extra_config_maps)
     while path_queue:
         # Fully empty the queue, running all tasks in parallel
         tasks = []
@@ -803,7 +804,15 @@ async def build_manifest(
                     if kustomization.postbuild_substitute_from:
                         values.expand_postbuild_substitute_reference(
                             kustomization,
-                            values.ks_cluster_config(cluster.kustomizations),
+                            values.merge_cluster_config(
+                                values.cluster_config([], options.extra_config_maps),
+                                [],
+                                list(
+                                    values.ks_cluster_config(
+                                        cluster.kustomizations
+                                    ).config_maps
+                                ),
+                            ),
                         )
                         # Clear the cache to remove any previous builds that are
                         # missing the postbuild substitutions.

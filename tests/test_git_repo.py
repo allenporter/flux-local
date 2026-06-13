@@ -15,12 +15,13 @@ from flux_local.git_repo import (
     ResourceVisitor,
     Source,
     PathSelector,
+    Options,
     is_allowed_source,
     adjust_ks_path,
 )
 from flux_local.kustomize import Kustomize, Stash
 from flux_local.command import Task, run_piped
-from flux_local.manifest import Kustomization
+from flux_local.manifest import ConfigMap, Kustomization
 from flux_local.context import trace
 
 TESTDATA = Path("tests/testdata/cluster")
@@ -32,6 +33,38 @@ async def test_build_manifest(snapshot: SnapshotAssertion) -> None:
 
     manifest = await build_manifest(TESTDATA)
     assert manifest.compact_dict() == snapshot
+
+
+async def test_build_manifest_with_extra_configmaps() -> None:
+    """Tests custom ConfigMaps are available during substituteFrom expansion."""
+
+    selector = ResourceSelector()
+    selector.path.path = TESTDATA
+
+    manifest = await build_manifest(
+        selector=selector,
+        options=Options(
+            extra_config_maps=[
+                ConfigMap(
+                    name="cluster-config",
+                    namespace="flux-system",
+                    data={
+                        "SECRET_DOMAIN": "override.example.org",
+                        "cluster_label": "override-label",
+                    },
+                )
+            ]
+        ),
+    )
+
+    apps = next(
+        ks
+        for ks in manifest.clusters[0].kustomizations
+        if ks.name == "apps" and ks.namespace == "flux-system"
+    )
+    assert apps.postbuild_substitute is not None
+    assert apps.postbuild_substitute["SECRET_DOMAIN"] == "override.example.org"
+    assert apps.postbuild_substitute["cluster_label"] == "override-label"
 
 
 async def test_cluster_selector_disabled(snapshot: SnapshotAssertion) -> None:
