@@ -95,7 +95,10 @@ class BaseManifest(DataClassDictMixin):
 
     def yaml(self, exclude: dict[str, Any] | None = None) -> str:
         """Return a YAML string representation of compact_dict."""
-        return yaml_encode(self, self.__class__)  # type: ignore[return-value]
+        res = yaml_encode(self, self.__class__)
+        if isinstance(res, bytes):
+            return res.decode("utf-8")
+        return res
 
     class Config(BaseConfig):
         omit_none = True
