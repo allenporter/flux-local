@@ -1,5 +1,9 @@
 FROM python:3.14-alpine as base
 
+ARG UID=1001
+ARG GID=1001
+RUN addgroup -g $GID flux-local && adduser -G flux-local -D -u $UID flux-local
+
 RUN apk add --no-cache ca-certificates git
 
 WORKDIR /app
@@ -18,5 +22,5 @@ RUN wget -qO- \
   "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_${TARGETARCH}.tar.gz" \
   | tar xz -C /usr/local/bin kustomize
 
-USER 1001
+USER $UID
 ENTRYPOINT ["/usr/local/bin/flux-local"]
