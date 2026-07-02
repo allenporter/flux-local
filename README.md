@@ -1,3 +1,12 @@
+> [!WARNING]
+> **flux-local is deprecated and has been sunsetted.**
+>
+> We recommend migrating to the following modern, actively maintained alternatives:
+> - [flate](https://github.com/home-operations/flate) (an offline validator and renderer written in Go)
+> - [konflate](https://github.com/home-operations/konflate) (a pull request review tool for Flux using flate)
+>
+> Thank you to all contributors and users of `flux-local` over the years!
+
 flux-local is a set of tools and libraries for managing a local flux gitops repository focused on validation steps to help improve quality of commits, PRs, and general local testing.
 
 This library uses command line tools like kustomize and helm to replicate the behavior of

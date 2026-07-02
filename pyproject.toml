@@ -4,14 +4,14 @@ requires = ["setuptools>=77.0"]
 
 [project]
 name = "flux_local"
-version = "8.3.0"
+version = "8.4.0"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-description = "flux-local is a set of tools and libraries for managing a local flux gitops repository focused on validation steps to help improve quality of commits, PRs, and general local testing."
+description = "[DEPRECATED] flux-local is a set of tools and libraries for managing a local flux gitops repository focused on validation steps to help improve quality of commits, PRs, and general local testing."
 readme = "README.md"
 authors = [{ name = "Allen Porter", email = "allen.porter@gmail.com" }]
 requires-python = ">=3.13"
-classifiers = []
+classifiers = ["Development Status :: 7 - Inactive"]
 dependencies = [
   "GitPython>=3.1.47",
   "PyYAML>=6.0",

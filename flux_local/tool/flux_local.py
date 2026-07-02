@@ -37,6 +37,17 @@ def _make_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     """Flux-local command line tool main entry point."""
+    import os
+
+    deprecation_msg = (
+        "WARNING: flux-local is deprecated and has been sunsetted. "
+        "Please migrate to flate (https://github.com/home-operations/flate) "
+        "and konflate (https://github.com/home-operations/konflate)."
+    )
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        print(f"::warning::{deprecation_msg}", file=sys.stderr)
+    else:
+        print(deprecation_msg, file=sys.stderr)
 
     def str_presenter(dumper: yaml.Dumper, data: Any) -> Any:
         """Represent multi-line yaml strings as you'd expect.

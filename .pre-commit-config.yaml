@@ -38,6 +38,7 @@ repos:
     hooks:
       - id: codespell
         exclude: 'gotk-components\.yaml$'
+        args: ["-L", "flate"]
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.38.0
     hooks:

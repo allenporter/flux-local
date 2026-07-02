@@ -80,7 +80,7 @@ wheels = [
 
 [[package]]
 name = "flux-local"
-version = "8.3.0"
+version = "8.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
