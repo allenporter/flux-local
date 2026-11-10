@@ -8,6 +8,7 @@ import pathlib
 import yaml
 
 from flux_local import git_repo
+from flux_local.exceptions import FluxException
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +51,10 @@ class DiagnosticsAction:
     ) -> None:
         """Async Action implementation."""
         path = kwargs.get("path") or "."
+
+        if not pathlib.Path(path).exists():
+            print(f"{FAIL}: path does not exist: {path}")
+            raise FluxException(f"path does not exist: {path}")
 
         # Parse directories to ignore from `.krmignore`
         krmignore = pathlib.Path(path) / ".krmignore"
